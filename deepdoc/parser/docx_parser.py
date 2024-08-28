@@ -22,12 +22,14 @@ from io import BytesIO
 class RAGFlowDocxParser:
 
     def __extract_table_content(self, tb):
+        # 函数接收一个表格对象（tb）作为输入，然后遍历表格的每一行，将每一行的单元格内容添加到一个列表（df）中
         df = []
         for row in tb.rows:
             df.append([c.text for c in row.cells])
         return self.__compose_table_content(pd.DataFrame(df))
 
     def __compose_table_content(self, df):
+        # 根据单元格的数据类型来判断列的类型，最后将单元格拼接为字符串
 
         def blockType(b):
             patt = [
@@ -132,5 +134,6 @@ class RAGFlowDocxParser:
 
             secs.append(("".join(runs_within_single_paragraph), p.style.name)) # then concat run.text as part of the paragraph
 
+        # 通过 __extract_table_content 解析表格 （不需要模型来识别了，可以直接读取）
         tbls = [self.__extract_table_content(tb) for tb in self.doc.tables]
         return secs, tbls

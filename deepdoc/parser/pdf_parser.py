@@ -36,13 +36,19 @@ logging.getLogger("pdfminer").setLevel(logging.WARNING)
 
 class RAGFlowPdfParser:
     def __init__(self):
+        # 1. OCR 将图片、PDF识别为文本
         self.ocr = OCR()
+
+        # 2. LayoutRecognizer 版面识别，识别文档的标题、段落、表格、图像等
         if hasattr(self, "model_speciess"):
             self.layouter = LayoutRecognizer("layout." + self.model_speciess)
         else:
             self.layouter = LayoutRecognizer("layout")
+            
+        # 3. 表格结构识别 (TSR)，识别的行、列，以及合并的单元格
         self.tbl_det = TableStructureRecognizer()
 
+        # 4. xgb 模型用来合并 box
         self.updown_cnt_mdl = xgb.Booster()
         if torch.cuda.is_available():
             self.updown_cnt_mdl.set_param({"device": "cuda"})
@@ -182,6 +188,7 @@ class RAGFlowPdfParser:
         return True
 
     def _table_transformer_job(self, ZM):
+        # 遍历 page_layout，得到每一页的 layout，从 layout 中找到表格，并调用模型识别后再根据规则做处理
         logging.info("Table processing...")
         imgs, pos = [], []
         tbcnt = [0]
@@ -273,11 +280,13 @@ class RAGFlowPdfParser:
                 b["SP"] = ii
 
     def __ocr(self, pagenum, img, chars, ZM=3):
+        # 检测文本框 
         bxs = self.ocr.detect(np.array(img))
         if not bxs:
             self.boxes.append([])
             return
         bxs = [(line[0], line[1][0]) for line in bxs]
+        # 对检测到的文本框按照Y轴坐标进行排序，并调整坐标尺度
         bxs = Recognizer.sort_Y_firstly(
             [{"x0": b[0][0] / ZM, "x1": b[1][0] / ZM,
               "top": b[0][1] / ZM, "text": "", "txt": t,
@@ -287,6 +296,7 @@ class RAGFlowPdfParser:
         )
         
         # merge chars in the same rect
+        # 将已知字符合并到相应的文本框中，如果没有合并成功的字符则保留在 self.lefted_chars 中
         for c in Recognizer.sort_Y_firstly(
                 chars, self.mean_height[pagenum - 1] // 4):
             ii = Recognizer.find_overlapped(c, bxs)
@@ -295,6 +305,7 @@ class RAGFlowPdfParser:
                 continue
             ch = c["bottom"] - c["top"]
             bh = bxs[ii]["bottom"] - bxs[ii]["top"]
+            # 高度差异小于整体高度的 0.3
             if abs(ch - bh) / max(ch, bh) >= 0.7 and c["text"] != ' ':
                 self.lefted_chars.append(c)
                 continue
@@ -304,6 +315,7 @@ class RAGFlowPdfParser:
             else:
                 bxs[ii]["text"] += c["text"]
 
+        # 对于未包含字符的文本框，通过 OCR 识别图像中的文本
         for b in bxs:
             if not b["text"]:
                 left, right, top, bott = b["x0"] * ZM, b["x1"] * \
@@ -321,9 +333,11 @@ class RAGFlowPdfParser:
     def _layouts_rec(self, ZM, drop=True):
         assert len(self.page_images) == len(self.boxes)
         self.boxes, self.page_layout = self.layouter(
-            self.page_images, self.boxes, ZM, drop=drop)
+            self.page_images, self.boxes, ZM, drop=drop)  # 传入page_images图片，以及ocr处理后的文本box
+        # layouter执行后，会返回分配layout后的文本框boxes，同时清理掉一些无用文本框
         # cumlative Y
         for i in range(len(self.boxes)):
+            # 更新 box 的 top 信息，加上 page_cum_height 页面高度
             self.boxes[i]["top"] += \
                 self.page_cum_height[self.boxes[i]["page_number"] - 1]
             self.boxes[i]["bottom"] += \
@@ -947,6 +961,7 @@ class RAGFlowPdfParser:
         self.page_layout = []
         self.page_from = page_from
         st = timer()
+        # 读取 pdf
         try:
             self.pdf = pdfplumber.open(fnm) if isinstance(
                 fnm, str) else pdfplumber.open(BytesIO(fnm))
@@ -958,6 +973,8 @@ class RAGFlowPdfParser:
         except Exception as e:
             logging.error(str(e))
 
+        # 读取 pdf 目录
+        # NOTE: 这里貌似是基本的读取，其实pdf的目录可以关联到具体的章节内容，这里暂时看起来没有很好的利用
         self.outlines = []
         try:
             self.pdf = pdf2_read(fnm if isinstance(fnm, str) else BytesIO(fnm))
@@ -977,9 +994,13 @@ class RAGFlowPdfParser:
             logging.warning(f"Miss outlines")
 
         logging.info("Images converted.")
+
+        # 英文文档检测
+        # 从每一页的字符集合中随机抽取最多 100 个字符，并检查这些字符是否包含至少 30 个连续的英文字母、数字或常见标点符号
         self.is_english = [re.search(r"[a-zA-Z0-9,/¸;:'\[\]\(\)!@#$%^&*\"?<>._-]{30,}", "".join(
             random.choices([c["text"] for c in self.page_chars[i]], k=min(100, len(self.page_chars[i]))))) for i in
                            range(len(self.page_chars))]
+        # 如果超过一半的页面是英文，则将整个文档标记为英文
         if sum([1 if e else 0 for e in self.is_english]) > len(
                 self.page_images) / 2:
             self.is_english = True
@@ -989,6 +1010,7 @@ class RAGFlowPdfParser:
         st = timer()
         for i, img in enumerate(self.page_images):
             chars = self.page_chars[i] if not self.is_english else []
+            # 计算每页字符高度和宽度的中位数
             self.mean_height.append(
                 np.median(sorted([c["height"] for c in chars])) if chars else 0
             )
@@ -996,8 +1018,11 @@ class RAGFlowPdfParser:
                 np.median(sorted([c["width"] for c in chars])) if chars else 8
             )
             self.page_cum_height.append(img.size[1] / zoomin)
+            
+            # 检查相邻字符是否可以合并成更大的文本片段
             j = 0
             while j + 1 < len(chars):
+                # 如果满足正则的两个字符之间的水平距离足够大
                 if chars[j]["text"] and chars[j + 1]["text"] \
                         and re.match(r"[0-9a-zA-Z,.:;!%]+", chars[j]["text"] + chars[j + 1]["text"]) \
                         and chars[j + 1]["x0"] - chars[j]["x1"] >= min(chars[j + 1]["width"],
@@ -1024,15 +1049,22 @@ class RAGFlowPdfParser:
                                                                 page_to, callback)
 
     def __call__(self, fnm, need_image=True, zoomin=3, return_html=False):
+        # pdf转图片，读取pdf里的文本，并用ocr识别文本块等
         self.__images__(fnm, zoomin)
+        # 版面分析
         self._layouts_rec(zoomin)
+        # table box 处理 
         self._table_transformer_job(zoomin)
+        # 合并文本块
         self._text_merge()
-        self._concat_downward()
+        self._concat_downward()  # 使用 updown_cnt_mdl 模型来做合并
+        # 过滤分页信息
         self._filter_forpages()
+        # 抽取页面里的表格和图片，表格会转换为 html
         tbls = self._extract_table_figure(
             need_image, zoomin, return_html, False)
-        return self.__filterout_scraps(deepcopy(self.boxes), zoomin), tbls
+        # 返回（去掉表格后抽取的）文本， 表格  
+        return self.__filterout_scraps(deepcopy(self.boxes), zoomin), tbls  # 合并文本块
 
     def remove_tag(self, txt):
         return re.sub(r"@@[\t0-9.-]+?##", "", txt)

@@ -122,6 +122,7 @@ class TaskService(CommonService):
 
 
 def queue_tasks(doc, bucket, name):
+    # 根据文件创建一个或多个异步任务，方便异步执行
     def new_task():
         nonlocal doc
         return {
@@ -135,7 +136,9 @@ def queue_tasks(doc, bucket, name):
         do_layout = doc["parser_config"].get("layout_recognize", True)
         pages = PdfParser.total_page_number(doc["name"], file_bin)
         page_size = doc["parser_config"].get("task_page_size", 12)
+        # pdf 文件的解析，根据不同的类型设置单个任务最多处理的页数
         if doc["parser_id"] == "paper":
+            # 默认单个任务处理 12 页 pdf，pager 类型的 pdf 一个任务处理 22 页，其他 pdf 不分页
             page_size = doc["parser_config"].get("task_page_size", 22)
         if doc["parser_id"] == "one":
             page_size = 1000000000
@@ -157,6 +160,7 @@ def queue_tasks(doc, bucket, name):
                 tsks.append(task)
 
     elif doc["parser_id"] == "table":
+        # 表格数据单个任务处理 3000 行
         file_bin = MINIO.get(bucket, name)
         rn = RAGFlowExcelParser.row_number(
             doc["name"], file_bin)
@@ -172,4 +176,6 @@ def queue_tasks(doc, bucket, name):
     DocumentService.begin2parse(doc["id"])
 
     for t in tsks:
+        # 任务插入 Redis 消息队列，方便异步处理
+        # 文件的解析是根据内容拆分为多个任务，通过 Redis 消息队列进行暂存，之后就可以离线异步处理
         assert REDIS_CONN.queue_product(SVR_QUEUE_NAME, message=t), "Can't access Redis. Please check the Redis' status."

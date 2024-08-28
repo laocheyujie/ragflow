@@ -16,6 +16,8 @@ class Payload:
 
     def ack(self):
         try:
+            # 用了 Redis 的 XACK 命令，用于确认（acknowledge）一个消息已经被处理
+            # 用来标识某个消费者已经成功处理了一条消息，并将其从待处理列表中移除
             self.__consumer.xack(self.__queue_name, self.__group_name, self.__msg_id)
             return True
         except Exception as e:
@@ -91,6 +93,7 @@ class RedisDB:
         return False
 
     def transaction(self, key, value, exp=3600):
+        # 事务操作：transaction 方法通过 Redis pipeline 实现事务操作，确保数据设置的原子性
         try:
             pipeline = self.REDIS.pipeline(transaction=True)
             pipeline.set(key, value, exp, nx=True)

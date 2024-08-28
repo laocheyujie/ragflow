@@ -13,6 +13,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+
+# 消息队列的消费模块
+
 import datetime
 import json
 import logging
@@ -100,6 +103,7 @@ def set_progress(task_id, from_page=0, to_page=-1,
 
 
 def collect():
+    # 获取 Redis 任务
     try:
         payload = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME, "rag_flow_svr_task_broker", "rag_flow_svr_task_consumer")
         if not payload:
@@ -110,7 +114,7 @@ def collect():
         return pd.DataFrame()
 
     msg = payload.get_message()
-    payload.ack()
+    payload.ack()  # 确认消息已被处理
     if not msg: return pd.DataFrame()
 
     if TaskService.do_cancel(msg["id"]):
@@ -139,8 +143,10 @@ def build(row):
         row["id"],
         row["from_page"],
         row["to_page"])
+    # 根据类型选择合适的解析器
     chunker = FACTORY[row["parser_id"].lower()]
     try:
+        # 从 minio 获取文件
         st = timer()
         bucket, name = File2DocumentService.get_minio_address(doc_id=row["doc_id"])
         binary = get_minio_binary(bucket, name)
@@ -161,6 +167,7 @@ def build(row):
         return
 
     try:
+        # 执行文档的解析和切片
         cks = chunker.chunk(row["name"], binary=binary, from_page=row["from_page"],
                             to_page=row["to_page"], lang=row["language"], callback=callback,
                             kb_id=row["kb_id"], parser_config=row["parser_config"], tenant_id=row["tenant_id"])
@@ -299,6 +306,7 @@ def run_raptor(row, chat_mdl, embd_mdl, callback=None):
 
 
 def main():
+    # 获取任务
     rows = collect()
     if len(rows) == 0:
         return
@@ -322,6 +330,7 @@ def main():
                 continue
         else:
             st = timer()
+            # 执行文件解析
             cks = build(r)
             cron_logger.info("Build chunks({}): {}".format(r["name"], timer() - st))
             if cks is None:
@@ -336,6 +345,7 @@ def main():
                     len(cks))
             st = timer()
             try:
+                # 执行向量化
                 tk_count = embedding(cks, embd_mdl, r["parser_config"], callback)
             except Exception as e:
                 callback(-1, "Embedding error:{}".format(str(e)))
@@ -350,6 +360,7 @@ def main():
         es_r = ""
         es_bulk_size = 16
         for b in range(0, len(cks), es_bulk_size):
+            # 写入 ES
             es_r = ELASTICSEARCH.bulk(cks[b:b + es_bulk_size], search.index_name(r["tenant_id"]))
             if b % 128 == 0:
                 callback(prog=0.8 + 0.1 * (b + 1) / len(cks), msg="")
