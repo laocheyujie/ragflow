@@ -41,6 +41,7 @@ export default {
   get_document_list: `${api_host}/document/list`,
   document_change_status: `${api_host}/document/change_status`,
   document_rm: `${api_host}/document/rm`,
+  document_delete: `${api_host}/api/document`,
   document_rename: `${api_host}/document/rename`,
   document_create: `${api_host}/document/create`,
   document_run: `${api_host}/document/run`,
@@ -50,6 +51,7 @@ export default {
   document_upload: `${api_host}/document/upload`,
   web_crawl: `${api_host}/document/web_crawl`,
   document_infos: `${api_host}/document/infos`,
+  upload_and_parse: `${api_host}/document/upload_and_parse`,
 
   // chat
   setDialog: `${api_host}/dialog/set`,
@@ -61,6 +63,9 @@ export default {
   listConversation: `${api_host}/conversation/list`,
   removeConversation: `${api_host}/conversation/rm`,
   completeConversation: `${api_host}/conversation/completion`,
+  deleteMessage: `${api_host}/conversation/delete_msg`,
+  thumbup: `${api_host}/conversation/thumbup`,
+  tts: `${api_host}/conversation/tts`,
   // chat for external
   createToken: `${api_host}/api/new_token`,
   listToken: `${api_host}/api/token_list`,
@@ -69,6 +74,7 @@ export default {
   createExternalConversation: `${api_host}/api/new_conversation`,
   getExternalConversation: `${api_host}/api/conversation`,
   completeExternalConversation: `${api_host}/api/completion`,
+  uploadAndParseExternal: `${api_host}/api/document/upload_and_parse`,
 
   // file manager
   listFile: `${api_host}/file/list`,
@@ -93,4 +99,5 @@ export default {
   setCanvas: `${api_host}/canvas/set`,
   resetCanvas: `${api_host}/canvas/reset`,
   runCanvas: `${api_host}/canvas/completion`,
+  testDbConnect: `${api_host}/canvas/test_db_connect`,
 };

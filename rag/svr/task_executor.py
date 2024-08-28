@@ -26,6 +26,7 @@ import re
 import sys
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 from api.db.services.file2document_service import File2DocumentService
@@ -76,9 +77,12 @@ FACTORY = {
     ParserType.KG.value: knowledge_graph
 }
 
+CONSUMEER_NAME = "task_consumer_" + ("0" if len(sys.argv) < 2 else sys.argv[1])
+PAYLOAD = None
 
 def set_progress(task_id, from_page=0, to_page=-1,
                  prog=None, msg="Processing..."):
+    global PAYLOAD
     if prog is not None and prog < 0:
         msg = "[ERROR]" + msg
     cancel = TaskService.do_cancel(task_id)
@@ -99,29 +103,38 @@ def set_progress(task_id, from_page=0, to_page=-1,
 
     close_connection()
     if cancel:
-        sys.exit()
+        if PAYLOAD:
+            PAYLOAD.ack()
+            PAYLOAD = None
+        os._exit(0)
 
 
 def collect():
     # 获取 Redis 任务
+    global CONSUMEER_NAME, PAYLOAD
     try:
-        payload = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME, "rag_flow_svr_task_broker", "rag_flow_svr_task_consumer")
-        if not payload:
+        PAYLOAD = REDIS_CONN.get_unacked_for(CONSUMEER_NAME, SVR_QUEUE_NAME, "rag_flow_svr_task_broker")
+        if not PAYLOAD:
+            PAYLOAD = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME, "rag_flow_svr_task_broker", CONSUMEER_NAME)
+        if not PAYLOAD:
             time.sleep(1)
             return pd.DataFrame()
     except Exception as e:
         cron_logger.error("Get task event from queue exception:" + str(e))
         return pd.DataFrame()
 
-    msg = payload.get_message()
-    payload.ack()  # 确认消息已被处理
-    if not msg: return pd.DataFrame()
+    msg = PAYLOAD.get_message()
+    if not msg:
+        return pd.DataFrame()
 
     if TaskService.do_cancel(msg["id"]):
         cron_logger.info("Task {} has been canceled.".format(msg["id"]))
         return pd.DataFrame()
     tasks = TaskService.get_tasks(msg["id"])
-    assert tasks, "{} empty task!".format(msg["id"])
+    if not tasks:
+        cron_logger.warn("{} empty task!".format(msg["id"]))
+        return []
+
     tasks = pd.DataFrame(tasks)
     if msg.get("type", "") == "raptor":
         tasks["task_type"] = "raptor"
@@ -358,7 +371,7 @@ def main():
         chunk_count = len(set([c["_id"] for c in cks]))
         st = timer()
         es_r = ""
-        es_bulk_size = 16
+        es_bulk_size = 4
         for b in range(0, len(cks), es_bulk_size):
             # 写入 ES
             es_r = ELASTICSEARCH.bulk(cks[b:b + es_bulk_size], search.index_name(r["tenant_id"]))
@@ -367,7 +380,7 @@ def main():
 
         cron_logger.info("Indexing elapsed({}): {:.2f}".format(r["name"], timer() - st))
         if es_r:
-            callback(-1, "Index failure!")
+            callback(-1, f"Insert chunk error, detail info please check ragflow-logs/api/cron_logger.log. Please also check ES status!")
             ELASTICSEARCH.deleteByQuery(
                 Q("match", doc_id=r["doc_id"]), idxnm=search.index_name(r["tenant_id"]))
             cron_logger.error(str(es_r))
@@ -384,6 +397,22 @@ def main():
                     r["id"], tk_count, len(cks), timer() - st))
 
 
+def report_status():
+    global CONSUMEER_NAME
+    while True:
+        try:
+            obj = REDIS_CONN.get("TASKEXE")
+            if not obj: obj = {}
+            else: obj = json.loads(obj)
+            if CONSUMEER_NAME not in obj: obj[CONSUMEER_NAME] = []
+            obj[CONSUMEER_NAME].append(timer())
+            obj[CONSUMEER_NAME] = obj[CONSUMEER_NAME][-60:]
+            REDIS_CONN.set_obj("TASKEXE", obj, 60*2)
+        except Exception as e:
+            print("[Exception]:", str(e))
+        time.sleep(60)
+
+
 if __name__ == "__main__":
     # NOTE: 获取名为 'peewee' 的日志记录器。peewee 是一个轻量级的 Python ORM（对象关系映射）库，这个日志记录器用于记录 peewee 库的日志信息
     peewee_logger = logging.getLogger('peewee')
@@ -392,5 +421,11 @@ if __name__ == "__main__":
     peewee_logger.addHandler(database_logger.handlers[0])
     peewee_logger.setLevel(database_logger.level)
 
+    exe = ThreadPoolExecutor(max_workers=1)
+    exe.submit(report_status)
+
     while True:
         main()
+        if PAYLOAD:
+            PAYLOAD.ack()
+            PAYLOAD = None
