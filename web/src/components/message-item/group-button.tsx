@@ -1,4 +1,6 @@
 import CopyToClipboard from '@/components/copy-to-clipboard';
+import { useSetModalState } from '@/hooks/common-hooks';
+import { IRemoveMessageById } from '@/hooks/logic-hooks';
 import {
   DeleteOutlined,
   DislikeOutlined,
@@ -8,17 +10,29 @@ import {
 } from '@ant-design/icons';
 import { Radio } from 'antd';
 import { useCallback } from 'react';
+import SvgIcon from '../svg-icon';
 import FeedbackModal from './feedback-modal';
-import { useSendFeedback } from './hooks';
+import { useRemoveMessage, useSendFeedback } from './hooks';
+import PromptModal from './prompt-modal';
 
 interface IProps {
   messageId: string;
   content: string;
+  prompt?: string;
 }
 
-export const AssistantGroupButton = ({ messageId, content }: IProps) => {
+export const AssistantGroupButton = ({
+  messageId,
+  content,
+  prompt,
+}: IProps) => {
   const { visible, hideModal, showModal, onFeedbackOk, loading } =
     useSendFeedback(messageId);
+  const {
+    visible: promptVisible,
+    hideModal: hidePromptModal,
+    showModal: showPromptModal,
+  } = useSetModalState();
 
   const handleLike = useCallback(() => {
     onFeedbackOk({ thumbup: true });
@@ -39,6 +53,11 @@ export const AssistantGroupButton = ({ messageId, content }: IProps) => {
         <Radio.Button value="d" onClick={showModal}>
           <DislikeOutlined />
         </Radio.Button>
+        {prompt && (
+          <Radio.Button value="e" onClick={showPromptModal}>
+            <SvgIcon name={`prompt`} width={16}></SvgIcon>
+          </Radio.Button>
+        )}
       </Radio.Group>
       {visible && (
         <FeedbackModal
@@ -48,21 +67,41 @@ export const AssistantGroupButton = ({ messageId, content }: IProps) => {
           loading={loading}
         ></FeedbackModal>
       )}
+      {promptVisible && (
+        <PromptModal
+          visible={promptVisible}
+          hideModal={hidePromptModal}
+          prompt={prompt}
+        ></PromptModal>
+      )}
     </>
   );
 };
 
-export const UserGroupButton = () => {
+interface UserGroupButtonProps extends IRemoveMessageById {
+  messageId: string;
+  content: string;
+}
+
+export const UserGroupButton = ({
+  content,
+  messageId,
+  removeMessageById,
+}: UserGroupButtonProps) => {
+  const { onRemoveMessage, loading } = useRemoveMessage(
+    messageId,
+    removeMessageById,
+  );
   return (
     <Radio.Group size="small">
       <Radio.Button value="a">
-        <CopyToClipboard text="xxx"></CopyToClipboard>
+        <CopyToClipboard text={content}></CopyToClipboard>
       </Radio.Button>
       <Radio.Button value="b">
         <SyncOutlined />
       </Radio.Button>
-      <Radio.Button value="c">
-        <DeleteOutlined />
+      <Radio.Button value="c" onClick={onRemoveMessage} disabled={loading}>
+        <DeleteOutlined spin={loading} />
       </Radio.Button>
     </Radio.Group>
   );

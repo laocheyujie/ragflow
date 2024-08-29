@@ -27,6 +27,7 @@ const ChatContainer = () => {
     addNewestAnswer,
     conversationId,
     loading,
+    removeMessageById,
   } = useFetchConversationOnMount();
   const {
     handleInputChange,
@@ -68,6 +69,8 @@ const ChatContainer = () => {
                     avatar={userInfo.avatar}
                     reference={buildMessageItemReference(conversation, message)}
                     clickDocumentButton={clickDocumentButton}
+                    index={i}
+                    removeMessageById={removeMessageById}
                   ></MessageItem>
                 );
               })}

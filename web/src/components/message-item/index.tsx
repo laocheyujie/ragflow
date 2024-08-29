@@ -11,6 +11,7 @@ import {
   useFetchDocumentInfosByIds,
   useFetchDocumentThumbnailsByIds,
 } from '@/hooks/document-hooks';
+import { IRemoveMessageById } from '@/hooks/logic-hooks';
 import { IMessage } from '@/pages/chat/interface';
 import MarkdownContent from '@/pages/chat/markdown-content';
 import { getExtension, isImage } from '@/utils/document-util';
@@ -23,13 +24,14 @@ import styles from './index.less';
 
 const { Text } = Typography;
 
-interface IProps {
+interface IProps extends IRemoveMessageById {
   item: IMessage;
   reference: IReference;
   loading?: boolean;
   nickname?: string;
   avatar?: string;
   clickDocumentButton?: (documentId: string, chunk: IChunk) => void;
+  index: number;
 }
 
 const MessageItem = ({
@@ -38,6 +40,8 @@ const MessageItem = ({
   loading = false,
   avatar = '',
   clickDocumentButton,
+  index,
+  removeMessageById,
 }: IProps) => {
   const isAssistant = item.role === MessageType.Assistant;
   const isUser = item.role === MessageType.User;
@@ -112,12 +116,19 @@ const MessageItem = ({
           <Flex vertical gap={8} flex={1}>
             <Space>
               {isAssistant ? (
-                <AssistantGroupButton
-                  messageId={item.id}
-                  content={item.content}
-                ></AssistantGroupButton>
+                index !== 0 && (
+                  <AssistantGroupButton
+                    messageId={item.id}
+                    content={item.content}
+                    prompt={item.prompt}
+                  ></AssistantGroupButton>
+                )
               ) : (
-                <UserGroupButton></UserGroupButton>
+                <UserGroupButton
+                  content={item.content}
+                  messageId={item.id}
+                  removeMessageById={removeMessageById}
+                ></UserGroupButton>
               )}
 
               {/* <b>{isAssistant ? '' : nickname}</b> */}

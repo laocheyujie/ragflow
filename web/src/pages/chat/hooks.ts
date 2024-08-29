@@ -17,7 +17,10 @@ import {
   useShowDeleteConfirm,
   useTranslate,
 } from '@/hooks/common-hooks';
-import { useSendMessageWithSse } from '@/hooks/logic-hooks';
+import {
+  useRemoveMessageById,
+  useSendMessageWithSse,
+} from '@/hooks/logic-hooks';
 import {
   IAnswer,
   IConversation,
@@ -26,9 +29,9 @@ import {
 } from '@/interfaces/database/chat';
 import { IChunk } from '@/interfaces/database/knowledge';
 import { getFileExtension } from '@/utils';
+import { buildMessageUuid } from '@/utils/chat';
 import { useMutationState } from '@tanstack/react-query';
 import { get } from 'lodash';
-import omit from 'lodash/omit';
 import trim from 'lodash/trim';
 import {
   ChangeEventHandler,
@@ -251,24 +254,24 @@ export const useSelectCurrentConversation = () => {
   const { data: conversation, loading } = useFetchNextConversation();
   const { data: dialog } = useFetchNextDialog();
   const { conversationId, dialogId } = useGetChatSearchParams();
+  const { removeMessageById } = useRemoveMessageById(setCurrentConversation);
 
+  // Show the entered message in the conversation immediately after sending the message
   const addNewestConversation = useCallback(
-    (message: Partial<Message>, answer: string = '') => {
+    (message: Message, answer: string = '') => {
       setCurrentConversation((pre) => {
         return {
           ...pre,
           message: [
             ...pre.message,
             {
-              role: MessageType.User,
-              content: message.content,
-              doc_ids: message.doc_ids,
-              id: uuid(),
+              ...message,
+              id: buildMessageUuid(message),
             } as IMessage,
             {
               role: MessageType.Assistant,
               content: answer,
-              id: uuid(),
+              id: buildMessageUuid({ ...message, role: MessageType.Assistant }),
               reference: {},
             } as IMessage,
           ],
@@ -278,6 +281,7 @@ export const useSelectCurrentConversation = () => {
     [],
   );
 
+  // Add the streaming message to the last item in the message list
   const addNewestAnswer = useCallback((answer: IAnswer) => {
     setCurrentConversation((pre) => {
       const latestMessage = pre.message?.at(-1);
@@ -291,6 +295,11 @@ export const useSelectCurrentConversation = () => {
               ...latestMessage,
               content: answer.answer,
               reference: answer.reference,
+              id: buildMessageUuid({
+                id: answer.id,
+                role: MessageType.Assistant,
+              }),
+              prompt: answer.prompt,
             } as IMessage,
           ],
         };
@@ -343,6 +352,7 @@ export const useSelectCurrentConversation = () => {
     addNewestConversation,
     removeLatestMessage,
     addNewestAnswer,
+    removeMessageById,
     loading,
   };
 };
@@ -371,6 +381,7 @@ export const useFetchConversationOnMount = () => {
     removeLatestMessage,
     addNewestAnswer,
     loading,
+    removeMessageById,
   } = useSelectCurrentConversation();
   const ref = useScrollToBottom(currentConversation);
 
@@ -382,6 +393,7 @@ export const useFetchConversationOnMount = () => {
     addNewestAnswer,
     conversationId,
     loading,
+    removeMessageById,
   };
 };
 
@@ -403,7 +415,7 @@ export const useHandleMessageInputChange = () => {
 
 export const useSendMessage = (
   conversation: IClientConversation,
-  addNewestConversation: (message: Partial<Message>, answer?: string) => void,
+  addNewestConversation: (message: Message, answer?: string) => void,
   removeLatestMessage: () => void,
   addNewestAnswer: (answer: IAnswer) => void,
 ) => {
@@ -415,15 +427,13 @@ export const useSendMessage = (
   const { send, answer, done, setDone } = useSendMessageWithSse();
 
   const sendMessage = useCallback(
-    async (message: string, documentIds: string[], id?: string) => {
+    async (message: Message, documentIds: string[], id?: string) => {
       const res = await send({
         conversation_id: id ?? conversationId,
         messages: [
-          ...(conversation?.message ?? []).map((x: IMessage) => omit(x, 'id')),
+          ...(conversation?.message ?? []),
           {
-            id: uuid(),
-            role: MessageType.User,
-            content: message,
+            ...message,
             doc_ids: documentIds,
           },
         ],
@@ -431,7 +441,7 @@ export const useSendMessage = (
 
       if (res && (res?.response.status !== 200 || res?.data?.retcode !== 0)) {
         // cancel loading
-        setValue(message);
+        setValue(message.content);
         console.info('removeLatestMessage111');
         removeLatestMessage();
       } else {
@@ -456,11 +466,11 @@ export const useSendMessage = (
   );
 
   const handleSendMessage = useCallback(
-    async (message: string, documentIds: string[]) => {
+    async (message: Message, documentIds: string[]) => {
       if (conversationId !== '') {
         sendMessage(message, documentIds);
       } else {
-        const data = await setConversation(message);
+        const data = await setConversation(message.content);
         if (data.retcode === 0) {
           const id = data.data.id;
           sendMessage(message, documentIds, id);
@@ -487,11 +497,20 @@ export const useSendMessage = (
   const handlePressEnter = useCallback(
     (documentIds: string[]) => {
       if (trim(value) === '') return;
+      const id = uuid();
 
-      addNewestConversation({ content: value, doc_ids: documentIds });
+      addNewestConversation({
+        content: value,
+        doc_ids: documentIds,
+        id,
+        role: MessageType.User,
+      });
       if (done) {
         setValue('');
-        handleSendMessage(value.trim(), documentIds);
+        handleSendMessage(
+          { id, content: value.trim(), role: MessageType.User },
+          documentIds,
+        );
       }
     },
     [addNewestConversation, handleSendMessage, done, setValue, value],
