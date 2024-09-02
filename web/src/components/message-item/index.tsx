@@ -11,7 +11,7 @@ import {
   useFetchDocumentInfosByIds,
   useFetchDocumentThumbnailsByIds,
 } from '@/hooks/document-hooks';
-import { IRemoveMessageById } from '@/hooks/logic-hooks';
+import { IRegenerateMessage, IRemoveMessageById } from '@/hooks/logic-hooks';
 import { IMessage } from '@/pages/chat/interface';
 import MarkdownContent from '@/pages/chat/markdown-content';
 import { getExtension, isImage } from '@/utils/document-util';
@@ -24,14 +24,16 @@ import styles from './index.less';
 
 const { Text } = Typography;
 
-interface IProps extends IRemoveMessageById {
+interface IProps extends Partial<IRemoveMessageById>, IRegenerateMessage {
   item: IMessage;
   reference: IReference;
   loading?: boolean;
+  sendLoading?: boolean;
   nickname?: string;
   avatar?: string;
   clickDocumentButton?: (documentId: string, chunk: IChunk) => void;
   index: number;
+  showLikeButton?: boolean;
 }
 
 const MessageItem = ({
@@ -39,9 +41,12 @@ const MessageItem = ({
   reference,
   loading = false,
   avatar = '',
+  sendLoading = false,
   clickDocumentButton,
   index,
   removeMessageById,
+  regenerateMessage,
+  showLikeButton = true,
 }: IProps) => {
   const isAssistant = item.role === MessageType.Assistant;
   const isUser = item.role === MessageType.User;
@@ -72,6 +77,10 @@ const MessageItem = ({
     },
     [showModal],
   );
+
+  const handleRegenerateMessage = useCallback(() => {
+    regenerateMessage?.(item);
+  }, [regenerateMessage, item]);
 
   useEffect(() => {
     const ids = item?.doc_ids ?? [];
@@ -121,6 +130,7 @@ const MessageItem = ({
                     messageId={item.id}
                     content={item.content}
                     prompt={item.prompt}
+                    showLikeButton={showLikeButton}
                   ></AssistantGroupButton>
                 )
               ) : (
@@ -128,6 +138,10 @@ const MessageItem = ({
                   content={item.content}
                   messageId={item.id}
                   removeMessageById={removeMessageById}
+                  regenerateMessage={
+                    regenerateMessage && handleRegenerateMessage
+                  }
+                  sendLoading={sendLoading}
                 ></UserGroupButton>
               )}
 

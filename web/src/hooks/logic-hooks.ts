@@ -1,14 +1,15 @@
 import { Authorization } from '@/constants/authorization';
+import { MessageType } from '@/constants/chat';
 import { LanguageTranslationMap } from '@/constants/common';
 import { Pagination } from '@/interfaces/common';
 import { ResponseType } from '@/interfaces/database/base';
-import { IAnswer } from '@/interfaces/database/chat';
+import { IAnswer, Message } from '@/interfaces/database/chat';
 import { IKnowledgeFile } from '@/interfaces/database/knowledge';
 import { IChangeParserConfigRequestBody } from '@/interfaces/request/document';
-import { IClientConversation } from '@/pages/chat/interface';
+import { IClientConversation, IMessage } from '@/pages/chat/interface';
 import api from '@/utils/api';
 import { getAuthorization } from '@/utils/authorization-util';
-import { getMessagePureId } from '@/utils/chat';
+import { buildMessageUuid, getMessagePureId } from '@/utils/chat';
 import { PaginationProps } from 'antd';
 import { FormInstance } from 'antd/lib';
 import axios from 'axios';
@@ -23,6 +24,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'umi';
+import { v4 as uuid } from 'uuid';
 import { useSetModalState, useTranslate } from './common-hooks';
 import { useSetDocumentParser } from './document-hooks';
 import { useSetPaginationParams } from './route-hook';
@@ -308,6 +310,108 @@ export const useHandleMessageInputChange = () => {
   };
 };
 
+export const useSelectDerivedMessages = () => {
+  const [derivedMessages, setDerivedMessages] = useState<IMessage[]>([]);
+
+  const ref = useScrollToBottom(derivedMessages);
+
+  const addNewestQuestion = useCallback(
+    (message: Message, answer: string = '') => {
+      setDerivedMessages((pre) => {
+        return [
+          ...pre,
+          {
+            ...message,
+            id: buildMessageUuid(message),
+          },
+          {
+            role: MessageType.Assistant,
+            content: answer,
+            id: buildMessageUuid({ ...message, role: MessageType.Assistant }),
+          },
+        ];
+      });
+    },
+    [],
+  );
+
+  // Add the streaming message to the last item in the message list
+  const addNewestAnswer = useCallback((answer: IAnswer) => {
+    setDerivedMessages((pre) => {
+      return [
+        ...(pre?.slice(0, -1) ?? []),
+        {
+          role: MessageType.Assistant,
+          content: answer.answer,
+          reference: answer.reference,
+          id: buildMessageUuid({
+            id: answer.id,
+            role: MessageType.Assistant,
+          }),
+          prompt: answer.prompt,
+        },
+      ];
+    });
+  }, []);
+
+  const removeLatestMessage = useCallback(() => {
+    setDerivedMessages((pre) => {
+      const nextMessages = pre?.slice(0, -2) ?? [];
+      return nextMessages;
+    });
+  }, []);
+
+  const removeMessageById = useCallback(
+    (messageId: string) => {
+      setDerivedMessages((pre) => {
+        const nextMessages =
+          pre?.filter(
+            (x) => getMessagePureId(x.id) !== getMessagePureId(messageId),
+          ) ?? [];
+        return nextMessages;
+      });
+    },
+    [setDerivedMessages],
+  );
+
+  const removeMessagesAfterCurrentMessage = useCallback(
+    (messageId: string) => {
+      setDerivedMessages((pre) => {
+        const index = pre.findIndex((x) => x.id === messageId);
+        if (index !== -1) {
+          let nextMessages = pre.slice(0, index + 2) ?? [];
+          const latestMessage = nextMessages.at(-1);
+          nextMessages = latestMessage
+            ? [
+                ...nextMessages.slice(0, -1),
+                {
+                  ...latestMessage,
+                  content: '',
+                  reference: undefined,
+                  prompt: undefined,
+                },
+              ]
+            : nextMessages;
+          return nextMessages;
+        }
+        return pre;
+      });
+    },
+    [setDerivedMessages],
+  );
+
+  return {
+    ref,
+    derivedMessages,
+    setDerivedMessages,
+    addNewestQuestion,
+    addNewestAnswer,
+    removeLatestMessage,
+    removeMessageById,
+    removeMessagesAfterCurrentMessage,
+  };
+};
+
 export interface IRemoveMessageById {
   removeMessageById(messageId: string): void;
 }
@@ -334,6 +438,82 @@ export const useRemoveMessageById = (
   );
 
   return { removeMessageById };
+};
+
+export const useRemoveMessagesAfterCurrentMessage = (
+  setCurrentConversation: (
+    callback: (state: IClientConversation) => IClientConversation,
+  ) => void,
+) => {
+  const removeMessagesAfterCurrentMessage = useCallback(
+    (messageId: string) => {
+      setCurrentConversation((pre) => {
+        const index = pre.message?.findIndex((x) => x.id === messageId);
+        if (index !== -1) {
+          let nextMessages = pre.message?.slice(0, index + 2) ?? [];
+          const latestMessage = nextMessages.at(-1);
+          nextMessages = latestMessage
+            ? [
+                ...nextMessages.slice(0, -1),
+                {
+                  ...latestMessage,
+                  content: '',
+                  reference: undefined,
+                  prompt: undefined,
+                },
+              ]
+            : nextMessages;
+          return {
+            ...pre,
+            message: nextMessages,
+          };
+        }
+        return pre;
+      });
+    },
+    [setCurrentConversation],
+  );
+
+  return { removeMessagesAfterCurrentMessage };
+};
+
+export interface IRegenerateMessage {
+  regenerateMessage?: (message: Message) => void;
+}
+
+export const useRegenerateMessage = ({
+  removeMessagesAfterCurrentMessage,
+  sendMessage,
+  messages,
+}: {
+  removeMessagesAfterCurrentMessage(messageId: string): void;
+  sendMessage({
+    message,
+  }: {
+    message: Message;
+    messages?: Message[];
+  }): void | Promise<any>;
+  messages: Message[];
+}) => {
+  const regenerateMessage = useCallback(
+    async (message: Message) => {
+      if (message.id) {
+        removeMessagesAfterCurrentMessage(message.id);
+        const index = messages.findIndex((x) => x.id === message.id);
+        let nextMessages;
+        if (index !== -1) {
+          nextMessages = messages.slice(0, index);
+        }
+        sendMessage({
+          message: { ...message, id: uuid() },
+          messages: nextMessages,
+        });
+      }
+    },
+    [removeMessagesAfterCurrentMessage, sendMessage, messages],
+  );
+
+  return { regenerateMessage };
 };
 
 // #endregion
