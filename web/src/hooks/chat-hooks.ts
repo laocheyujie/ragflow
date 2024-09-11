@@ -5,7 +5,10 @@ import {
   IStats,
   IToken,
 } from '@/interfaces/database/chat';
-import { IFeedbackRequestBody } from '@/interfaces/request/chat';
+import {
+  IAskRequestBody,
+  IFeedbackRequestBody,
+} from '@/interfaces/request/chat';
 import i18n from '@/locales/config';
 import { IClientConversation } from '@/pages/chat/interface';
 import chatService from '@/services/chat-service';
@@ -13,7 +16,7 @@ import { buildMessageListWithUuid, isConversationIdExist } from '@/utils/chat';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
-import { set } from 'lodash';
+import { has, set } from 'lodash';
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'umi';
 
@@ -476,4 +479,50 @@ export const useFetchNextSharedConversation = (conversationId: string) => {
   return { data, loading };
 };
 
+//#endregion
+
+//#region search page
+
+export const useFetchMindMap = () => {
+  const {
+    data,
+    isPending: loading,
+    mutateAsync,
+  } = useMutation({
+    mutationKey: ['fetchMindMap'],
+    gcTime: 0,
+    mutationFn: async (params: IAskRequestBody) => {
+      try {
+        const ret = await chatService.getMindMap(params);
+        return ret?.data?.data ?? [];
+      } catch (error) {
+        if (has(error, 'message')) {
+          message.error(error.message);
+        }
+
+        return [];
+      }
+    },
+  });
+
+  return { data, loading, fetchMindMap: mutateAsync };
+};
+
+export const useFetchRelatedQuestions = () => {
+  const {
+    data,
+    isPending: loading,
+    mutateAsync,
+  } = useMutation({
+    mutationKey: ['fetchRelatedQuestions'],
+    gcTime: 0,
+    mutationFn: async (question: string): Promise<string[]> => {
+      const { data } = await chatService.getRelatedQuestions({ question });
+
+      return data?.data ?? [];
+    },
+  });
+
+  return { data, loading, fetchRelatedQuestions: mutateAsync };
+};
 //#endregion
