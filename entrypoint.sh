@@ -7,7 +7,10 @@ export http_proxy=""; export https_proxy=""; export no_proxy=""; export HTTP_PRO
 
 export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/
 
-PY=python3
+PY=/data3/cheyujie/miniconda3/envs/ragflow/bin/python
+export PYTHONPATH=/data3/cheyujie/github/ragflow
+export HF_ENDPOINT=https://hf-mirror.com
+
 if [[ -z "$WS" || $WS -lt 1 ]]; then
   WS=1
 fi

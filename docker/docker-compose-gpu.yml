@@ -10,7 +10,7 @@ services:
       es01:
         condition: service_healthy
     image: infiniflow/ragflow:${RAGFLOW_VERSION}
-    container_name: ragflow-server
+    container_name: ragflow-server-gpu
     ports:
       - ${SVR_HTTP_PORT}:9380
       - 80:80
@@ -33,5 +33,5 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: all
+              count: 1
               capabilities: [gpu]
