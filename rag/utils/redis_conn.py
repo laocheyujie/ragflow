@@ -105,6 +105,8 @@ class RedisDB:
         return False
 
     def queue_product(self, queue, message, exp=settings.SVR_QUEUE_RETENTION) -> bool:
+        # 把消息（message）插入到 Redis 消息队列（queue）中
+        # 具体而言，把 task 插入到 rag_flow_svr_queue 里
         for _ in range(3):
             try:
                 payload = {"message": json.dumps(message)}
@@ -151,9 +153,12 @@ class RedisDB:
 
     def get_unacked_for(self, consumer_name, queue_name, group_name):
         try:
+            # 获取 queue_name = rag_flow_svr_queue 队列下的所有消费者组的信息
             group_info = self.REDIS.xinfo_groups(queue_name)
+            # 如果 group_name 不在组信息中，函数直接返回 None，说明该组不存在，不需要继续处理
             if not any(e["name"] == group_name for e in group_info):
                 return
+            # 使用 Redis 的 XPENDING 命令，指定 queue_name 中属于 group_name 组、由 consumer_name 消费者处理的还未确认（acknowledged）的消息
             pendings = self.REDIS.xpending_range(queue_name, group_name, min=0, max=10000000000000, count=1, consumername=consumer_name)
             if not pendings: return
             msg_id = pendings[0]["message_id"]

@@ -4,7 +4,7 @@ azure-identity==1.17.1
 azure-storage-file-datalake==12.16.0
 anthropic===0.34.1
 arxiv==2.1.3
-Aspose.Slides==24.2.0
+Aspose.Slides==24.6.0
 BCEmbedding==0.1.3
 Bio==1.7.1
 boto3==1.34.140
@@ -54,7 +54,7 @@ opencv_python==4.9.0.80
 opencv_python_headless==4.9.0.80
 openpyxl==3.1.2
 ormsgpack==1.5.0   
-pandas==2.2.2
+# pandas==2.2.2
 pdfplumber==0.10.4
 peewee==3.17.1
 Pillow==10.3.0
@@ -93,7 +93,7 @@ torch==2.3.0
 transformers==4.38.1
 umap==0.1.1
 vertexai==1.64.0
-volcengine==1.0.146
+# volcengine==1.0.146
 voyageai==0.2.3
 webdriver_manager==4.0.1
 Werkzeug==3.0.3
@@ -103,8 +103,8 @@ xgboost==2.1.0
 xpinyin==0.7.6
 ruamel.yaml==0.18.6
 python-docx==1.1.2
-google-generativeai==0.7.2
+# google-generativeai==0.7.2
 pymysql==1.1.1
 graspologic==3.4.1
-yfinance==0.2.43
+# yfinance==0.2.43
 zhipuai==2.0.1

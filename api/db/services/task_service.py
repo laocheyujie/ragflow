@@ -135,6 +135,8 @@ class TaskService(CommonService):
 
 def queue_tasks(doc, bucket, name):
     # 根据文件创建一个或多个异步任务，方便异步执行
+    # 这个函数主要是根据doc文件的类型和配置，将文件拆分为多个任务（例如默认pdf为12页一个任务），插入到数据库中
+    # 首先把任务信息插入到 Task 表中，然后调用 DocumentService.begin2parse 方法，更新文档状态
     def new_task():
         nonlocal doc
         return {
@@ -187,6 +189,7 @@ def queue_tasks(doc, bucket, name):
     DocumentService.begin2parse(doc["id"])
 
     for t in tsks:
-        # 任务插入 Redis 消息队列，方便异步处理
+        # 把 tsks 里的任务插入 Redis 消息队列，方便异步处理
+        # 即，把任务 t 的信息插入到 Redis rag_flow_svr_queue 队列里
         # 文件的解析是根据内容拆分为多个任务，通过 Redis 消息队列进行暂存，之后就可以离线异步处理
         assert REDIS_CONN.queue_product(SVR_QUEUE_NAME, message=t), "Can't access Redis. Please check the Redis' status."

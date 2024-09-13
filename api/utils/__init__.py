@@ -284,6 +284,7 @@ def decrypt_database_password(password):
 def decrypt_database_config(
         database=None, passwd_key="password", name="database"):
     if not database:
+        # NOTE: get_base_config 实际上就是从 conf/service_conf.yaml 中读取键为 name 的配置
         database = get_base_config(name, {})
 
     database[passwd_key] = decrypt_database_password(database[passwd_key])

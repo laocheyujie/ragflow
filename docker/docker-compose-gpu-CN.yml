@@ -25,7 +25,8 @@ services:
       - TZ=${TIMEZONE}
       - HF_ENDPOINT=https://hf-mirror.com
       - MACOS=${MACOS}
-      - NVIDIA_VISIBLE_DEVICES=1,2,3,4
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - CUDA_VISIBLE_DEVICES=3
     networks:
       - ragflow
     restart: always
@@ -34,5 +35,5 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              count: all
               capabilities: [gpu]
