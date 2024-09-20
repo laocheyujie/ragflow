@@ -36,6 +36,7 @@ logging.getLogger("pdfminer").setLevel(logging.WARNING)
 
 class RAGFlowPdfParser:
     def __init__(self):
+        # 准备各种模型
         # 1. OCR 将图片、PDF识别为文本
         self.ocr = OCR()
 

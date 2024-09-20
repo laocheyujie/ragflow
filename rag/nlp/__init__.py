@@ -481,14 +481,20 @@ def naive_merge(sections, chunk_token_num=128, delimiter="\n。；！？"):
     tk_nums = [0]
 
     def add_chunk(t, pos):
+        '''
+        [('ABCD 机器故障处理手册', '@@1\t186.0\t406.7\t161.3\t179.0##')] -> ['ABCD 机器故障处理手册@@1\t186.0\t406.7\t161.3\t179.0##']
+        [ ('目次', '@@4\t274.7\t321.7\t115.0\t134.3##'), ('保密文件请勿外泄', '@@4\t258.7\t337.7\t813.0\t825.3##')] -> ['目次保密文件请勿外泄@@4\t258.7\t337.7\t813.0\t825.3##']
+        '''
         nonlocal cks, tk_nums, delimiter
         tnum = num_tokens_from_string(t)
         if not pos: pos = ""
         if tnum < 8:
+            # 如果字数太少，就可以忽略他的位置信息
             pos = ""
         # Ensure that the length of the merged chunk does not exceed chunk_token_num  
+        # 如果当前的文本超过了chunk_token_num，就把现在的加入列表，建一个新的
         if tk_nums[-1] > chunk_token_num:
-
+            # 如果当前的文本不包含位置信息，就加上位置信息
             if t.find(pos) < 0:
                 t += pos
             cks.append(t)

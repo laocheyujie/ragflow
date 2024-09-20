@@ -115,6 +115,34 @@ class Docx(DocxParser):
 class Pdf(PdfParser):
     def __call__(self, filename, binary=None, from_page=0,
                  to_page=100000, zoomin=3, callback=None):
+        '''
+        return:
+        - tbls:[
+            (
+                (
+                    PIL.Image.Image 图像, 
+                    ['文本内容']
+                ), 
+                [(
+                    页数, 
+                    x_left, x_right, y_top, y_bottom
+                )]
+            ),
+            (
+                (
+                    <PIL.Image.Image image mode=RGB size=1600x1967>, 
+                    ['1 概述.\n2 故障处理方法.\n2.1振动及自检系统故障\n2.2变流器系统故障\n2.3液压及制动系统类故障\n 17\n2.4偏航系统故障.\n 19 \n2.5发电机系统故障.\n 23 \n2.6齿轮箱系统故障.\n 28 \n2.7电网及限功率类故障\n. 31 \n2.8主控柜、消防系统、传感器类故障\n. 35 \n2.9润滑系统类故障\n 43 \n2.10变桨系统故障\n 46 \n2.11安全链系统及模块类故障\n 74']
+                ),
+                [(
+                    3,
+                    42.363362630208336,
+                    575.6695963541666,
+                    143.88643391927084,
+                    799.5660807291666
+                )]
+            )
+        ]
+        '''
         start = timer()
         callback(msg="OCR is running...")
         self.__images__(
@@ -267,6 +295,9 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
             "delimiter", "\n!?。；！？"))
     if kwargs.get("section_only", False):
         return chunks
+    
+    if kwargs.get("table_only", False):
+        return res
 
     res.extend(tokenize_chunks(chunks, doc, eng, pdf_parser))
     cron_logger.info("naive_merge({}): {}".format(filename, timer() - st))
@@ -275,8 +306,39 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
 
 if __name__ == "__main__":
     import sys
+    from IPython.display import HTML, display
 
+    sys.path.append('/data3/cheyujie/code/file_parser')
+    
     def dummy(prog=None, msg=""):
         pass
+    
+    filename = '/data3/cheyujie/test/手册.pdf'
+    # pdf = Pdf()
+    # res = pdf(filename, binary=None, from_page=0, to_page=20, zoomin=3, callback=dummy)
+    # sections, tbls = res
 
-    chunk(sys.argv[1], from_page=0, to_page=10, callback=dummy)
+    chunk_res = chunk(filename, binary=None, from_page=0, to_page=20,
+          lang="Chinese", callback=dummy, section_only=False, table_only=True)
+    
+    # chunk(sys.argv[1], from_page=0, to_page=10, callback=dummy)
+
+    results = []
+    for c in chunk_res:
+        r = {
+            'file_name': c['docnm_kwd'],
+            'content': c['content_with_weight'],
+            'page': c['page_num_int'],
+            'position': c['position_int'],
+            'image': c['image'],
+        }
+        results.append(r)
+    results.sort(key=lambda x: min(x['page']))
+    
+    for result in results[1:]:
+        result['image'].show()
+        content = result['content']
+        try:
+            display(HTML(content))
+        except Exception:
+            print(content)
