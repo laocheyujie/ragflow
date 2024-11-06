@@ -22,10 +22,10 @@ from api.db.services.llm_service import TenantLLMService
 from flask_login import login_required, current_user
 
 from api.db import FileType, LLMType, ParserType, FileSource
-from api.db.db_models import APIToken, API4Conversation, Task, File
+from api.db.db_models import APIToken, Task, File
 from api.db.services import duplicate_name
 from api.db.services.api_service import APITokenService, API4ConversationService
-from api.db.services.dialog_service import DialogService, chat
+from api.db.services.dialog_service import DialogService, chat, keyword_extraction
 from api.db.services.document_service import DocumentService, doc_upload_and_parse
 from api.db.services.file2document_service import File2DocumentService
 from api.db.services.file_service import FileService
@@ -34,21 +34,15 @@ from api.db.services.task_service import queue_tasks, TaskService
 from api.db.services.user_service import UserTenantService
 from api.settings import RetCode, retrievaler
 from api.utils import get_uuid, current_timestamp, datetime_format
-from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request
-from itsdangerous import URLSafeTimedSerializer
+from api.utils.api_utils import server_error_response, get_data_error_result, get_json_result, validate_request, \
+    generate_confirmation_token
 
 from api.utils.file_utils import filename_type, thumbnail
-from rag.nlp import keyword_extraction
 from rag.utils.storage_factory import STORAGE_IMPL
 
-from api.db.services.canvas_service import CanvasTemplateService, UserCanvasService
+from api.db.services.canvas_service import UserCanvasService
 from agent.canvas import Canvas
 from functools import partial
-
-
-def generate_confirmation_token(tenent_id):
-    serializer = URLSafeTimedSerializer(tenent_id)
-    return "ragflow-" + serializer.dumps(get_uuid(), salt=tenent_id)[2:34]
 
 
 @manager.route('/new_token', methods=['POST'])
@@ -58,7 +52,7 @@ def new_token():
     try:
         tenants = UserTenantService.query(user_id=current_user.id)
         if not tenants:
-            return get_data_error_result(retmsg="Tenant not found!")
+            return get_data_error_result(message="Tenant not found!")
 
         tenant_id = tenants[0].tenant_id
         obj = {"tenant_id": tenant_id, "token": generate_confirmation_token(tenant_id),
@@ -74,7 +68,7 @@ def new_token():
             obj["dialog_id"] = req["dialog_id"]
 
         if not APITokenService.save(**obj):
-            return get_data_error_result(retmsg="Fail to new a dialog!")
+            return get_data_error_result(message="Fail to new a dialog!")
 
         return get_json_result(data=obj)
     except Exception as e:
@@ -87,7 +81,7 @@ def token_list():
     try:
         tenants = UserTenantService.query(user_id=current_user.id)
         if not tenants:
-            return get_data_error_result(retmsg="Tenant not found!")
+            return get_data_error_result(message="Tenant not found!")
 
         id = request.args["dialog_id"] if "dialog_id" in request.args else request.args["canvas_id"]
         objs = APITokenService.query(tenant_id=tenants[0].tenant_id, dialog_id=id)
@@ -116,7 +110,7 @@ def stats():
     try:
         tenants = UserTenantService.query(user_id=current_user.id)
         if not tenants:
-            return get_data_error_result(retmsg="Tenant not found!")
+            return get_data_error_result(message="Tenant not found!")
         objs = API4ConversationService.stats(
             tenants[0].tenant_id,
             request.args.get(
@@ -147,7 +141,7 @@ def set_conversation():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
     req = request.json
     try:
         if objs[0].source == "agent":
@@ -169,7 +163,7 @@ def set_conversation():
         else:
             e, dia = DialogService.get_by_id(objs[0].dialog_id)
             if not e:
-                return get_data_error_result(retmsg="Dialog not found")
+                return get_data_error_result(message="Dialog not found")
             conv = {
                 "id": get_uuid(),
                 "dialog_id": dia.id,
@@ -189,11 +183,11 @@ def completion():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
     req = request.json
     e, conv = API4ConversationService.get_by_id(req["conversation_id"])
     if not e:
-        return get_data_error_result(retmsg="Conversation not found!")
+        return get_data_error_result(message="Conversation not found!")
     if "quote" not in req: req["quote"] = False
 
     msg = []
@@ -263,19 +257,20 @@ def completion():
                             ans = {"answer": ans["content"], "reference": ans.get("reference", [])}
                             fillin_conv(ans)
                             rename_field(ans)
-                            yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": ans},
+                            yield "data:" + json.dumps({"code": 0, "message": "", "data": ans},
                                                        ensure_ascii=False) + "\n\n"
 
                         canvas.messages.append({"role": "assistant", "content": final_ans["content"], "id": message_id})
+                        canvas.history.append(("assistant", final_ans["content"]))
                         if final_ans.get("reference"):
                             canvas.reference.append(final_ans["reference"])
                         cvs.dsl = json.loads(str(canvas))
                         API4ConversationService.append_message(conv.id, conv.to_dict())
                     except Exception as e:
-                        yield "data:" + json.dumps({"retcode": 500, "retmsg": str(e),
+                        yield "data:" + json.dumps({"code": 500, "message": str(e),
                                                     "data": {"answer": "**ERROR**: " + str(e), "reference": []}},
                                                    ensure_ascii=False) + "\n\n"
-                    yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": True}, ensure_ascii=False) + "\n\n"
+                    yield "data:" + json.dumps({"code": 0, "message": "", "data": True}, ensure_ascii=False) + "\n\n"
 
                 resp = Response(sse(), mimetype="text/event-stream")
                 resp.headers.add_header("Cache-control", "no-cache")
@@ -300,7 +295,7 @@ def completion():
         conv.message.append(msg[-1])
         e, dia = DialogService.get_by_id(conv.dialog_id)
         if not e:
-            return get_data_error_result(retmsg="Dialog not found!")
+            return get_data_error_result(message="Dialog not found!")
         del req["conversation_id"]
         del req["messages"]
 
@@ -315,14 +310,14 @@ def completion():
                 for ans in chat(dia, msg, True, **req):
                     fillin_conv(ans)
                     rename_field(ans)
-                    yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": ans},
+                    yield "data:" + json.dumps({"code": 0, "message": "", "data": ans},
                                                ensure_ascii=False) + "\n\n"
                 API4ConversationService.append_message(conv.id, conv.to_dict())
             except Exception as e:
-                yield "data:" + json.dumps({"retcode": 500, "retmsg": str(e),
+                yield "data:" + json.dumps({"code": 500, "message": str(e),
                                             "data": {"answer": "**ERROR**: " + str(e), "reference": []}},
                                            ensure_ascii=False) + "\n\n"
-            yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": True}, ensure_ascii=False) + "\n\n"
+            yield "data:" + json.dumps({"code": 0, "message": "", "data": True}, ensure_ascii=False) + "\n\n"
 
         if req.get("stream", True):
             resp = Response(stream(), mimetype="text/event-stream")
@@ -352,17 +347,17 @@ def get(conversation_id):
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
     
     try:
         e, conv = API4ConversationService.get_by_id(conversation_id)
         if not e:
-            return get_data_error_result(retmsg="Conversation not found!")
+            return get_data_error_result(message="Conversation not found!")
 
         conv = conv.to_dict()
         if token != APIToken.query(dialog_id=conv['dialog_id'])[0].token:
-            return get_json_result(data=False, retmsg='Token is not valid for this conversation_id!"',
-                                   retcode=RetCode.AUTHENTICATION_ERROR)
+            return get_json_result(data=False, message='Token is not valid for this conversation_id!"',
+                                   code=RetCode.AUTHENTICATION_ERROR)
             
         for referenct_i in conv['reference']:
             if referenct_i is None or len(referenct_i) == 0:
@@ -383,7 +378,7 @@ def upload():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
 
     kb_name = request.form.get("kb_name").strip()
     tenant_id = objs[0].tenant_id
@@ -392,19 +387,19 @@ def upload():
         e, kb = KnowledgebaseService.get_by_name(kb_name, tenant_id)
         if not e:
             return get_data_error_result(
-                retmsg="Can't find this knowledgebase!")
+                message="Can't find this knowledgebase!")
         kb_id = kb.id
     except Exception as e:
         return server_error_response(e)
 
     if 'file' not in request.files:
         return get_json_result(
-            data=False, retmsg='No file part!', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='No file part!', code=RetCode.ARGUMENT_ERROR)
 
     file = request.files['file']
     if file.filename == '':
         return get_json_result(
-            data=False, retmsg='No file selected!', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='No file selected!', code=RetCode.ARGUMENT_ERROR)
 
     root_folder = FileService.get_root_folder(tenant_id)
     pf_id = root_folder["id"]
@@ -415,7 +410,7 @@ def upload():
     try:
         if DocumentService.get_doc_count(kb.tenant_id) >= int(os.environ.get('MAX_FILE_NUM_PER_USER', 8192)):
             return get_data_error_result(
-                retmsg="Exceed the maximum file number of a free user!")
+                message="Exceed the maximum file number of a free user!")
 
         filename = duplicate_name(
             DocumentService.query,
@@ -424,7 +419,7 @@ def upload():
         filetype = filename_type(filename)
         if not filetype:
             return get_data_error_result(
-                retmsg="This type of file has not been supported yet!")
+                message="This type of file has not been supported yet!")
 
         location = filename
         while STORAGE_IMPL.obj_exist(kb_id, location):
@@ -454,6 +449,8 @@ def upload():
             doc["parser_id"] = ParserType.AUDIO.value
         if re.search(r"\.(ppt|pptx|pages)$", filename):
             doc["parser_id"] = ParserType.PRESENTATION.value
+        if re.search(r"\.(eml)$", filename):
+            doc["parser_id"] = ParserType.EMAIL.value
 
         doc_result = DocumentService.insert(doc)
         FileService.add_file_from_kb(doc, kb_folder["id"], kb.tenant_id)
@@ -471,14 +468,14 @@ def upload():
                 # if str(req["run"]) == TaskStatus.CANCEL.value:
                 tenant_id = DocumentService.get_tenant_id(doc["id"])
                 if not tenant_id:
-                    return get_data_error_result(retmsg="Tenant not found!")
+                    return get_data_error_result(message="Tenant not found!")
 
                 # e, doc = DocumentService.get_by_id(doc["id"])
                 TaskService.filter_delete([Task.doc_id == doc["id"]])
                 e, doc = DocumentService.get_by_id(doc["id"])
                 doc = doc.to_dict()
                 doc["tenant_id"] = tenant_id
-                bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
+                bucket, name = File2DocumentService.get_storage_address(doc_id=doc["id"])
                 queue_tasks(doc, bucket, name)
             except Exception as e:
                 return server_error_response(e)
@@ -493,17 +490,17 @@ def upload_parse():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
 
     if 'file' not in request.files:
         return get_json_result(
-            data=False, retmsg='No file part!', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='No file part!', code=RetCode.ARGUMENT_ERROR)
 
     file_objs = request.files.getlist('file')
     for file_obj in file_objs:
         if file_obj.filename == '':
             return get_json_result(
-                data=False, retmsg='No file selected!', retcode=RetCode.ARGUMENT_ERROR)
+                data=False, message='No file selected!', code=RetCode.ARGUMENT_ERROR)
 
     doc_ids = doc_upload_and_parse(request.form.get("conversation_id"), file_objs, objs[0].tenant_id)
     return get_json_result(data=doc_ids)
@@ -516,7 +513,7 @@ def list_chunks():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
 
     req = request.json
 
@@ -530,7 +527,7 @@ def list_chunks():
             doc_id = req['doc_id']
         else:
             return get_json_result(
-                data=False, retmsg="Can't find doc_name or doc_id"
+                data=False, message="Can't find doc_name or doc_id"
             )
 
         res = retrievaler.chunk_list(doc_id=doc_id, tenant_id=tenant_id)
@@ -555,7 +552,7 @@ def list_kb_docs():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
 
     req = request.json
     tenant_id = objs[0].tenant_id
@@ -565,7 +562,7 @@ def list_kb_docs():
         e, kb = KnowledgebaseService.get_by_name(kb_name, tenant_id)
         if not e:
             return get_data_error_result(
-                retmsg="Can't find this knowledgebase!")
+                message="Can't find this knowledgebase!")
         kb_id = kb.id
 
     except Exception as e:
@@ -594,7 +591,7 @@ def docinfos():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
     req = request.json
     doc_ids = req["doc_ids"]
     docs = DocumentService.get_by_ids(doc_ids)
@@ -608,7 +605,7 @@ def document_rm():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
 
     tenant_id = objs[0].tenant_id
     req = request.json
@@ -620,7 +617,7 @@ def document_rm():
 
         if not doc_ids:
             return get_json_result(
-                data=False, retmsg="Can't find doc_names or doc_ids"
+                data=False, message="Can't find doc_names or doc_ids"
             )
 
     except Exception as e:
@@ -635,16 +632,16 @@ def document_rm():
         try:
             e, doc = DocumentService.get_by_id(doc_id)
             if not e:
-                return get_data_error_result(retmsg="Document not found!")
+                return get_data_error_result(message="Document not found!")
             tenant_id = DocumentService.get_tenant_id(doc_id)
             if not tenant_id:
-                return get_data_error_result(retmsg="Tenant not found!")
+                return get_data_error_result(message="Tenant not found!")
 
-            b, n = File2DocumentService.get_minio_address(doc_id=doc_id)
+            b, n = File2DocumentService.get_storage_address(doc_id=doc_id)
 
             if not DocumentService.remove_document(doc, tenant_id):
                 return get_data_error_result(
-                    retmsg="Database error (Document removal)!")
+                    message="Database error (Document removal)!")
 
             f2d = File2DocumentService.get_by_document_id(doc_id)
             FileService.filter_delete([File.source_type == FileSource.KNOWLEDGEBASE, File.id == f2d[0].file_id])
@@ -655,7 +652,7 @@ def document_rm():
             errors += str(e)
 
     if errors:
-        return get_json_result(data=False, retmsg=errors, retcode=RetCode.SERVER_ERROR)
+        return get_json_result(data=False, message=errors, code=RetCode.SERVER_ERROR)
 
     return get_json_result(data=True)
 
@@ -670,35 +667,98 @@ def completion_faq():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
 
     e, conv = API4ConversationService.get_by_id(req["conversation_id"])
     if not e:
-        return get_data_error_result(retmsg="Conversation not found!")
+        return get_data_error_result(message="Conversation not found!")
     if "quote" not in req: req["quote"] = True
 
     msg = []
     msg.append({"role": "user", "content": req["word"]})
+    if not msg[-1].get("id"): msg[-1]["id"] = get_uuid()
+    message_id = msg[-1]["id"]
+
+    def fillin_conv(ans):
+        nonlocal conv, message_id
+        if not conv.reference:
+            conv.reference.append(ans["reference"])
+        else:
+            conv.reference[-1] = ans["reference"]
+        conv.message[-1] = {"role": "assistant", "content": ans["answer"], "id": message_id}
+        ans["id"] = message_id
 
     try:
+        if conv.source == "agent":
+            conv.message.append(msg[-1])
+            e, cvs = UserCanvasService.get_by_id(conv.dialog_id)
+            if not e:
+                return server_error_response("canvas not found.")
+
+            if not isinstance(cvs.dsl, str):
+                cvs.dsl = json.dumps(cvs.dsl, ensure_ascii=False)
+
+            if not conv.reference:
+                conv.reference = []
+            conv.message.append({"role": "assistant", "content": "", "id": message_id})
+            conv.reference.append({"chunks": [], "doc_aggs": []})
+
+            final_ans = {"reference": [], "doc_aggs": []}
+            canvas = Canvas(cvs.dsl, objs[0].tenant_id)
+
+            canvas.messages.append(msg[-1])
+            canvas.add_user_input(msg[-1]["content"])
+            answer = canvas.run(stream=False)
+
+            assert answer is not None, "Nothing. Is it over?"
+
+            data_type_picture = {
+                "type": 3,
+                "url": "base64 content"
+            }
+            data = [
+                {
+                    "type": 1,
+                    "content": ""
+                }
+            ]
+            final_ans["content"] = "\n".join(answer["content"]) if "content" in answer else ""
+            canvas.messages.append({"role": "assistant", "content": final_ans["content"], "id": message_id})
+            if final_ans.get("reference"):
+                canvas.reference.append(final_ans["reference"])
+            cvs.dsl = json.loads(str(canvas))
+
+            ans = {"answer": final_ans["content"], "reference": final_ans.get("reference", [])}
+            data[0]["content"] += re.sub(r'##\d\$\$', '', ans["answer"])
+            fillin_conv(ans)
+            API4ConversationService.append_message(conv.id, conv.to_dict())
+
+            chunk_idxs = [int(match[2]) for match in re.findall(r'##\d\$\$', ans["answer"])]
+            for chunk_idx in chunk_idxs[:1]:
+                if ans["reference"]["chunks"][chunk_idx]["img_id"]:
+                    try:
+                        bkt, nm = ans["reference"]["chunks"][chunk_idx]["img_id"].split("-")
+                        response = STORAGE_IMPL.get(bkt, nm)
+                        data_type_picture["url"] = base64.b64encode(response).decode('utf-8')
+                        data.append(data_type_picture)
+                        break
+                    except Exception as e:
+                        return server_error_response(e)
+
+            response = {"code": 200, "msg": "success", "data": data}
+            return response
+
+        # ******************For dialog******************
         conv.message.append(msg[-1])
         e, dia = DialogService.get_by_id(conv.dialog_id)
         if not e:
-            return get_data_error_result(retmsg="Dialog not found!")
+            return get_data_error_result(message="Dialog not found!")
         del req["conversation_id"]
 
         if not conv.reference:
             conv.reference = []
-        conv.message.append({"role": "assistant", "content": ""})
+        conv.message.append({"role": "assistant", "content": "", "id": message_id})
         conv.reference.append({"chunks": [], "doc_aggs": []})
-
-        def fillin_conv(ans):
-            nonlocal conv
-            if not conv.reference:
-                conv.reference.append(ans["reference"])
-            else:
-                conv.reference[-1] = ans["reference"]
-            conv.message[-1] = {"role": "assistant", "content": ans["answer"]}
 
         data_type_picture = {
             "type": 3,
@@ -744,7 +804,7 @@ def retrieval():
     objs = APIToken.query(token=token)
     if not objs:
         return get_json_result(
-            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+            data=False, message='Token is not valid!"', code=RetCode.AUTHENTICATION_ERROR)
 
     req = request.json
     kb_ids = req.get("kb_id",[])
@@ -761,7 +821,7 @@ def retrieval():
         embd_nms = list(set([kb.embd_id for kb in kbs]))
         if len(embd_nms) != 1:
             return get_json_result(
-                data=False, retmsg='Knowledge bases use different embedding models or does not exist."', retcode=RetCode.AUTHENTICATION_ERROR)
+                data=False, message='Knowledge bases use different embedding models or does not exist."', code=RetCode.AUTHENTICATION_ERROR)
 
         embd_mdl = TenantLLMService.model_instance(
             kbs[0].tenant_id, LLMType.EMBEDDING.value, llm_name=kbs[0].embd_id)
@@ -781,6 +841,6 @@ def retrieval():
         return get_json_result(data=ranks)
     except Exception as e:
         if str(e).find("not_found") > 0:
-            return get_json_result(data=False, retmsg=f'No chunk found! Check the chunk status please!',
-                                   retcode=RetCode.DATA_ERROR)
+            return get_json_result(data=False, message='No chunk found! Check the chunk status please!',
+                                   code=RetCode.DATA_ERROR)
         return server_error_response(e)

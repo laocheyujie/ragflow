@@ -1,4 +1,5 @@
 import { useFetchMindMap, useFetchRelatedQuestions } from '@/hooks/chat-hooks';
+import { useSetModalState } from '@/hooks/common-hooks';
 import { useTestChunkRetrieval } from '@/hooks/knowledge-hooks';
 import {
   useGetPaginationWithRouter,
@@ -6,8 +7,14 @@ import {
 } from '@/hooks/logic-hooks';
 import { IAnswer } from '@/interfaces/database/chat';
 import api from '@/utils/api';
-import { get, isEmpty, trim } from 'lodash';
-import { ChangeEventHandler, useCallback, useEffect, useState } from 'react';
+import { get, isEmpty, isEqual, trim } from 'lodash';
+import {
+  ChangeEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 export const useSendQuestion = (kbIds: string[]) => {
   const { send, answer, done } = useSendMessageWithSse(api.ask);
@@ -16,33 +23,39 @@ export const useSendQuestion = (kbIds: string[]) => {
   const [currentAnswer, setCurrentAnswer] = useState({} as IAnswer);
   const { fetchRelatedQuestions, data: relatedQuestions } =
     useFetchRelatedQuestions();
-  const {
-    fetchMindMap,
-    data: mindMap,
-    loading: mindMapLoading,
-  } = useFetchMindMap();
   const [searchStr, setSearchStr] = useState<string>('');
   const [isFirstRender, setIsFirstRender] = useState(true);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
 
-  const { pagination } = useGetPaginationWithRouter();
+  const { pagination, setPagination } = useGetPaginationWithRouter();
 
   const sendQuestion = useCallback(
     (question: string) => {
       const q = trim(question);
       if (isEmpty(q)) return;
+      setPagination({ page: 1 });
       setIsFirstRender(false);
       setCurrentAnswer({} as IAnswer);
       setSendingLoading(true);
       send({ kb_ids: kbIds, question: q });
-      testChunk({ kb_id: kbIds, highlight: true, question: q });
-      fetchMindMap({
+      testChunk({
+        kb_id: kbIds,
+        highlight: true,
         question: q,
-        kb_ids: kbIds,
+        page: 1,
+        size: pagination.pageSize,
       });
+
       fetchRelatedQuestions(q);
     },
-    [send, testChunk, kbIds, fetchRelatedQuestions, fetchMindMap],
+    [
+      send,
+      testChunk,
+      kbIds,
+      fetchRelatedQuestions,
+      setPagination,
+      pagination.pageSize,
+    ],
   );
 
   const handleSearchStrChange: ChangeEventHandler<HTMLInputElement> =
@@ -81,9 +94,6 @@ export const useSendQuestion = (kbIds: string[]) => {
     if (!isEmpty(answer)) {
       setCurrentAnswer(answer);
     }
-    return () => {
-      setCurrentAnswer({} as IAnswer);
-    };
   }, [answer]);
 
   useEffect(() => {
@@ -102,11 +112,10 @@ export const useSendQuestion = (kbIds: string[]) => {
     sendingLoading,
     answer: currentAnswer,
     relatedQuestions: relatedQuestions?.slice(0, 5) ?? [],
-    mindMap,
-    mindMapLoading,
     searchStr,
     isFirstRender,
     selectedDocumentIds,
+    isSearchStrEmpty: isEmpty(trim(searchStr)),
   };
 };
 
@@ -175,4 +184,60 @@ export const useTestRetrieval = (
     selectedDocumentIds,
     setSelectedDocumentIds,
   };
+};
+
+export const useShowMindMapDrawer = (kbIds: string[], question: string) => {
+  const { visible, showModal, hideModal } = useSetModalState();
+  const ref = useRef<any>();
+
+  const {
+    fetchMindMap,
+    data: mindMap,
+    loading: mindMapLoading,
+  } = useFetchMindMap();
+
+  const handleShowModal = useCallback(() => {
+    const searchParams = { question: trim(question), kb_ids: kbIds };
+    if (
+      !isEmpty(searchParams.question) &&
+      !isEqual(searchParams, ref.current)
+    ) {
+      ref.current = searchParams;
+      fetchMindMap(searchParams);
+    }
+    showModal();
+  }, [fetchMindMap, showModal, question, kbIds]);
+
+  return {
+    mindMap,
+    mindMapVisible: visible,
+    mindMapLoading,
+    showMindMapModal: handleShowModal,
+    hideMindMapModal: hideModal,
+  };
+};
+
+export const usePendingMindMap = () => {
+  const [count, setCount] = useState<number>(0);
+  const ref = useRef<NodeJS.Timeout>();
+
+  const setCountInterval = useCallback(() => {
+    ref.current = setInterval(() => {
+      setCount((pre) => {
+        if (pre > 40) {
+          clearInterval(ref?.current);
+        }
+        return pre + 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    setCountInterval();
+    return () => {
+      clearInterval(ref?.current);
+    };
+  }, [setCountInterval]);
+
+  return Number(((count / 43) * 100).toFixed(0));
 };

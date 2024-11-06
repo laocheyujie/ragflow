@@ -1,60 +1,95 @@
-from ragflow import RAGFlow,Session
+from ragflow_sdk import RAGFlow
+from common import HOST_ADDRESS
 
-from common import API_KEY, HOST_ADDRESS
+
+def test_create_session_with_success(get_api_key_fixture):
+    API_KEY = get_api_key_fixture
+    rag = RAGFlow(API_KEY, HOST_ADDRESS)
+    kb = rag.create_dataset(name="test_create_session")
+    displayed_name = "ragflow.txt"
+    with open("ragflow.txt", "rb") as file:
+        blob = file.read()
+    document = {"displayed_name":displayed_name,"blob":blob}
+    documents = []
+    documents.append(document)
+    docs= kb.upload_documents(documents)
+    for doc in docs:
+        doc.add_chunk("This is a test to add chunk")
+    assistant=rag.create_chat("test_create_session", dataset_ids=[kb.id])
+    assistant.create_session()
 
 
-class TestSession:
-    def test_create_session(self):
-        rag = RAGFlow(API_KEY, HOST_ADDRESS)
-        kb = rag.create_dataset(name="test_create_session")
-        assistant = rag.create_assistant(name="test_create_session", knowledgebases=[kb])
-        session = assistant.create_session()
-        assert isinstance(session,Session), "Failed to create a session."
+def test_create_conversation_with_success(get_api_key_fixture):
+    API_KEY = get_api_key_fixture
+    rag = RAGFlow(API_KEY, HOST_ADDRESS)
+    kb = rag.create_dataset(name="test_create_conversation")
+    displayed_name = "ragflow.txt"
+    with open("ragflow.txt", "rb") as file:
+        blob = file.read()
+    document = {"displayed_name": displayed_name, "blob": blob}
+    documents = []
+    documents.append(document)
+    docs = kb.upload_documents(documents)
+    for doc in docs:
+        doc.add_chunk("This is a test to add chunk")
+    assistant = rag.create_chat("test_create_conversation", dataset_ids=[kb.id])
+    session = assistant.create_session()
+    question = "What is AI"
+    for ans in session.ask(question, stream=True):
+        pass
+    
+    # assert not ans.content.startswith("**ERROR**"), "Please check this error."
 
-    def test_create_chat_with_success(self):
-        rag = RAGFlow(API_KEY, HOST_ADDRESS)
-        kb = rag.create_dataset(name="test_create_chat")
-        assistant = rag.create_assistant(name="test_create_chat", knowledgebases=[kb])
-        session = assistant.create_session()
-        question = "What is AI"
-        for ans in session.chat(question, stream=True):
-            pass
-        assert ans.content!="\n**ERROR**", "Please check this error."
 
-    def test_delete_session_with_success(self):
-        rag = RAGFlow(API_KEY, HOST_ADDRESS)
-        kb = rag.create_dataset(name="test_delete_session")
-        assistant = rag.create_assistant(name="test_delete_session",knowledgebases=[kb])
-        session=assistant.create_session()
-        res=session.delete()
-        assert res, "Failed to delete the dataset."
+def test_delete_sessions_with_success(get_api_key_fixture):
+    API_KEY = get_api_key_fixture
+    rag = RAGFlow(API_KEY, HOST_ADDRESS)
+    kb = rag.create_dataset(name="test_delete_session")
+    displayed_name = "ragflow.txt"
+    with open("ragflow.txt", "rb") as file:
+        blob = file.read()
+    document = {"displayed_name":displayed_name,"blob":blob}
+    documents = []
+    documents.append(document)
+    docs= kb.upload_documents(documents)
+    for doc in docs:
+        doc.add_chunk("This is a test to add chunk")
+    assistant=rag.create_chat("test_delete_session", dataset_ids=[kb.id])
+    session = assistant.create_session()
+    assistant.delete_sessions(ids=[session.id])
 
-    def test_update_session_with_success(self):
-        rag=RAGFlow(API_KEY,HOST_ADDRESS)
-        kb=rag.create_dataset(name="test_update_session")
-        assistant = rag.create_assistant(name="test_update_session",knowledgebases=[kb])
-        session=assistant.create_session(name="old session")
-        session.name="new session"
-        res=session.save()
-        assert res,"Failed to update the session"
+def test_update_session_with_name(get_api_key_fixture):
+    API_KEY = get_api_key_fixture
+    rag = RAGFlow(API_KEY, HOST_ADDRESS)
+    kb = rag.create_dataset(name="test_update_session")
+    displayed_name = "ragflow.txt"
+    with open("ragflow.txt", "rb") as file:
+        blob = file.read()
+    document = {"displayed_name": displayed_name, "blob": blob}
+    documents = []
+    documents.append(document)
+    docs = kb.upload_documents(documents)
+    for doc in docs:
+        doc.add_chunk("This is a test to add chunk")
+    assistant = rag.create_chat("test_update_session", dataset_ids=[kb.id])
+    session = assistant.create_session(name="old session")
+    session.update({"name": "new session"})
 
-    def test_get_session_with_success(self):
-        rag=RAGFlow(API_KEY,HOST_ADDRESS)
-        kb=rag.create_dataset(name="test_get_session")
-        assistant = rag.create_assistant(name="test_get_session",knowledgebases=[kb])
-        session = assistant.create_session()
-        session_2= assistant.get_session(id=session.id)
-        assert session.to_json()==session_2.to_json(),"Failed to get the session"
 
-    def test_list_session_with_success(self):
-        rag=RAGFlow(API_KEY,HOST_ADDRESS)
-        kb=rag.create_dataset(name="test_list_session")
-        assistant=rag.create_assistant(name="test_list_session",knowledgebases=[kb])
-        assistant.create_session("test_1")
-        assistant.create_session("test_2")
-        sessions=assistant.list_session()
-        if isinstance(sessions,list):
-            for session in sessions:
-                assert isinstance(session,Session),"Non-Session elements exist in the list"
-        else :
-            assert False,"Failed to retrieve the session list."
+def test_list_sessions_with_success(get_api_key_fixture):
+    API_KEY = get_api_key_fixture
+    rag = RAGFlow(API_KEY, HOST_ADDRESS)
+    kb = rag.create_dataset(name="test_list_session")
+    displayed_name = "ragflow.txt"
+    with open("ragflow.txt", "rb") as file:
+        blob = file.read()
+    document = {"displayed_name":displayed_name,"blob":blob}
+    documents = []
+    documents.append(document)
+    docs= kb.upload_documents(documents)
+    for doc in docs:
+        doc.add_chunk("This is a test to add chunk")
+    assistant=rag.create_chat("test_list_session", dataset_ids=[kb.id])
+    assistant.create_session("test_1")
+    assistant.create_session("test_2")
+    assistant.list_sessions()

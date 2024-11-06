@@ -3,7 +3,7 @@ import { Card, Divider, Flex, Layout, Tooltip } from 'antd';
 import classNames from 'classnames';
 import lowerFirst from 'lodash/lowerFirst';
 import React from 'react';
-import { Operator, componentMenuList } from '../constant';
+import { Operator, componentMenuList, operatorMap } from '../constant';
 import { useHandleDrag } from '../hooks';
 import OperatorIcon from '../operator-icon';
 import styles from './index.less';
@@ -14,6 +14,14 @@ interface IProps {
   setCollapsed: (width: boolean) => void;
   collapsed: boolean;
 }
+
+const dividerProps = {
+  marginTop: 10,
+  marginBottom: 10,
+  padding: 0,
+  borderBlockColor: '#b4afaf',
+  borderStyle: 'dotted',
+};
 
 const FlowSide = ({ setCollapsed, collapsed }: IProps) => {
   const { handleDragStart } = useHandleDrag();
@@ -31,16 +39,11 @@ const FlowSide = ({ setCollapsed, collapsed }: IProps) => {
         {componentMenuList.map((x) => {
           return (
             <React.Fragment key={x.name}>
+              {x.name === Operator.Note && (
+                <Divider style={dividerProps}></Divider>
+              )}
               {x.name === Operator.DuckDuckGo && (
-                <Divider
-                  style={{
-                    marginTop: 10,
-                    marginBottom: 10,
-                    padding: 0,
-                    borderBlockColor: '#b4afaf',
-                    borderStyle: 'dotted',
-                  }}
-                ></Divider>
+                <Divider style={dividerProps}></Divider>
               )}
               <Card
                 key={x.name}
@@ -50,7 +53,10 @@ const FlowSide = ({ setCollapsed, collapsed }: IProps) => {
                 onDragStart={handleDragStart(x.name)}
               >
                 <Flex align="center" gap={15}>
-                  <OperatorIcon name={x.name}></OperatorIcon>
+                  <OperatorIcon
+                    name={x.name}
+                    color={operatorMap[x.name].color}
+                  ></OperatorIcon>
                   <section>
                     <Tooltip title={t(`${lowerFirst(x.name)}Description`)}>
                       <b>{t(lowerFirst(x.name))}</b>

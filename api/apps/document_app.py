@@ -13,16 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 #
-import datetime
-import hashlib
-import json
-import os
 import pathlib
 import re
-import traceback
-from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
-from io import BytesIO
 
 import flask
 from elasticsearch_dsl import Q
@@ -30,27 +22,24 @@ from flask import request
 from flask_login import login_required, current_user
 
 from api.db.db_models import Task, File
-from api.db.services.dialog_service import DialogService, ConversationService
 from api.db.services.file2document_service import File2DocumentService
 from api.db.services.file_service import FileService
-from api.db.services.llm_service import LLMBundle
 from api.db.services.task_service import TaskService, queue_tasks
-from api.db.services.user_service import TenantService, UserTenantService
-from graphrag.mind_map_extractor import MindMapExtractor
-from rag.app import naive
+from api.db.services.user_service import UserTenantService
 from rag.nlp import search
 from rag.utils.es_conn import ELASTICSEARCH
 from api.db.services import duplicate_name
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.utils.api_utils import server_error_response, get_data_error_result, validate_request
 from api.utils import get_uuid
-from api.db import FileType, TaskStatus, ParserType, FileSource, LLMType
+from api.db import FileType, TaskStatus, ParserType, FileSource
 from api.db.services.document_service import DocumentService, doc_upload_and_parse
-from api.settings import RetCode, stat_logger
+from api.settings import RetCode
 from api.utils.api_utils import get_json_result
 from rag.utils.storage_factory import STORAGE_IMPL
-from api.utils.file_utils import filename_type, thumbnail, get_project_base_directory
+from api.utils.file_utils import filename_type, thumbnail
 from api.utils.web_utils import html2pdf, is_valid_url
+from api.contants import IMG_BASE64_PREFIX
 
 
 @manager.route('/upload', methods=['POST'])
@@ -60,16 +49,16 @@ def upload():
     kb_id = request.form.get("kb_id")
     if not kb_id:
         return get_json_result(
-            data=False, retmsg='Lack of "KB ID"', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='Lack of "KB ID"', code=RetCode.ARGUMENT_ERROR)
     if 'file' not in request.files:
         return get_json_result(
-            data=False, retmsg='No file part!', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='No file part!', code=RetCode.ARGUMENT_ERROR)
 
     file_objs = request.files.getlist('file')
     for file_obj in file_objs:
         if file_obj.filename == '':
             return get_json_result(
-                data=False, retmsg='No file selected!', retcode=RetCode.ARGUMENT_ERROR)
+                data=False, message='No file selected!', code=RetCode.ARGUMENT_ERROR)
 
     e, kb = KnowledgebaseService.get_by_id(kb_id)
     if not e:
@@ -78,7 +67,7 @@ def upload():
     err, _ = FileService.upload_document(kb, file_objs, current_user.id)
     if err:
         return get_json_result(
-            data=False, retmsg="\n".join(err), retcode=RetCode.SERVER_ERROR)
+            data=False, message="\n".join(err), code=RetCode.SERVER_ERROR)
     return get_json_result(data=True)
 
 
@@ -89,12 +78,12 @@ def web_crawl():
     kb_id = request.form.get("kb_id")
     if not kb_id:
         return get_json_result(
-            data=False, retmsg='Lack of "KB ID"', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='Lack of "KB ID"', code=RetCode.ARGUMENT_ERROR)
     name = request.form.get("name")
     url = request.form.get("url")
     if not is_valid_url(url):
         return get_json_result(
-            data=False, retmsg='The URL format is invalid', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='The URL format is invalid', code=RetCode.ARGUMENT_ERROR)
     e, kb = KnowledgebaseService.get_by_id(kb_id)
     if not e:
         raise LookupError("Can't find this knowledgebase!")
@@ -139,6 +128,8 @@ def web_crawl():
             doc["parser_id"] = ParserType.AUDIO.value
         if re.search(r"\.(ppt|pptx|pages)$", filename):
             doc["parser_id"] = ParserType.PRESENTATION.value
+        if re.search(r"\.(eml)$", filename):
+            doc["parser_id"] = ParserType.EMAIL.value
         DocumentService.insert(doc)
         FileService.add_file_from_kb(doc, kb_folder["id"], kb.tenant_id)
     except Exception as e:
@@ -154,17 +145,17 @@ def create():
     kb_id = req["kb_id"]
     if not kb_id:
         return get_json_result(
-            data=False, retmsg='Lack of "KB ID"', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='Lack of "KB ID"', code=RetCode.ARGUMENT_ERROR)
 
     try:
         e, kb = KnowledgebaseService.get_by_id(kb_id)
         if not e:
             return get_data_error_result(
-                retmsg="Can't find this knowledgebase!")
+                message="Can't find this knowledgebase!")
 
         if DocumentService.query(name=req["name"], kb_id=kb_id):
             return get_data_error_result(
-                retmsg="Duplicated document name in the same knowledgebase.")
+                message="Duplicated document name in the same knowledgebase.")
 
         doc = DocumentService.insert({
             "id": get_uuid(),
@@ -188,7 +179,7 @@ def list_docs():
     kb_id = request.args.get("kb_id")
     if not kb_id:
         return get_json_result(
-            data=False, retmsg='Lack of "KB ID"', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='Lack of "KB ID"', code=RetCode.ARGUMENT_ERROR)
     tenants = UserTenantService.query(user_id=current_user.id)
     for tenant in tenants:
         if KnowledgebaseService.query(
@@ -196,8 +187,8 @@ def list_docs():
             break
     else:
         return get_json_result(
-            data=False, retmsg=f'Only owner of knowledgebase authorized for this operation.',
-            retcode=RetCode.OPERATING_ERROR)
+            data=False, message='Only owner of knowledgebase authorized for this operation.',
+            code=RetCode.OPERATING_ERROR)
     keywords = request.args.get("keywords", "")
 
     page_number = int(request.args.get("page", 1))
@@ -207,15 +198,28 @@ def list_docs():
     try:
         docs, tol = DocumentService.get_by_kb_id(
             kb_id, page_number, items_per_page, orderby, desc, keywords)
+
+        for doc_item in docs:
+            if doc_item['thumbnail'] and not doc_item['thumbnail'].startswith(IMG_BASE64_PREFIX):
+                doc_item['thumbnail'] = f"/v1/document/image/{kb_id}-{doc_item['thumbnail']}"
+
         return get_json_result(data={"total": tol, "docs": docs})
     except Exception as e:
         return server_error_response(e)
 
 
 @manager.route('/infos', methods=['POST'])
+@login_required
 def docinfos():
     req = request.json
     doc_ids = req["doc_ids"]
+    for doc_id in doc_ids:
+        if not DocumentService.accessible(doc_id, current_user.id):
+            return get_json_result(
+                data=False,
+                message='No authorization.',
+                code=RetCode.AUTHENTICATION_ERROR
+            )
     docs = DocumentService.get_by_ids(doc_ids)
     return get_json_result(data=list(docs.dicts()))
 
@@ -226,10 +230,15 @@ def thumbnails():
     doc_ids = request.args.get("doc_ids").split(",")
     if not doc_ids:
         return get_json_result(
-            data=False, retmsg='Lack of "Document ID"', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='Lack of "Document ID"', code=RetCode.ARGUMENT_ERROR)
 
     try:
         docs = DocumentService.get_thumbnails(doc_ids)
+
+        for doc_item in docs:
+            if doc_item['thumbnail'] and not doc_item['thumbnail'].startswith(IMG_BASE64_PREFIX):
+                doc_item['thumbnail'] = f"/v1/document/image/{doc_item['kb_id']}-{doc_item['thumbnail']}"
+
         return get_json_result(data={d["id"]: d["thumbnail"] for d in docs})
     except Exception as e:
         return server_error_response(e)
@@ -241,24 +250,30 @@ def thumbnails():
 def change_status():
     req = request.json
     if str(req["status"]) not in ["0", "1"]:
-        get_json_result(
+        return get_json_result(
             data=False,
-            retmsg='"Status" must be either 0 or 1!',
-            retcode=RetCode.ARGUMENT_ERROR)
+            message='"Status" must be either 0 or 1!',
+            code=RetCode.ARGUMENT_ERROR)
+
+    if not DocumentService.accessible(req["doc_id"], current_user.id):
+        return get_json_result(
+            data=False,
+            message='No authorization.',
+            code=RetCode.AUTHENTICATION_ERROR)
 
     try:
         e, doc = DocumentService.get_by_id(req["doc_id"])
         if not e:
-            return get_data_error_result(retmsg="Document not found!")
+            return get_data_error_result(message="Document not found!")
         e, kb = KnowledgebaseService.get_by_id(doc.kb_id)
         if not e:
             return get_data_error_result(
-                retmsg="Can't find this knowledgebase!")
+                message="Can't find this knowledgebase!")
 
         if not DocumentService.update_by_id(
                 req["doc_id"], {"status": str(req["status"])}):
             return get_data_error_result(
-                retmsg="Database error (Document update)!")
+                message="Database error (Document update)!")
 
         if str(req["status"]) == "0":
             ELASTICSEARCH.updateScriptByQuery(Q("term", doc_id=req["doc_id"]),
@@ -284,6 +299,15 @@ def rm():
     req = request.json
     doc_ids = req["doc_id"]
     if isinstance(doc_ids, str): doc_ids = [doc_ids]
+
+    for doc_id in doc_ids:
+        if not DocumentService.accessible4deletion(doc_id, current_user.id):
+            return get_json_result(
+                data=False,
+                message='No authorization.',
+                code=RetCode.AUTHENTICATION_ERROR
+            )
+
     root_folder = FileService.get_root_folder(current_user.id)
     pf_id = root_folder["id"]
     FileService.init_knowledgebase_docs(pf_id, current_user.id)
@@ -292,16 +316,16 @@ def rm():
         try:
             e, doc = DocumentService.get_by_id(doc_id)
             if not e:
-                return get_data_error_result(retmsg="Document not found!")
+                return get_data_error_result(message="Document not found!")
             tenant_id = DocumentService.get_tenant_id(doc_id)
             if not tenant_id:
-                return get_data_error_result(retmsg="Tenant not found!")
+                return get_data_error_result(message="Tenant not found!")
 
-            b, n = File2DocumentService.get_minio_address(doc_id=doc_id)
+            b, n = File2DocumentService.get_storage_address(doc_id=doc_id)
 
             if not DocumentService.remove_document(doc, tenant_id):
                 return get_data_error_result(
-                    retmsg="Database error (Document removal)!")
+                    message="Database error (Document removal)!")
 
             f2d = File2DocumentService.get_by_document_id(doc_id)
             FileService.filter_delete([File.source_type == FileSource.KNOWLEDGEBASE, File.id == f2d[0].file_id])
@@ -312,7 +336,7 @@ def rm():
             errors += str(e)
 
     if errors:
-        return get_json_result(data=False, retmsg=errors, retcode=RetCode.SERVER_ERROR)
+        return get_json_result(data=False, message=errors, code=RetCode.SERVER_ERROR)
 
     return get_json_result(data=True)
 
@@ -322,6 +346,13 @@ def rm():
 @validate_request("doc_ids", "run")
 def run():
     req = request.json
+    for doc_id in req["doc_ids"]:
+        if not DocumentService.accessible(doc_id, current_user.id):
+            return get_json_result(
+                data=False,
+                message='No authorization.',
+                code=RetCode.AUTHENTICATION_ERROR
+            )
     try:
         for id in req["doc_ids"]:
             info = {"run": str(req["run"]), "progress": 0}
@@ -333,7 +364,7 @@ def run():
             # if str(req["run"]) == TaskStatus.CANCEL.value:
             tenant_id = DocumentService.get_tenant_id(id)
             if not tenant_id:
-                return get_data_error_result(retmsg="Tenant not found!")
+                return get_data_error_result(message="Tenant not found!")
             ELASTICSEARCH.deleteByQuery(
                 Q("match", doc_id=id), idxnm=search.index_name(tenant_id))
 
@@ -342,7 +373,7 @@ def run():
                 e, doc = DocumentService.get_by_id(id)
                 doc = doc.to_dict()
                 doc["tenant_id"] = tenant_id
-                bucket, name = File2DocumentService.get_minio_address(doc_id=doc["id"])
+                bucket, name = File2DocumentService.get_storage_address(doc_id=doc["id"])
                 queue_tasks(doc, bucket, name)
 
         return get_json_result(data=True)
@@ -355,25 +386,31 @@ def run():
 @validate_request("doc_id", "name")
 def rename():
     req = request.json
+    if not DocumentService.accessible(req["doc_id"], current_user.id):
+        return get_json_result(
+            data=False,
+            message='No authorization.',
+            code=RetCode.AUTHENTICATION_ERROR
+        )
     try:
         e, doc = DocumentService.get_by_id(req["doc_id"])
         if not e:
-            return get_data_error_result(retmsg="Document not found!")
+            return get_data_error_result(message="Document not found!")
         if pathlib.Path(req["name"].lower()).suffix != pathlib.Path(
                 doc.name.lower()).suffix:
             return get_json_result(
                 data=False,
-                retmsg="The extension of file can't be changed",
-                retcode=RetCode.ARGUMENT_ERROR)
+                message="The extension of file can't be changed",
+                code=RetCode.ARGUMENT_ERROR)
         for d in DocumentService.query(name=req["name"], kb_id=doc.kb_id):
             if d.name == req["name"]:
                 return get_data_error_result(
-                    retmsg="Duplicated document name in the same knowledgebase.")
+                    message="Duplicated document name in the same knowledgebase.")
 
         if not DocumentService.update_by_id(
                 req["doc_id"], {"name": req["name"]}):
             return get_data_error_result(
-                retmsg="Database error (Document rename)!")
+                message="Database error (Document rename)!")
 
         informs = File2DocumentService.get_by_document_id(req["doc_id"])
         if informs:
@@ -391,9 +428,9 @@ def get(doc_id):
     try:
         e, doc = DocumentService.get_by_id(doc_id)
         if not e:
-            return get_data_error_result(retmsg="Document not found!")
+            return get_data_error_result(message="Document not found!")
 
-        b, n = File2DocumentService.get_minio_address(doc_id=doc_id)
+        b, n = File2DocumentService.get_storage_address(doc_id=doc_id)
         response = flask.make_response(STORAGE_IMPL.get(b, n))
 
         ext = re.search(r"\.([^.]+)$", doc.name)
@@ -415,10 +452,17 @@ def get(doc_id):
 @validate_request("doc_id", "parser_id")
 def change_parser():
     req = request.json
+
+    if not DocumentService.accessible(req["doc_id"], current_user.id):
+        return get_json_result(
+            data=False,
+            message='No authorization.',
+            code=RetCode.AUTHENTICATION_ERROR
+        )
     try:
         e, doc = DocumentService.get_by_id(req["doc_id"])
         if not e:
-            return get_data_error_result(retmsg="Document not found!")
+            return get_data_error_result(message="Document not found!")
         if doc.parser_id.lower() == req["parser_id"].lower():
             if "parser_config" in req:
                 if req["parser_config"] == doc.parser_config:
@@ -426,25 +470,26 @@ def change_parser():
             else:
                 return get_json_result(data=True)
 
-        if doc.type == FileType.VISUAL or re.search(
-                r"\.(ppt|pptx|pages)$", doc.name):
-            return get_data_error_result(retmsg="Not supported yet!")
+        if ((doc.type == FileType.VISUAL and req["parser_id"] != "picture")
+                or (re.search(
+                    r"\.(ppt|pptx|pages)$", doc.name) and req["parser_id"] != "presentation")):
+            return get_data_error_result(message="Not supported yet!")
 
         e = DocumentService.update_by_id(doc.id,
                                          {"parser_id": req["parser_id"], "progress": 0, "progress_msg": "",
                                           "run": TaskStatus.UNSTART.value})
         if not e:
-            return get_data_error_result(retmsg="Document not found!")
+            return get_data_error_result(message="Document not found!")
         if "parser_config" in req:
             DocumentService.update_parser_config(doc.id, req["parser_config"])
         if doc.token_num > 0:
             e = DocumentService.increment_chunk_num(doc.id, doc.kb_id, doc.token_num * -1, doc.chunk_num * -1,
                                                     doc.process_duation * -1)
             if not e:
-                return get_data_error_result(retmsg="Document not found!")
+                return get_data_error_result(message="Document not found!")
             tenant_id = DocumentService.get_tenant_id(req["doc_id"])
             if not tenant_id:
-                return get_data_error_result(retmsg="Tenant not found!")
+                return get_data_error_result(message="Tenant not found!")
             ELASTICSEARCH.deleteByQuery(
                 Q("match", doc_id=doc.id), idxnm=search.index_name(tenant_id))
 
@@ -471,13 +516,13 @@ def get_image(image_id):
 def upload_and_parse():
     if 'file' not in request.files:
         return get_json_result(
-            data=False, retmsg='No file part!', retcode=RetCode.ARGUMENT_ERROR)
+            data=False, message='No file part!', code=RetCode.ARGUMENT_ERROR)
 
     file_objs = request.files.getlist('file')
     for file_obj in file_objs:
         if file_obj.filename == '':
             return get_json_result(
-                data=False, retmsg='No file selected!', retcode=RetCode.ARGUMENT_ERROR)
+                data=False, message='No file selected!', code=RetCode.ARGUMENT_ERROR)
 
     doc_ids = doc_upload_and_parse(request.form.get("conversation_id"), file_objs, current_user.id)
 

@@ -23,7 +23,9 @@ import api from '@/utils/api';
 import { useDebounceEffect } from 'ahooks';
 import { FormInstance, message } from 'antd';
 import { humanId } from 'human-id';
+import { lowerFirst } from 'lodash';
 import trim from 'lodash/trim';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'umi';
 import { v4 as uuid } from 'uuid';
 import {
@@ -31,12 +33,15 @@ import {
   Operator,
   RestrictedUpstreamMap,
   SwitchElseTo,
+  initialAkShareValues,
   initialArXivValues,
   initialBaiduFanyiValues,
   initialBaiduValues,
   initialBeginValues,
   initialBingValues,
   initialCategorizeValues,
+  initialConcentratorValues,
+  initialCrawlerValues,
   initialDeepLValues,
   initialDuckValues,
   initialExeSqlValues,
@@ -44,21 +49,28 @@ import {
   initialGithubValues,
   initialGoogleScholarValues,
   initialGoogleValues,
+  initialInvokeValues,
+  initialJin10Values,
   initialKeywordExtractValues,
   initialMessageValues,
+  initialNoteValues,
   initialPubMedValues,
   initialQWeatherValues,
   initialRelevantValues,
   initialRetrievalValues,
   initialRewriteQuestionValues,
   initialSwitchValues,
+  initialTuShareValues,
+  initialWenCaiValues,
   initialWikipediaValues,
+  initialYahooFinanceValues,
 } from './constant';
 import { ICategorizeForm, IRelevantForm, ISwitchForm } from './interface';
 import useGraphStore, { RFState } from './store';
 import {
   buildDslComponentsByGraph,
   generateSwitchHandleText,
+  getNodeDragHandle,
   receiveMessageError,
   replaceIdWithText,
 } from './utils';
@@ -113,6 +125,15 @@ export const useInitializeOperatorParams = () => {
       [Operator.QWeather]: initialQWeatherValues,
       [Operator.ExeSQL]: initialExeSqlValues,
       [Operator.Switch]: initialSwitchValues,
+      [Operator.WenCai]: initialWenCaiValues,
+      [Operator.AkShare]: initialAkShareValues,
+      [Operator.YahooFinance]: initialYahooFinanceValues,
+      [Operator.Jin10]: initialJin10Values,
+      [Operator.Concentrator]: initialConcentratorValues,
+      [Operator.TuShare]: initialTuShareValues,
+      [Operator.Note]: initialNoteValues,
+      [Operator.Crawler]: initialCrawlerValues,
+      [Operator.Invoke]: initialInvokeValues,
     };
   }, [llmId]);
 
@@ -138,16 +159,67 @@ export const useHandleDrag = () => {
   return { handleDragStart };
 };
 
+const splitName = (name: string) => {
+  const names = name.split('_');
+  const type = names.at(0);
+  const index = Number(names.at(-1));
+
+  return { type, index };
+};
+
 export const useHandleDrop = () => {
   const addNode = useGraphStore((state) => state.addNode);
+  const nodes = useGraphStore((state) => state.nodes);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<ReactFlowInstance<any, any>>();
   const initializeOperatorParams = useInitializeOperatorParams();
+  const { t } = useTranslation();
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
+
+  const generateNodeName = useCallback(
+    (type: string) => {
+      const name = t(`flow.${lowerFirst(type)}`);
+      const templateNameList = nodes
+        .filter((x) => {
+          const temporaryName = x.data.name;
+
+          const { type, index } = splitName(temporaryName);
+
+          return (
+            temporaryName.match(/_/g)?.length === 1 &&
+            type === name &&
+            !isNaN(index)
+          );
+        })
+        .map((x) => {
+          const temporaryName = x.data.name;
+          const { index } = splitName(temporaryName);
+
+          return {
+            idx: index,
+            name: temporaryName,
+          };
+        })
+        .sort((a, b) => a.idx - b.idx);
+
+      let index: number = 0;
+      for (let i = 0; i < templateNameList.length; i++) {
+        const idx = templateNameList[i]?.idx;
+        const nextIdx = templateNameList[i + 1]?.idx;
+        if (idx + 1 !== nextIdx) {
+          index = idx + 1;
+          break;
+        }
+      }
+
+      return `${name}_${index}`;
+    },
+    [t, nodes],
+  );
 
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
@@ -176,16 +248,17 @@ export const useHandleDrop = () => {
         },
         data: {
           label: `${type}`,
-          name: humanId(),
+          name: generateNodeName(type),
           form: initializeOperatorParams(type as Operator),
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
+        dragHandle: getNodeDragHandle(type),
       };
 
       addNode(newNode);
     },
-    [reactFlowInstance, addNode, initializeOperatorParams],
+    [reactFlowInstance, addNode, initializeOperatorParams, generateNodeName],
   );
 
   return { onDrop, onDragOver, setReactFlowInstance };
@@ -379,11 +452,16 @@ export const useValidateConnection = () => {
   return isValidConnection;
 };
 
-export const useHandleNodeNameChange = (node?: Node) => {
+export const useHandleNodeNameChange = ({
+  id,
+  data,
+}: {
+  id?: string;
+  data: any;
+}) => {
   const [name, setName] = useState<string>('');
   const { updateNodeName, nodes } = useGraphStore((state) => state);
-  const previousName = node?.data.name;
-  const id = node?.id;
+  const previousName = data?.name;
 
   const handleNameBlur = useCallback(() => {
     const existsSameName = nodes.some((x) => x.data.name === name);
@@ -419,15 +497,15 @@ export const useSaveGraphBeforeOpeningDebugDrawer = (show: () => void) => {
   const { send } = useSendMessageWithSse(api.runCanvas);
   const handleRun = useCallback(async () => {
     const saveRet = await saveGraph();
-    if (saveRet?.retcode === 0) {
+    if (saveRet?.code === 0) {
       // Call the reset api before opening the run drawer each time
       const resetRet = await resetFlow();
       // After resetting, all previous messages will be cleared.
-      if (resetRet?.retcode === 0) {
+      if (resetRet?.code === 0) {
         // fetch prologue
         const sendRet = await send({ id });
         if (receiveMessageError(sendRet)) {
-          message.error(sendRet?.data?.retmsg);
+          message.error(sendRet?.data?.message);
         } else {
           refetch();
           show();
@@ -569,7 +647,7 @@ const ExcludedNodes = [
   Operator.Categorize,
   Operator.Relevant,
   Operator.Begin,
-  Operator.Answer,
+  Operator.Note,
 ];
 
 export const useBuildComponentIdSelectOptions = (nodeId?: string) => {
@@ -585,4 +663,16 @@ export const useBuildComponentIdSelectOptions = (nodeId?: string) => {
   }, [nodes, nodeId]);
 
   return options;
+};
+
+export const useGetComponentLabelByValue = (nodeId: string) => {
+  const options = useBuildComponentIdSelectOptions(nodeId);
+
+  const getLabel = useCallback(
+    (val?: string) => {
+      return options.find((x) => x.value === val)?.label;
+    },
+    [options],
+  );
+  return getLabel;
 };

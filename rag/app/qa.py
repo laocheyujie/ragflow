@@ -14,15 +14,18 @@ import re
 from copy import deepcopy
 from io import BytesIO
 from timeit import default_timer as timer
-from nltk import word_tokenize
 from openpyxl import load_workbook
-from rag.nlp import is_english, random_choices, find_codec, qbullets_category, add_positions, has_qbullet, docx_question_level
+
+from deepdoc.parser.utils import get_text
+from rag.nlp import is_english, random_choices, qbullets_category, add_positions, has_qbullet, docx_question_level
 from rag.nlp import rag_tokenizer, tokenize_table, concat_img
 from rag.settings import cron_logger
 from deepdoc.parser import PdfParser, ExcelParser, DocxParser
 from docx import Document
 from PIL import Image
 from markdown import markdown
+
+
 class Excel(ExcelParser):
     def __call__(self, fnm, binary=None, callback=None):
         if not binary:
@@ -64,6 +67,7 @@ class Excel(ExcelParser):
         self.is_english = is_english(
             [rmPrefix(q) for q, _ in random_choices(res, k=30) if len(q) > 1])
         return res
+
 
 class Pdf(PdfParser):
     def __call__(self, filename, binary=None, from_page=0,
@@ -152,6 +156,7 @@ class Pdf(PdfParser):
         if last_q:
             qai_list.append((last_q, last_a, *self.crop(last_tag, need_position=True)))
         return qai_list, tbls
+
     def get_tbls_info(self, tbls, tbl_index):
         if tbl_index >= len(tbls):
             return 1, 0, 0, 0, 0, '@@0\t0\t0\t0\t0##', ''
@@ -163,10 +168,13 @@ class Pdf(PdfParser):
         tbl_tag = "@@{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}##" \
             .format(tbl_pn, tbl_left, tbl_right, tbl_top, tbl_bottom)
         tbl_text = ''.join(tbls[tbl_index][0][1])
-        return tbl_pn, tbl_left, tbl_right, tbl_top, tbl_bottom, tbl_tag, tbl_text
+        return tbl_pn, tbl_left, tbl_right, tbl_top, tbl_bottom, tbl_tag,
+
+
 class Docx(DocxParser):
     def __init__(self):
         pass
+
     def get_picture(self, document, paragraph):
         img = paragraph._element.xpath('.//pic:pic')
         if not img:
@@ -239,6 +247,7 @@ class Docx(DocxParser):
             tbls.append(((None, html), ""))
         return qai_list, tbls
 
+
 def rmPrefix(txt):
     return re.sub(
         r"^(问题|答案|回答|user|assistant|Q|A|Question|Answer|问|答)[\t:： ]+", "", txt.strip(), flags=re.IGNORECASE)
@@ -255,6 +264,7 @@ def beAdocPdf(d, q, a, eng, image, poss):
     add_positions(d, poss)
     return d
 
+
 def beAdocDocx(d, q, a, eng, image):
     qprefix = "Question: " if eng else "问题："
     aprefix = "Answer: " if eng else "回答："
@@ -264,6 +274,7 @@ def beAdocDocx(d, q, a, eng, image):
     d["content_sm_ltks"] = rag_tokenizer.fine_grained_tokenize(d["content_ltks"])
     d["image"] = image
     return d
+
 
 def beAdoc(d, q, a, eng):
     qprefix = "Question: " if eng else "问题："
@@ -278,6 +289,7 @@ def beAdoc(d, q, a, eng):
 def mdQuestionLevel(s):
     match = re.match(r'#*', s)
     return (len(match.group(0)), s.lstrip('#').lstrip()) if match else (0, s)
+
 
 def chunk(filename, binary=None, lang="Chinese", callback=None, **kwargs):
     """
@@ -303,19 +315,10 @@ def chunk(filename, binary=None, lang="Chinese", callback=None, **kwargs):
         for q, a in excel_parser(filename, binary, callback):
             res.append(beAdoc(deepcopy(doc), q, a, eng))
         return res
+
     elif re.search(r"\.(txt|csv)$", filename, re.IGNORECASE):
         callback(0.1, "Start to parse.")
-        txt = ""
-        if binary:
-            encoding = find_codec(binary)
-            txt = binary.decode(encoding, errors="ignore")
-        else:
-            with open(filename, "r") as f:
-                while True:
-                    l = f.readline()
-                    if not l:
-                        break
-                    txt += l
+        txt = get_text(filename, binary)
         lines = txt.split("\n")
         comma, tab = 0, 0
         for l in lines:
@@ -346,29 +349,19 @@ def chunk(filename, binary=None, lang="Chinese", callback=None, **kwargs):
             f"{len(fails)} failure, line: %s..." % (",".join(fails[:3])) if fails else "")))
 
         return res
+
     elif re.search(r"\.pdf$", filename, re.IGNORECASE):
         callback(0.1, "Start to parse.")
         pdf_parser = Pdf()
         qai_list, tbls = pdf_parser(filename if not binary else binary,
                                     from_page=0, to_page=10000, callback=callback)
-        
-
         for q, a, image, poss in qai_list:
             res.append(beAdocPdf(deepcopy(doc), q, a, eng, image, poss))
         return res
+
     elif re.search(r"\.(md|markdown)$", filename, re.IGNORECASE):
         callback(0.1, "Start to parse.")
-        txt = ""
-        if binary:
-            encoding = find_codec(binary)
-            txt = binary.decode(encoding, errors="ignore")
-        else:
-            with open(filename, "r") as f:
-                while True:
-                    l = f.readline()
-                    if not l:
-                        break
-                    txt += l
+        txt = get_text(filename, binary)
         lines = txt.split("\n")
         last_question, last_answer = "", ""
         question_stack, level_stack = [], []
@@ -401,6 +394,7 @@ def chunk(filename, binary=None, lang="Chinese", callback=None, **kwargs):
             if sum_question:
                 res.append(beAdoc(deepcopy(doc), sum_question, markdown(last_answer, extensions=['markdown.extensions.tables']), eng))
         return res
+
     elif re.search(r"\.docx$", filename, re.IGNORECASE):
         docx_parser = Docx()
         qai_list, tbls = docx_parser(filename, binary,

@@ -50,7 +50,7 @@ class EsQueryer:
         patts = [
             (r"是*(什么样的|哪家|一下|那家|请问|啥样|咋样了|什么时候|何时|何地|何人|是否|是不是|多少|哪里|怎么|哪儿|怎么样|如何|哪些|是啥|啥是|啊|吗|呢|吧|咋|什么|有没有|呀)是*", ""),
             (r"(^| )(what|who|how|which|where|why)('re|'s)? ", " "),
-            (r"(^| )('s|'re|is|are|were|was|do|does|did|don't|doesn't|didn't|has|have|be|there|you|me|your|my|mine|just|please|may|i|should|would|wouldn't|will|won't|done|go|for|with|so|the|a|an|by|i'm|it's|he's|she's|they|they're|you're|as|by|on|in|at|up|out|down) ", " ")
+            (r"(^| )('s|'re|is|are|were|was|do|does|did|don't|doesn't|didn't|has|have|be|there|you|me|your|my|mine|just|please|may|i|should|would|wouldn't|will|won't|done|go|for|with|so|the|a|an|by|i'm|it's|he's|she's|they|they're|you're|as|by|on|in|at|up|out|down|of) ", " ")
         ]
         for r, p in patts:
             txt = re.sub(r, p, txt, flags=re.IGNORECASE)
@@ -80,7 +80,7 @@ class EsQueryer:
                      must=Q("query_string", fields=self.flds,
                             type="best_fields", query=" ".join(q),
                             boost=1)#, minimum_should_match=min_match)
-                     ), tks
+                     ), list(set([t for t in txt.split(" ") if t]))
 
         def need_fine_grained_tokenize(tk):
             if len(tk) < 3:
@@ -93,8 +93,10 @@ class EsQueryer:
         for tt in self.tw.split(txt)[:256]:  # .split(" "):
             if not tt:
                 continue
+            keywords.append(tt)
             twts = self.tw.weights([tt])
             syns = self.syn.lookup(tt)
+            if syns: keywords.extend(syns)
             logging.info(json.dumps(twts, ensure_ascii=False))
             tms = []
             for tk, w in sorted(twts, key=lambda x: x[1] * -1):
@@ -147,7 +149,7 @@ class EsQueryer:
 
         return Q("bool",
                  must=mst,
-                 ), keywords
+                 ), list(set(keywords))
 
     def hybrid_similarity(self, avec, bvecs, atks, btkss, tkweight=0.3,
                           vtweight=0.7):
@@ -163,7 +165,7 @@ class EsQueryer:
             d = {}
             if isinstance(tks, str):
                 tks = tks.split(" ")
-            for t, c in self.tw.weights(tks):
+            for t, c in self.tw.weights(tks, preprocess=False):
                 if t not in d:
                     d[t] = 0
                 d[t] += c
@@ -175,17 +177,14 @@ class EsQueryer:
 
     def similarity(self, qtwt, dtwt):
         if isinstance(dtwt, type("")):
-            dtwt = {t: w for t, w in self.tw.weights(self.tw.split(dtwt))}
+            dtwt = {t: w for t, w in self.tw.weights(self.tw.split(dtwt), preprocess=False)}
         if isinstance(qtwt, type("")):
-            qtwt = {t: w for t, w in self.tw.weights(self.tw.split(qtwt))}
+            qtwt = {t: w for t, w in self.tw.weights(self.tw.split(qtwt), preprocess=False)}
         s = 1e-9
         for k, v in qtwt.items():
             if k in dtwt:
                 s += v  # * dtwt[k]
         q = 1e-9
         for k, v in qtwt.items():
-            q += v  # * v
-        #d = 1e-9
-        # for k, v in dtwt.items():
-        #    d += v * v
-        return s / q / max(1, math.sqrt(math.log10(max(len(qtwt.keys()), len(dtwt.keys())))))# math.sqrt(q) / math.sqrt(d)
+            q += v
+        return s / q

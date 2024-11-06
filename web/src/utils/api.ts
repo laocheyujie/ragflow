@@ -12,6 +12,15 @@ export default {
   tenant_info: `${api_host}/user/tenant_info`,
   set_tenant_info: `${api_host}/user/set_tenant_info`,
 
+  // team
+  addTenantUser: (tenantId: string) => `${api_host}/tenant/${tenantId}/user`,
+  listTenantUser: (tenantId: string) =>
+    `${api_host}/tenant/${tenantId}/user/list`,
+  deleteTenantUser: (tenantId: string, userId: string) =>
+    `${api_host}/tenant/${tenantId}/user/${userId}`,
+  listTenant: `${api_host}/tenant/list`,
+  agreeTenant: (tenantId: string) => `${api_host}/tenant/agree/${tenantId}`,
+
   // llm model
   factories_list: `${api_host}/llm/factories`,
   llm_list: `${api_host}/llm/list`,
@@ -19,6 +28,7 @@ export default {
   set_api_key: `${api_host}/llm/set_api_key`,
   add_llm: `${api_host}/llm/add_llm`,
   delete_llm: `${api_host}/llm/delete_llm`,
+  deleteFactory: `${api_host}/llm/delete_factory`,
 
   // knowledge base
   kb_list: `${api_host}/kb/list`,
@@ -93,6 +103,10 @@ export default {
   // system
   getSystemVersion: `${api_host}/system/version`,
   getSystemStatus: `${api_host}/system/status`,
+  getSystemTokenList: `${api_host}/system/token_list`,
+  createSystemToken: `${api_host}/system/new_token`,
+  listSystemToken: `${api_host}/system/token_list`,
+  removeSystemToken: `${api_host}/system/token`,
 
   // flow
   listTemplates: `${api_host}/canvas/templates`,

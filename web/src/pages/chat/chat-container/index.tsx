@@ -21,21 +21,25 @@ import { useFetchUserInfo } from '@/hooks/user-setting-hooks';
 import { memo } from 'react';
 import styles from './index.less';
 
-const ChatContainer = () => {
+interface IProps {
+  controller: AbortController;
+}
+
+const ChatContainer = ({ controller }: IProps) => {
   const { conversationId } = useGetChatSearchParams();
   const { data: conversation } = useFetchNextConversation();
 
   const {
+    value,
     ref,
     loading,
     sendLoading,
     derivedMessages,
     handleInputChange,
     handlePressEnter,
-    value,
     regenerateMessage,
     removeMessageById,
-  } = useSendNextMessage();
+  } = useSendNextMessage(controller);
 
   const { visible, hideModal, documentId, selectedChunk, clickDocumentButton } =
     useClickDrawer();

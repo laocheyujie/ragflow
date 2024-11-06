@@ -52,14 +52,9 @@ const getFileIds = (fileList: UploadFile[]) => {
   return ids;
 };
 
-const isUploadError = (file: UploadFile) => {
-  const retcode = get(file, 'response.retcode');
-  return typeof retcode === 'number' && retcode !== 0;
-};
-
 const isUploadSuccess = (file: UploadFile) => {
-  const retcode = get(file, 'response.retcode');
-  return typeof retcode === 'number' && retcode === 0;
+  const code = get(file, 'response.code');
+  return typeof code === 'number' && code === 0;
 };
 
 interface IProps {
@@ -117,11 +112,11 @@ const MessageInput = ({
     file,
   }) => {
     let nextConversationId: string = conversationId;
-    if (createConversationBeforeUploadDocument && !conversationId) {
+    if (createConversationBeforeUploadDocument) {
       const creatingRet = await createConversationBeforeUploadDocument(
         file.name,
       );
-      if (creatingRet.retcode === 0) {
+      if (creatingRet?.code === 0) {
         nextConversationId = creatingRet.data.id;
       }
     }
@@ -133,6 +128,7 @@ const MessageInput = ({
       });
       return [...list];
     });
+
     const ret = await uploadAndParseDocument({
       conversationId: nextConversationId,
       fileList: [file],
@@ -144,7 +140,7 @@ const MessageInput = ({
         originFileObj: file as any,
         response: ret,
         percent: 100,
-        status: ret?.retcode === 0 ? 'done' : 'error',
+        status: ret?.code === 0 ? 'done' : 'error',
       });
       return nextList;
     });
@@ -217,25 +213,25 @@ const MessageInput = ({
           <Space>
             {showUploadIcon && (
               <Upload
-                // action={uploadUrl}
-                // fileList={fileList}
                 onPreview={handlePreview}
                 onChange={handleChange}
                 multiple={false}
-                // headers={{ [Authorization]: getAuthorization() }}
-                // data={{ conversation_id: conversationId }}
-                // method="post"
                 onRemove={handleRemove}
                 showUploadList={false}
-                beforeUpload={(file, fileList) => {
-                  console.log('🚀 ~ beforeUpload:', fileList);
+                beforeUpload={() => {
                   return false;
                 }}
               >
                 <Button
                   type={'text'}
+                  disabled={disabled}
                   icon={
-                    <SvgIcon name="paper-clip" width={18} height={22}></SvgIcon>
+                    <SvgIcon
+                      name="paper-clip"
+                      width={18}
+                      height={22}
+                      disabled={disabled}
+                    ></SvgIcon>
                   }
                 ></Button>
               </Upload>
@@ -277,17 +273,14 @@ const MessageInput = ({
               <List.Item>
                 <Card className={styles.documentCard}>
                   <Flex gap={10} align="center">
-                    {item.status === 'uploading' || !item.response ? (
+                    {item.status === 'uploading' ? (
                       <Spin
                         indicator={
                           <LoadingOutlined style={{ fontSize: 24 }} spin />
                         }
                       />
-                    ) : !getFileId(item) ? (
-                      <InfoCircleOutlined
-                        size={30}
-                        // width={30}
-                      ></InfoCircleOutlined>
+                    ) : item.status === 'error' ? (
+                      <InfoCircleOutlined size={30}></InfoCircleOutlined>
                     ) : (
                       <FileIcon id={id} name={fileName}></FileIcon>
                     )}
@@ -298,7 +291,7 @@ const MessageInput = ({
                       >
                         <b> {fileName}</b>
                       </Text>
-                      {isUploadError(item) ? (
+                      {item.status === 'error' ? (
                         t('uploadFailed')
                       ) : (
                         <>

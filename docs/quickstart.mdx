@@ -34,7 +34,7 @@ This section provides instructions on setting up the RAGFlow server on Linux. If
 
    `vm.max_map_count`. This value sets the maximum number of memory map areas a process may have. Its default value is 65530. While most applications require fewer than a thousand maps, reducing this value can result in abmornal behaviors, and the system will throw out-of-memory errors when a process reaches the limitation. 
 
-   RAGFlow v0.10.0 uses Elasticsearch for multiple recall. Setting the value of `vm.max_map_count` correctly is crucial to the proper functioning of the Elasticsearch component.
+   RAGFlow v0.13.0 uses Elasticsearch for multiple recall. Setting the value of `vm.max_map_count` correctly is crucial to the proper functioning of the Elasticsearch component.
 
 <Tabs
   defaultValue="linux"
@@ -177,15 +177,20 @@ This section provides instructions on setting up the RAGFlow server on Linux. If
 
 3. Build the pre-built Docker images and start up the server:
 
-   > Running the following commands automatically downloads the *dev* version RAGFlow Docker image. To download and run a specified Docker version, update `RAGFLOW_VERSION` in **docker/.env** to the intended version, for example `RAGFLOW_VERSION=v0.10.0`, before running the following commands.
+   > The command below downloads the dev version Docker image for RAGFlow slim (`dev-slim`). Note that RAGFlow slim Docker images do not include embedding models or Python libraries and hence are approximately 1GB in size.
 
    ```bash
    $ cd ragflow/docker
-   $ chmod +x ./entrypoint.sh
-   $ docker compose up -d
+   $ docker compose -f docker-compose.yml up -d
    ```
 
-> The core image is about 9 GB in size and may take a while to load.
+   > - To download a RAGFlow slim Docker image of a specific version, update the `RAGFlow_IMAGE` variable in **docker/.env** to your desired version. For example, `RAGFLOW_IMAGE=infiniflow/ragflow:v0.13.0-slim`. After making this change, rerun the command above to initiate the download.
+   > - To download the dev version of RAGFlow Docker image *including* embedding models and Python libraries, update the `RAGFlow_IMAGE` variable in **docker/.env** to `RAGFLOW_IMAGE=infiniflow/ragflow:dev`. After making this change, rerun the command above to initiate the download.
+   > - To download a specific version of RAGFlow Docker image *including* embedding models and Python libraries, update the `RAGFlow_IMAGE` variable in **docker/.env** to your desired version. For example, `RAGFLOW_IMAGE=infiniflow/ragflow:v0.13.0`. After making this change, rerun the command above to initiate the download.
+
+:::tip NOTE
+A RAGFlow Docker image that includes embedding models and Python libraries is approximately 9GB in size and may take significantly longer time to load.
+:::
 
 4. Check the server status after having the server up and running:
 
@@ -196,12 +201,11 @@ This section provides instructions on setting up the RAGFlow server on Linux. If
    _The following output confirms a successful launch of the system:_
 
    ```bash
-       ____                 ______ __
-      / __ \ ____ _ ____ _ / ____// /____  _      __
-     / /_/ // __ `// __ `// /_   / // __ \| | /| / /
-    / _, _// /_/ // /_/ // __/  / // /_/ /| |/ |/ /
-   /_/ |_| \__,_/ \__, //_/    /_/ \____/ |__/|__/
-                 /____/
+        ____   ___    ______ ______ __
+       / __ \ /   |  / ____// ____// /____  _      __
+      / /_/ // /| | / / __ / /_   / // __ \| | /| / /
+     / _, _// ___ |/ /_/ // __/  / // /_/ /| |/ |/ /
+    /_/ |_|/_/  |_|\____//_/    /_/ \____/ |__/|__/
    
     * Running on all addresses (0.0.0.0)
     * Running on http://127.0.0.1:9380
@@ -219,24 +223,7 @@ With the default settings, you only need to enter `http://IP_OF_YOUR_MACHINE` (*
 
 ## Configure LLMs
 
-RAGFlow is a RAG engine, and it needs to work with an LLM to offer grounded, hallucination-free question-answering capabilities. For now, RAGFlow supports the following LLMs, and the list is expanding:
-
-- [OpenAI](https://platform.openai.com/login?launch)
-- [Azure-OpenAI](https://ai.azure.com/)
-- [Gemini](https://aistudio.google.com/)
-- [Groq](https://console.groq.com/)
-- [Mistral](https://mistral.ai/)
-- [Bedrock](https://aws.amazon.com/cn/bedrock/)
-- [Tongyi-Qianwen](https://dashscope.console.aliyun.com/model)
-- [ZHIPU-AI](https://open.bigmodel.cn/)
-- [MiniMax](https://platform.minimaxi.com/)
-- [Moonshot](https://platform.moonshot.cn/docs)
-- [DeepSeek](https://platform.deepseek.com/api-docs/)
-- [Baichuan](https://www.baichuan-ai.com/home)
-- [VolcEngine](https://www.volcengine.com/docs/82379)
-- [Jina](https://jina.ai/reader/)
-- [OpenRouter](https://openrouter.ai/)
-- [StepFun](https://platform.stepfun.com/)
+RAGFlow is a RAG engine and needs to work with an LLM to offer grounded, hallucination-free question-answering capabilities. RAGFlow supports most mainstream LLMs. For a complete list of supported models, please refer to [Supported Models](./references/supported_models.mdx).
 
 :::note 
 RAGFlow also supports deploying LLMs locally using Ollama, Xinference, or LocalAI, but this part is not covered in this quick start guide. 
@@ -347,13 +334,17 @@ Conversations in RAGFlow are based on a particular knowledge base or multiple kn
 
 4. Update **Model Setting**.
 
-5. RAGFlow also offers conversation APIs. Hover over your dialogue **>** **Chat Bot API** to integrate RAGFlow's chat capabilities into your applications:
-
-   ![chatbot api](https://github.com/infiniflow/ragflow/assets/93570324/fec23715-f9af-4ac2-81e5-942c5035c5e6)
-
-6. Now, let's start the show:
+5. Now, let's start the show:
 
    ![question1](https://github.com/infiniflow/ragflow/assets/93570324/bb72dd67-b35e-4b2a-87e9-4e4edbd6e677)
 
    ![question2](https://github.com/infiniflow/ragflow/assets/93570324/7cc585ae-88d0-4aa2-817d-0370b2ad7230)
 
+
+:::tip NOTE
+RAGFlow also offers HTTP and Python APIs for you to integrate RAGFlow's capabilities into your applications. Read the following documents for more information:
+
+- [Acquire a RAGFlow API key](./guides/develop/acquire_ragflow_api_key.md)
+- [HTTP API reference](./references/http_api_reference.md)
+- [Python API reference](./references/python_api_reference.md)
+:::

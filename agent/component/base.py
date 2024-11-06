@@ -36,6 +36,7 @@ class ComponentParamBase(ABC):
     def __init__(self):
         self.output_var_name = "output"
         self.message_history_window_size = 22
+        self.query = []
 
     def set_name(self, name: str):
         self._name = name
@@ -396,6 +397,10 @@ class ComponentBase(ABC):
         self._param = param
         self._param.check()
 
+    def get_dependent_components(self):
+        cpnts = [para["component_id"] for para in self._param.query]
+        return cpnts
+
     def run(self, history, **kwargs):
         flow_logger.info("{}, history: {}, kwargs: {}".format(self, json.dumps(history, ensure_ascii=False),
                                                               json.dumps(kwargs, ensure_ascii=False)))
@@ -436,6 +441,16 @@ class ComponentBase(ABC):
         setattr(self._param, self._param.output_var_name, v)
 
     def get_input(self):
+        if self._param.query:
+            outs = []
+            for q in self._param.query:
+                if q["value"]: outs.append(pd.DataFrame([{"content": q["value"]}]))
+                if q["component_id"]: outs.append(self._canvas.get_component(q["component_id"])["obj"].output(allow_partial=False)[1])
+            if outs:
+                df = pd.concat(outs, ignore_index=True)
+                if "content" in df: df = df.drop_duplicates(subset=['content']).reset_index(drop=True)
+                return df
+
         upstream_outs = []
         reversed_cpnts = []
         if len(self._canvas.path) > 1:
@@ -444,7 +459,7 @@ class ComponentBase(ABC):
 
         if DEBUG: print(self.component_name, reversed_cpnts[::-1])
         for u in reversed_cpnts[::-1]:
-            if self.get_component_name(u) in ["switch"]: continue
+            if self.get_component_name(u) in ["switch", "concentrator"]: continue
             if self.component_name.lower() == "generate" and self.get_component_name(u) == "retrieval":
                 o = self._canvas.get_component(u)["obj"].output(allow_partial=False)[1]
                 if o is not None:
@@ -472,7 +487,7 @@ class ComponentBase(ABC):
             if "content" in df:
                 df = df.drop_duplicates(subset=['content']).reset_index(drop=True)
             return df
-        return pd.DataFrame()
+        return pd.DataFrame(self._canvas.get_history(3)[-1:])
 
     def get_stream_input(self):
         reversed_cpnts = []

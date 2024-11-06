@@ -22,6 +22,7 @@ const RetcodeMessage = {
   404: i18n.t('message.404'),
   406: i18n.t('message.406'),
   410: i18n.t('message.410'),
+  413: i18n.t('message.413'),
   422: i18n.t('message.422'),
   500: i18n.t('message.500'),
   502: i18n.t('message.502'),
@@ -39,6 +40,7 @@ type ResultCode =
   | 404
   | 406
   | 410
+  | 413
   | 422
   | 500
   | 502
@@ -97,27 +99,31 @@ request.interceptors.request.use((url: string, options: any) => {
 });
 
 request.interceptors.response.use(async (response: any, options) => {
+  if (response?.status === 413) {
+    message.error(RetcodeMessage[413]);
+  }
+
   if (options.responseType === 'blob') {
     return response;
   }
 
   const data: ResponseType = await response.clone().json();
 
-  if (data.retcode === 401 || data.retcode === 401) {
+  if (data.code === 401 || data.code === 401) {
     notification.error({
-      message: data.retmsg,
-      description: data.retmsg,
+      message: data.message,
+      description: data.message,
       duration: 3,
     });
     authorizationUtil.removeAll();
     history.push('/login'); // Will not jump to the login page
-  } else if (data.retcode !== 0) {
-    if (data.retcode === 100) {
-      message.error(data.retmsg);
+  } else if (data.code !== 0) {
+    if (data.code === 100) {
+      message.error(data.message);
     } else {
       notification.error({
-        message: `${i18n.t('message.hint')} : ${data.retcode}`,
-        description: data.retmsg,
+        message: `${i18n.t('message.hint')} : ${data.code}`,
+        description: data.message,
         duration: 3,
       });
     }
@@ -129,3 +135,15 @@ request.interceptors.response.use(async (response: any, options) => {
 });
 
 export default request;
+
+export const get = (url: string) => {
+  return request.get(url);
+};
+
+export const post = (url: string, body: any) => {
+  return request.post(url, { data: body });
+};
+
+export const drop = () => {};
+
+export const put = () => {};

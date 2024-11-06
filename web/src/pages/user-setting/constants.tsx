@@ -1,3 +1,4 @@
+import { ReactComponent as ApiIcon } from '@/assets/svg/api.svg';
 import { ReactComponent as LogoutIcon } from '@/assets/svg/logout.svg';
 import { ReactComponent as ModelIcon } from '@/assets/svg/model-providers.svg';
 import { ReactComponent as PasswordIcon } from '@/assets/svg/password.svg';
@@ -13,6 +14,7 @@ export const UserSettingIconMap = {
   [UserSettingRouteKey.System]: <MonitorOutlined style={{ fontSize: 24 }} />,
   [UserSettingRouteKey.Team]: <TeamIcon />,
   [UserSettingRouteKey.Logout]: <LogoutIcon />,
+  [UserSettingRouteKey.Api]: <ApiIcon />,
 };
 
 export * from '@/constants/setting';
@@ -26,4 +28,11 @@ export const LocalLlmFactories = [
   'TogetherAI',
   'Replicate',
   'OpenRouter',
+  'HuggingFace',
 ];
+
+export enum TenantRole {
+  Owner = 'owner',
+  Invite = 'invite',
+  Normal = 'normal',
+}

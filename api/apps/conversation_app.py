@@ -15,8 +15,8 @@
 #
 import json
 import re
+import traceback
 from copy import deepcopy
-
 from api.db.services.user_service import UserTenantService
 from flask import request, Response
 from flask_login import login_required, current_user
@@ -26,7 +26,6 @@ from api.db.services.dialog_service import DialogService, ConversationService, c
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.llm_service import LLMBundle, TenantService, TenantLLMService
 from api.settings import RetCode, retrievaler
-from api.utils import get_uuid
 from api.utils.api_utils import get_json_result
 from api.utils.api_utils import server_error_response, get_data_error_result, validate_request
 from graphrag.mind_map_extractor import MindMapExtractor
@@ -37,15 +36,17 @@ from graphrag.mind_map_extractor import MindMapExtractor
 def set_conversation():
     req = request.json
     conv_id = req.get("conversation_id")
-    if conv_id:
+    is_new = req.get("is_new")
+    del req["is_new"]
+    if not is_new:
         del req["conversation_id"]
         try:
             if not ConversationService.update_by_id(conv_id, req):
-                return get_data_error_result(retmsg="Conversation not found!")
+                return get_data_error_result(message="Conversation not found!")
             e, conv = ConversationService.get_by_id(conv_id)
             if not e:
                 return get_data_error_result(
-                    retmsg="Fail to update a conversation!")
+                    message="Fail to update a conversation!")
             conv = conv.to_dict()
             return get_json_result(data=conv)
         except Exception as e:
@@ -54,9 +55,9 @@ def set_conversation():
     try:
         e, dia = DialogService.get_by_id(req["dialog_id"])
         if not e:
-            return get_data_error_result(retmsg="Dialog not found")
+            return get_data_error_result(message="Dialog not found")
         conv = {
-            "id": get_uuid(),
+            "id": conv_id,
             "dialog_id": req["dialog_id"],
             "name": req.get("name", "New conversation"),
             "message": [{"role": "assistant", "content": dia.prompt_config["prologue"]}]
@@ -64,7 +65,7 @@ def set_conversation():
         ConversationService.save(**conv)
         e, conv = ConversationService.get_by_id(conv["id"])
         if not e:
-            return get_data_error_result(retmsg="Fail to new a conversation!")
+            return get_data_error_result(message="Fail to new a conversation!")
         conv = conv.to_dict()
         return get_json_result(data=conv)
     except Exception as e:
@@ -78,15 +79,15 @@ def get():
     try:
         e, conv = ConversationService.get_by_id(conv_id)
         if not e:
-            return get_data_error_result(retmsg="Conversation not found!")
+            return get_data_error_result(message="Conversation not found!")
         tenants = UserTenantService.query(user_id=current_user.id)
         for tenant in tenants:
             if DialogService.query(tenant_id=tenant.tenant_id, id=conv.dialog_id):
                 break
         else:
             return get_json_result(
-                data=False, retmsg=f'Only owner of conversation authorized for this operation.',
-                retcode=RetCode.OPERATING_ERROR)
+                data=False, message='Only owner of conversation authorized for this operation.',
+                code=RetCode.OPERATING_ERROR)
         conv = conv.to_dict()
         return get_json_result(data=conv)
     except Exception as e:
@@ -101,15 +102,15 @@ def rm():
         for cid in conv_ids:
             exist, conv = ConversationService.get_by_id(cid)
             if not exist:
-                return get_data_error_result(retmsg="Conversation not found!")
+                return get_data_error_result(message="Conversation not found!")
             tenants = UserTenantService.query(user_id=current_user.id)
             for tenant in tenants:
                 if DialogService.query(tenant_id=tenant.tenant_id, id=conv.dialog_id):
                     break
             else:
                 return get_json_result(
-                    data=False, retmsg=f'Only owner of conversation authorized for this operation.',
-                    retcode=RetCode.OPERATING_ERROR)
+                    data=False, message='Only owner of conversation authorized for this operation.',
+                    code=RetCode.OPERATING_ERROR)
             ConversationService.delete_by_id(cid)
         return get_json_result(data=True)
     except Exception as e:
@@ -123,8 +124,8 @@ def list_convsersation():
     try:
         if not DialogService.query(tenant_id=current_user.id, id=dialog_id):
             return get_json_result(
-                data=False, retmsg=f'Only owner of dialog authorized for this operation.',
-                retcode=RetCode.OPERATING_ERROR)
+                data=False, message='Only owner of dialog authorized for this operation.',
+                code=RetCode.OPERATING_ERROR)
         convs = ConversationService.query(
             dialog_id=dialog_id,
             order_by=ConversationService.model.create_time,
@@ -140,9 +141,6 @@ def list_convsersation():
 @validate_request("conversation_id", "messages")
 def completion():
     req = request.json
-    # req = {"conversation_id": "9aaaca4c11d311efa461fa163e197198", "messages": [
-    #    {"role": "user", "content": "上海有吗？"}
-    # ]}
     msg = []
     for m in req["messages"]:
         if m["role"] == "system":
@@ -154,11 +152,11 @@ def completion():
     try:
         e, conv = ConversationService.get_by_id(req["conversation_id"])
         if not e:
-            return get_data_error_result(retmsg="Conversation not found!")
+            return get_data_error_result(message="Conversation not found!")
         conv.message = deepcopy(req["messages"])
         e, dia = DialogService.get_by_id(conv.dialog_id)
         if not e:
-            return get_data_error_result(retmsg="Dialog not found!")
+            return get_data_error_result(message="Dialog not found!")
         del req["conversation_id"]
         del req["messages"]
 
@@ -182,13 +180,14 @@ def completion():
             try:
                 for ans in chat(dia, msg, True, **req):
                     fillin_conv(ans)
-                    yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": ans}, ensure_ascii=False) + "\n\n"
+                    yield "data:" + json.dumps({"code": 0, "message": "", "data": ans}, ensure_ascii=False) + "\n\n"
                 ConversationService.update_by_id(conv.id, conv.to_dict())
             except Exception as e:
-                yield "data:" + json.dumps({"retcode": 500, "retmsg": str(e),
+                traceback.print_exc()
+                yield "data:" + json.dumps({"code": 500, "message": str(e),
                                             "data": {"answer": "**ERROR**: " + str(e), "reference": []}},
                                            ensure_ascii=False) + "\n\n"
-            yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": True}, ensure_ascii=False) + "\n\n"
+            yield "data:" + json.dumps({"code": 0, "message": "", "data": True}, ensure_ascii=False) + "\n\n"
 
         if req.get("stream", True):
             resp = Response(stream(), mimetype="text/event-stream")
@@ -216,22 +215,23 @@ def tts():
     req = request.json
     text = req["text"]
 
-    tenants = TenantService.get_by_user_id(current_user.id)
+    tenants = TenantService.get_info_by(current_user.id)
     if not tenants:
-        return get_data_error_result(retmsg="Tenant not found!")
+        return get_data_error_result(message="Tenant not found!")
 
     tts_id = tenants[0]["tts_id"]
     if not tts_id:
-        return get_data_error_result(retmsg="No default TTS model is set")
+        return get_data_error_result(message="No default TTS model is set")
 
     tts_mdl = LLMBundle(tenants[0]["tenant_id"], LLMType.TTS, tts_id)
 
     def stream_audio():
         try:
-            for chunk in tts_mdl.tts(text):
-                yield chunk
+            for txt in re.split(r"[，。/《》？；：！\n\r:;]+", text):
+                for chunk in tts_mdl.tts(txt):
+                    yield chunk
         except Exception as e:
-            yield ("data:" + json.dumps({"retcode": 500, "retmsg": str(e),
+            yield ("data:" + json.dumps({"code": 500, "message": str(e),
                                          "data": {"answer": "**ERROR**: " + str(e)}},
                                         ensure_ascii=False)).encode('utf-8')
 
@@ -250,7 +250,7 @@ def delete_msg():
     req = request.json
     e, conv = ConversationService.get_by_id(req["conversation_id"])
     if not e:
-        return get_data_error_result(retmsg="Conversation not found!")
+        return get_data_error_result(message="Conversation not found!")
 
     conv = conv.to_dict()
     for i, msg in enumerate(conv["message"]):
@@ -273,7 +273,7 @@ def thumbup():
     req = request.json
     e, conv = ConversationService.get_by_id(req["conversation_id"])
     if not e:
-        return get_data_error_result(retmsg="Conversation not found!")
+        return get_data_error_result(message="Conversation not found!")
     up_down = req.get("set")
     feedback = req.get("feedback", "")
     conv = conv.to_dict()
@@ -301,12 +301,12 @@ def ask_about():
         nonlocal req, uid
         try:
             for ans in ask(req["question"], req["kb_ids"], uid):
-                yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": ans}, ensure_ascii=False) + "\n\n"
+                yield "data:" + json.dumps({"code": 0, "message": "", "data": ans}, ensure_ascii=False) + "\n\n"
         except Exception as e:
-            yield "data:" + json.dumps({"retcode": 500, "retmsg": str(e),
+            yield "data:" + json.dumps({"code": 500, "message": str(e),
                                         "data": {"answer": "**ERROR**: " + str(e), "reference": []}},
                                        ensure_ascii=False) + "\n\n"
-        yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": True}, ensure_ascii=False) + "\n\n"
+        yield "data:" + json.dumps({"code": 0, "message": "", "data": True}, ensure_ascii=False) + "\n\n"
 
     resp = Response(stream(), mimetype="text/event-stream")
     resp.headers.add_header("Cache-control", "no-cache")
@@ -324,7 +324,7 @@ def mindmap():
     kb_ids = req["kb_ids"]
     e, kb = KnowledgebaseService.get_by_id(kb_ids[0])
     if not e:
-        return get_data_error_result(retmsg="Knowledgebase not found!")
+        return get_data_error_result(message="Knowledgebase not found!")
 
     embd_mdl = TenantLLMService.model_instance(
         kb.tenant_id, LLMType.EMBEDDING.value, llm_name=kb.embd_id)
@@ -333,6 +333,8 @@ def mindmap():
                            0.3, 0.3, aggs=False)
     mindmap = MindMapExtractor(chat_mdl)
     mind_map = mindmap([c["content_with_weight"] for c in ranks["chunks"]]).output
+    if "error" in mind_map:
+        return server_error_response(Exception(mind_map["error"]))
     return get_json_result(data=mind_map)
 
 

@@ -122,27 +122,29 @@ export const buildDslComponentsByGraph = (
 ): DSLComponents => {
   const components: DSLComponents = {};
 
-  nodes.forEach((x) => {
-    const id = x.id;
-    const operatorName = x.data.label;
-    components[id] = {
-      obj: {
-        component_name: operatorName,
-        params:
-          buildOperatorParams(operatorName)(
-            x.data.form as Record<string, unknown>,
-          ) ?? {},
-      },
-      downstream: buildComponentDownstreamOrUpstream(edges, id, true),
-      upstream: buildComponentDownstreamOrUpstream(edges, id, false),
-    };
-  });
+  nodes
+    .filter((x) => x.data.label !== Operator.Note)
+    .forEach((x) => {
+      const id = x.id;
+      const operatorName = x.data.label;
+      components[id] = {
+        obj: {
+          component_name: operatorName,
+          params:
+            buildOperatorParams(operatorName)(
+              x.data.form as Record<string, unknown>,
+            ) ?? {},
+        },
+        downstream: buildComponentDownstreamOrUpstream(edges, id, true),
+        upstream: buildComponentDownstreamOrUpstream(edges, id, false),
+      };
+    });
 
   return components;
 };
 
 export const receiveMessageError = (res: any) =>
-  res && (res?.response.status !== 200 || res?.data?.retcode !== 0);
+  res && (res?.response.status !== 200 || res?.data?.code !== 0);
 
 // Replace the id in the object with text
 export const replaceIdWithText = (
@@ -233,4 +235,8 @@ export const getOtherFieldValues = (
 
 export const generateSwitchHandleText = (idx: number) => {
   return `Case ${idx + 1}`;
+};
+
+export const getNodeDragHandle = (nodeType?: string) => {
+  return nodeType === Operator.Note ? '.note-drag-handle' : undefined;
 };

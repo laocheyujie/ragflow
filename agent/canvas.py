@@ -13,15 +13,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-import importlib
 import json
 import traceback
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-
-import pandas as pd
-
 from agent.component import component_class
 from agent.component.base import ComponentBase
 from agent.settings import flow_logger, DEBUG
@@ -194,10 +190,9 @@ class Canvas(ABC):
                     self.answer.append(c)
                 else:
                     if DEBUG: print("RUN: ", c)
-                    if cpn.component_name == "Generate":
-                        cpids = cpn.get_dependent_components()
-                        if any([c not in self.path[-1] for c in cpids]):
-                            continue
+                    cpids = cpn.get_dependent_components()
+                    if any([c not in self.path[-1] for c in cpids]):
+                        continue
                     ans = cpn.run(self.history, **kwargs)
                     self.path[-1].append(c)
             ran += 1
@@ -260,9 +255,11 @@ class Canvas(ABC):
 
     def get_history(self, window_size):
         convs = []
-        for role, obj in self.history[(window_size + 1) * -1:]:
-            convs.append({"role": role, "content": (obj if role == "user" else
-                                                    '\n'.join(pd.DataFrame(obj)['content']))})
+        for role, obj in self.history[window_size * -1:]:
+            if isinstance(obj, list) and obj and all([isinstance(o, dict) for o in obj]):
+                convs.append({"role": role, "content": '\n'.join([str(s.get("content", "")) for s in obj])})
+            else:
+                convs.append({"role": role, "content": str(obj)})
         return convs
 
     def add_user_input(self, question):

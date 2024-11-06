@@ -16,7 +16,6 @@ import random
 
 import xgboost as xgb
 from io import BytesIO
-import torch
 import re
 import pdfplumber
 import logging
@@ -25,6 +24,7 @@ import numpy as np
 from timeit import default_timer as timer
 from pypdf import PdfReader as pdf2_read
 
+from api.settings import LIGHTEN
 from api.utils.file_utils import get_project_base_directory
 from deepdoc.vision import OCR, Recognizer, LayoutRecognizer, TableStructureRecognizer
 from rag.nlp import rag_tokenizer
@@ -51,8 +51,13 @@ class RAGFlowPdfParser:
 
         # 4. xgb 模型用来合并 box
         self.updown_cnt_mdl = xgb.Booster()
-        if torch.cuda.is_available():
-            self.updown_cnt_mdl.set_param({"device": "cuda"})
+        if not LIGHTEN:
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    self.updown_cnt_mdl.set_param({"device": "cuda"})
+            except Exception as e:
+                logging.error(str(e))
         try:
             model_dir = os.path.join(
                 get_project_base_directory(),
@@ -311,7 +316,7 @@ class RAGFlowPdfParser:
                 self.lefted_chars.append(c)
                 continue
             if c["text"] == " " and bxs[ii]["text"]:
-                if re.match(r"[0-9a-zA-Z,.?;:!%%]", bxs[ii]["text"][-1]):
+                if re.match(r"[0-9a-zA-Zа-яА-Я,.?;:!%%]", bxs[ii]["text"][-1]):
                     bxs[ii]["text"] += " "
             else:
                 bxs[ii]["text"] += c["text"]
@@ -501,7 +506,7 @@ class RAGFlowPdfParser:
                         i += 1
                         continue
 
-                    if not down["text"].strip():
+                    if not down["text"].strip() or not up["text"].strip():
                         i += 1
                         continue
 
@@ -968,6 +973,8 @@ class RAGFlowPdfParser:
                 fnm, str) else pdfplumber.open(BytesIO(fnm))
             self.page_images = [p.to_image(resolution=72 * zoomin).annotated for i, p in
                                 enumerate(self.pdf.pages[page_from:page_to])]
+            self.page_images_x2 = [p.to_image(resolution=72 * zoomin * 2).annotated for i, p in
+                                enumerate(self.pdf.pages[page_from:page_to])]
             self.page_chars = [[{**c, 'top': c['top'], 'bottom': c['bottom']} for c in page.dedupe_chars().chars if self._has_color(c)] for page in
                                self.pdf.pages[page_from:page_to]]
             self.total_page = len(self.pdf.pages)
@@ -1009,7 +1016,7 @@ class RAGFlowPdfParser:
             self.is_english = False
 
         st = timer()
-        for i, img in enumerate(self.page_images):
+        for i, img in enumerate(self.page_images_x2):
             chars = self.page_chars[i] if not self.is_english else []
             # 计算每页字符高度和宽度的中位数
             self.mean_height.append(
@@ -1018,7 +1025,7 @@ class RAGFlowPdfParser:
             self.mean_width.append(
                 np.median(sorted([c["width"] for c in chars])) if chars else 8
             )
-            self.page_cum_height.append(img.size[1] / zoomin)
+            self.page_cum_height.append(img.size[1] / zoomin/2)
             
             # 检查相邻字符是否可以合并成更大的文本片段
             j = 0
@@ -1031,7 +1038,7 @@ class RAGFlowPdfParser:
                     chars[j]["text"] += " "
                 j += 1
 
-            self.__ocr(i + 1, img, chars, zoomin)
+            self.__ocr(i + 1, img, chars, zoomin*2)
             if callback and i % 6 == 5:
                 callback(prog=(i + 1) * 0.6 / len(self.page_images), msg="")
         # print("OCR:", timer()-st)

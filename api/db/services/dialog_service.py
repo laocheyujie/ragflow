@@ -19,14 +19,15 @@ import json
 import re
 from copy import deepcopy
 from timeit import default_timer as timer
-from api.db import LLMType, ParserType
-from api.db.db_models import Dialog, Conversation
+
+
+from api.db import LLMType, ParserType,StatusEnum
+from api.db.db_models import Dialog, Conversation,DB
 from api.db.services.common_service import CommonService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.llm_service import LLMService, TenantLLMService, LLMBundle
 from api.settings import chat_logger, retrievaler, kg_retrievaler
 from rag.app.resume import forbidden_select_fields4resume
-from rag.nlp import keyword_extraction
 from rag.nlp.search import index_name
 from rag.utils import rmSpace, num_tokens_from_string, encoder
 from api.utils.file_utils import get_project_base_directory
@@ -35,9 +36,48 @@ from api.utils.file_utils import get_project_base_directory
 class DialogService(CommonService):
     model = Dialog
 
+    @classmethod
+    @DB.connection_context()
+    def get_list(cls, tenant_id,
+                 page_number, items_per_page, orderby, desc, id , name):
+        chats = cls.model.select()
+        if id:
+            chats = chats.where(cls.model.id == id)
+        if name:
+            chats = chats.where(cls.model.name == name)
+        chats = chats.where(
+              (cls.model.tenant_id == tenant_id)
+            & (cls.model.status == StatusEnum.VALID.value)
+        )
+        if desc:
+            chats = chats.order_by(cls.model.getter_by(orderby).desc())
+        else:
+            chats = chats.order_by(cls.model.getter_by(orderby).asc())
+
+        chats = chats.paginate(page_number, items_per_page)
+
+        return list(chats.dicts())
+
 
 class ConversationService(CommonService):
     model = Conversation
+
+    @classmethod
+    @DB.connection_context()
+    def get_list(cls,dialog_id,page_number, items_per_page, orderby, desc, id , name):
+        sessions = cls.model.select().where(cls.model.dialog_id ==dialog_id)
+        if id:
+            sessions = sessions.where(cls.model.id == id)
+        if name:
+            sessions = sessions.where(cls.model.name == name)
+        if desc:
+            sessions = sessions.order_by(cls.model.getter_by(orderby).desc())
+        else:
+            sessions = sessions.order_by(cls.model.getter_by(orderby).asc())
+
+        sessions = sessions.paginate(page_number, items_per_page)
+
+        return list(sessions.dicts())
 
 
 def message_fit_in(msg, max_length=4000):
@@ -78,20 +118,27 @@ def message_fit_in(msg, max_length=4000):
 
 
 def llm_id2llm_type(llm_id):
+    llm_id = llm_id.split("@")[0]
     fnm = os.path.join(get_project_base_directory(), "conf")
     llm_factories = json.load(open(os.path.join(fnm, "llm_factories.json"), "r"))
     for llm_factory in llm_factories["factory_llm_infos"]:
         for llm in llm_factory["llm"]:
             if llm_id == llm["llm_name"]:
                 return llm["model_type"].strip(",")[-1]
-                
+
 
 def chat(dialog, messages, stream=True, **kwargs):
     assert messages[-1]["role"] == "user", "The last content of this conversation is not from user."
     st = timer()
-    llm = LLMService.query(llm_name=dialog.llm_id)
+    tmp = dialog.llm_id.split("@")
+    fid = None
+    llm_id = tmp[0]
+    if len(tmp)>1: fid = tmp[1]
+
+    llm = LLMService.query(llm_name=llm_id) if not fid else LLMService.query(llm_name=llm_id, fid=fid)
     if not llm:
-        llm = TenantLLMService.query(tenant_id=dialog.tenant_id, llm_name=dialog.llm_id)
+        llm = TenantLLMService.query(tenant_id=dialog.tenant_id, llm_name=llm_id) if not fid else \
+            TenantLLMService.query(tenant_id=dialog.tenant_id, llm_name=llm_id, llm_factory=fid)
         if not llm:
             raise LookupError("LLM(%s) not found" % dialog.llm_id)
         max_tokens = 8192
@@ -115,6 +162,9 @@ def chat(dialog, messages, stream=True, **kwargs):
                 attachments.extend(m["doc_ids"])
 
     embd_mdl = LLMBundle(dialog.tenant_id, LLMType.EMBEDDING, embd_nms[0])
+    if not embd_mdl:
+        raise LookupError("Embedding model(%s) not found" % embd_nms[0])
+
     if llm_id2llm_type(dialog.llm_id) == "image2text":
         chat_mdl = LLMBundle(dialog.tenant_id, LLMType.IMAGE2TEXT, dialog.llm_id)
     else:
@@ -142,6 +192,13 @@ def chat(dialog, messages, stream=True, **kwargs):
             prompt_config["system"] = prompt_config["system"].replace(
                 "{%s}" % p["key"], " ")
 
+    if len(questions) > 1 and prompt_config.get("refine_multiturn"):
+        questions = [full_question(dialog.tenant_id, dialog.llm_id, messages)]
+    else:
+        questions = questions[-1:]
+    refineQ_tm = timer()
+    keyword_tm = timer()
+
     rerank_mdl = None
     if dialog.rerank_id:
         rerank_mdl = LLMBundle(dialog.tenant_id, LLMType.RERANK, dialog.rerank_id)
@@ -153,7 +210,10 @@ def chat(dialog, messages, stream=True, **kwargs):
     else:
         if prompt_config.get("keyword", False):
             questions[-1] += keyword_extraction(chat_mdl, questions[-1])
-        kbinfos = retr.retrieval(" ".join(questions), embd_mdl, dialog.tenant_id, dialog.kb_ids, 1, dialog.top_n,
+            keyword_tm = timer()
+
+        tenant_ids = list(set([kb.tenant_id for kb in kbs]))
+        kbinfos = retr.retrieval(" ".join(questions), embd_mdl, tenant_ids, dialog.kb_ids, 1, dialog.top_n,
                                         dialog.similarity_threshold,
                                         dialog.vector_similarity_weight,
                                         doc_ids=attachments,
@@ -168,7 +228,7 @@ def chat(dialog, messages, stream=True, **kwargs):
         yield {"answer": empty_res, "reference": kbinfos, "audio_binary": tts(tts_mdl, empty_res)}
         return {"answer": prompt_config["empty_response"], "reference": kbinfos}
 
-    kwargs["knowledge"] = "\n------\n".join(knowledges)
+    kwargs["knowledge"] = "\n\n------\n\n".join(knowledges)
     gen_conf = dialog.llm_setting
 
     msg = [{"role": "system", "content": prompt_config["system"].format(**kwargs)}]
@@ -177,6 +237,7 @@ def chat(dialog, messages, stream=True, **kwargs):
     used_token_count, msg = message_fit_in(msg, int(max_tokens * 0.97))
     assert len(msg) >= 2, f"message_fit_in has bug: {msg}"
     prompt = msg[0]["content"]
+    prompt += "\n\n### Query:\n%s" % " ".join(questions)
 
     if "max_tokens" in gen_conf:
         gen_conf["max_tokens"] = min(
@@ -209,7 +270,9 @@ def chat(dialog, messages, stream=True, **kwargs):
         if answer.lower().find("invalid key") >= 0 or answer.lower().find("invalid api") >= 0:
             answer += " Please set LLM API-Key in 'User Setting -> Model Providers -> API-Key'"
         done_tm = timer()
-        prompt += "\n### Elapsed\n  - Retrieval: %.1f ms\n  - LLM: %.1f ms"%((retrieval_tm-st)*1000, (done_tm-st)*1000)
+        prompt += "\n\n### Elapsed\n  - Refine Question: %.1f ms\n  - Keywords: %.1f ms\n  - Retrieval: %.1f ms\n  - LLM: %.1f ms" % (
+            (refineQ_tm - st) * 1000, (keyword_tm - refineQ_tm) * 1000, (retrieval_tm - keyword_tm) * 1000,
+            (done_tm - retrieval_tm) * 1000)
         return {"answer": answer, "reference": refs, "prompt": prompt}
 
     if stream:
@@ -218,7 +281,7 @@ def chat(dialog, messages, stream=True, **kwargs):
         for ans in chat_mdl.chat_streamly(prompt, msg[1:], gen_conf):
             answer = ans
             delta_ans = ans[len(last_ans):]
-            if num_tokens_from_string(delta_ans) < 12:
+            if num_tokens_from_string(delta_ans) < 16:
                 continue
             last_ans = answer
             yield {"answer": answer, "reference": {}, "audio_binary": tts(tts_mdl, delta_ans)}
@@ -403,8 +466,111 @@ def rewrite(tenant_id, llm_id, question):
     return ans
 
 
+def keyword_extraction(chat_mdl, content, topn=3):
+    prompt = f"""
+Role: You're a text analyzer. 
+Task: extract the most important keywords/phrases of a given piece of text content.
+Requirements: 
+  - Summarize the text content, and give top {topn} important keywords/phrases.
+  - The keywords MUST be in language of the given piece of text content.
+  - The keywords are delimited by ENGLISH COMMA.
+  - Keywords ONLY in output.
+
+### Text Content 
+{content}
+
+"""
+    msg = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": "Output: "}
+    ]
+    _, msg = message_fit_in(msg, chat_mdl.max_length)
+    kwd = chat_mdl.chat(prompt, msg[1:], {"temperature": 0.2})
+    if isinstance(kwd, tuple): kwd = kwd[0]
+    if kwd.find("**ERROR**") >=0: return ""
+    return kwd
+
+
+def question_proposal(chat_mdl, content, topn=3):
+    prompt = f"""
+Role: You're a text analyzer. 
+Task:  propose {topn} questions about a given piece of text content.
+Requirements: 
+  - Understand and summarize the text content, and propose top {topn} important questions.
+  - The questions SHOULD NOT have overlapping meanings.
+  - The questions SHOULD cover the main content of the text as much as possible.
+  - The questions MUST be in language of the given piece of text content.
+  - One question per line.
+  - Question ONLY in output.
+
+### Text Content 
+{content}
+
+"""
+    msg = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": "Output: "}
+    ]
+    _, msg = message_fit_in(msg, chat_mdl.max_length)
+    kwd = chat_mdl.chat(prompt, msg[1:], {"temperature": 0.2})
+    if isinstance(kwd, tuple): kwd = kwd[0]
+    if kwd.find("**ERROR**") >= 0: return ""
+    return kwd
+
+
+def full_question(tenant_id, llm_id, messages):
+    if llm_id2llm_type(llm_id) == "image2text":
+        chat_mdl = LLMBundle(tenant_id, LLMType.IMAGE2TEXT, llm_id)
+    else:
+        chat_mdl = LLMBundle(tenant_id, LLMType.CHAT, llm_id)
+    conv = []
+    for m in messages:
+        if m["role"] not in ["user", "assistant"]: continue
+        conv.append("{}: {}".format(m["role"].upper(), m["content"]))
+    conv = "\n".join(conv)
+    prompt = f"""
+Role: A helpful assistant
+Task: Generate a full user question that would follow the conversation.
+Requirements & Restrictions:
+  - Text generated MUST be in the same language of the original user's question.
+  - If the user's latest question is completely, don't do anything, just return the original question.
+  - DON'T generate anything except a refined question.
+
+######################
+-Examples-
+######################
+
+# Example 1
+## Conversation
+USER: What is the name of Donald Trump's father?
+ASSISTANT:  Fred Trump.
+USER: And his mother?
+###############
+Output: What's the name of Donald Trump's mother?
+
+------------
+# Example 2
+## Conversation
+USER: What is the name of Donald Trump's father?
+ASSISTANT:  Fred Trump.
+USER: And his mother?
+ASSISTANT:  Mary Trump.
+User: What's her full name?
+###############
+Output: What's the full name of Donald Trump's mother Mary Trump?
+
+######################
+
+# Real Data
+## Conversation
+{conv}
+###############
+    """
+    ans = chat_mdl.chat(prompt, [{"role": "user", "content": "Output: "}], {"temperature": 0.2})
+    return ans if ans.find("**ERROR**") < 0 else messages[-1]["content"]
+
+
 def tts(tts_mdl, text):
-    return
     if not tts_mdl or not text: return
     bin = b""
     for chunk in tts_mdl.tts(text):

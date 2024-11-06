@@ -26,7 +26,7 @@ from api.db.services.common_service import CommonService
 from api.db.services.document_service import DocumentService
 from api.db.services.file2document_service import File2DocumentService
 from api.utils import get_uuid
-from api.utils.file_utils import filename_type, thumbnail
+from api.utils.file_utils import filename_type, thumbnail_img
 from rag.utils.storage_factory import STORAGE_IMPL
 
 
@@ -354,26 +354,27 @@ class FileService(CommonService):
                     location += "_"
                 blob = file.read()
                 STORAGE_IMPL.put(kb.id, location, blob)
+
+                doc_id = get_uuid()
+
+                img = thumbnail_img(filename, blob)
+                thumbnail_location = ''
+                if img is not None:
+                    thumbnail_location = f'thumbnail_{doc_id}.png'
+                    STORAGE_IMPL.put(kb.id, thumbnail_location, img)
+
                 doc = {
-                    "id": get_uuid(),
+                    "id": doc_id,
                     "kb_id": kb.id,
-                    "parser_id": kb.parser_id,
+                    "parser_id": self.get_parser(filetype, filename, kb.parser_id),
                     "parser_config": kb.parser_config,
                     "created_by": user_id,
                     "type": filetype,
                     "name": filename,
                     "location": location,
                     "size": len(blob),
-                    "thumbnail": thumbnail(filename, blob)
+                    "thumbnail": thumbnail_location
                 }
-                if doc["type"] == FileType.VISUAL:
-                    doc["parser_id"] = ParserType.PICTURE.value
-                if doc["type"] == FileType.AURAL:
-                    doc["parser_id"] = ParserType.AUDIO.value
-                if re.search(r"\.(ppt|pptx|pages)$", filename):
-                    doc["parser_id"] = ParserType.PRESENTATION.value
-                if re.search(r"\.(eml)$", filename):
-                    doc["parser_id"] = ParserType.EMAIL.value
                 DocumentService.insert(doc)
 
                 FileService.add_file_from_kb(doc, kb_folder["id"], kb.tenant_id)
@@ -382,3 +383,15 @@ class FileService(CommonService):
                 err.append(file.filename + ": " + str(e))
 
         return err, files
+
+    @staticmethod
+    def get_parser(doc_type, filename, default):
+        if doc_type == FileType.VISUAL:
+            return ParserType.PICTURE.value
+        if doc_type == FileType.AURAL:
+            return ParserType.AUDIO.value
+        if re.search(r"\.(ppt|pptx|pages)$", filename):
+            return ParserType.PRESENTATION.value
+        if re.search(r"\.(eml)$", filename):
+            return ParserType.EMAIL.value
+        return default

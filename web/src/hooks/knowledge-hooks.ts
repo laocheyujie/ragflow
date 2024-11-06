@@ -1,4 +1,3 @@
-import { useShowDeleteConfirm } from '@/hooks/common-hooks';
 import { ResponsePostType } from '@/interfaces/database/base';
 import { IKnowledge, ITestingResult } from '@/interfaces/database/knowledge';
 import i18n from '@/locales/config';
@@ -11,8 +10,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { message } from 'antd';
-import { useCallback, useEffect } from 'react';
-import { useDispatch, useSearchParams, useSelector } from 'umi';
+import { useSearchParams } from 'umi';
 import { useSetPaginationParams } from './route-hook';
 
 export const useKnowledgeBaseId = (): string => {
@@ -20,32 +18,6 @@ export const useKnowledgeBaseId = (): string => {
   const knowledgeBaseId = searchParams.get('id');
 
   return knowledgeBaseId || '';
-};
-
-export const useDeleteDocumentById = (): {
-  removeDocument: (documentId: string) => Promise<number>;
-} => {
-  const dispatch = useDispatch();
-  const knowledgeBaseId = useKnowledgeBaseId();
-  const showDeleteConfirm = useShowDeleteConfirm();
-
-  const removeDocument = (documentId: string) => () => {
-    return dispatch({
-      type: 'kFModel/document_rm',
-      payload: {
-        doc_id: documentId,
-        kb_id: knowledgeBaseId,
-      },
-    });
-  };
-
-  const onRmDocument = (documentId: string): Promise<number> => {
-    return showDeleteConfirm({ onOk: removeDocument(documentId) });
-  };
-
-  return {
-    removeDocument: onRmDocument,
-  };
 };
 
 export const useFetchKnowledgeBaseConfiguration = () => {
@@ -98,7 +70,7 @@ export const useCreateKnowledge = () => {
     mutationKey: ['createKnowledge'],
     mutationFn: async (params: { id?: string; name: string }) => {
       const { data = {} } = await kbService.createKb(params);
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         message.success(
           i18n.t(`message.${params?.id ? 'modified' : 'created'}`),
         );
@@ -121,7 +93,7 @@ export const useDeleteKnowledge = () => {
     mutationKey: ['deleteKnowledge'],
     mutationFn: async (id: string) => {
       const { data } = await kbService.rmKb({ kb_id: id });
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         message.success(i18n.t(`message.deleted`));
         queryClient.invalidateQueries({ queryKey: ['fetchKnowledgeList'] });
       }
@@ -130,37 +102,6 @@ export const useDeleteKnowledge = () => {
   });
 
   return { data, loading, deleteKnowledge: mutateAsync };
-};
-
-export const useSelectFileThumbnails = () => {
-  const fileThumbnails: Record<string, string> = useSelector(
-    (state: any) => state.kFModel.fileThumbnails,
-  );
-
-  return fileThumbnails;
-};
-
-export const useFetchFileThumbnails = (docIds?: Array<string>) => {
-  const dispatch = useDispatch();
-  const fileThumbnails = useSelectFileThumbnails();
-
-  const fetchFileThumbnails = useCallback(
-    (docIds: Array<string>) => {
-      dispatch({
-        type: 'kFModel/fetch_document_thumbnails',
-        payload: { doc_ids: docIds.join(',') },
-      });
-    },
-    [dispatch],
-  );
-
-  useEffect(() => {
-    if (docIds) {
-      fetchFileThumbnails(docIds);
-    }
-  }, [docIds, fetchFileThumbnails]);
-
-  return { fileThumbnails, fetchFileThumbnails };
 };
 
 //#region knowledge configuration
@@ -179,7 +120,7 @@ export const useUpdateKnowledge = () => {
         kb_id: knowledgeBaseId,
         ...params,
       });
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         message.success(i18n.t(`message.updated`));
         queryClient.invalidateQueries({ queryKey: ['fetchKnowledgeDetail'] });
       }
@@ -214,7 +155,7 @@ export const useTestChunkRetrieval = (): ResponsePostType<ITestingResult> & {
         page,
         size: pageSize,
       });
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         const res = data.data;
         return {
           chunks: res.chunks,

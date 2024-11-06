@@ -22,6 +22,7 @@ export interface IKnowledge {
   update_time: number;
   vector_similarity_weight: number;
   embd_id: string;
+  nickname?: string;
 }
 
 export interface Parserconfig {
@@ -100,6 +101,8 @@ export interface ITestingChunk {
   vector: number[];
   vector_similarity: number;
   highlight: string;
+  positions: number[][];
+  docnm_kwd: string;
 }
 
 export interface ITestingDocument {

@@ -5,6 +5,8 @@ slug: /faq
 
 # Frequently asked questions
 
+Queries regarding general usage, troubleshooting, features, performance, and more.
+
 ## General
 
 ### 1. What sets RAGFlow apart from other RAG products?
@@ -16,7 +18,7 @@ The "garbage in garbage out" status quo remains unchanged despite the fact that 
 
 ### 2. Which languages does RAGFlow support?
 
-English, simplified Chinese, traditional Chinese for now. 
+English, simplified Chinese, traditional Chinese for now.
 
 ### 3. Which embedding models can be deployed locally?
 
@@ -45,19 +47,19 @@ RAGFlow has a number of built-in models for document structure parsing, which ac
 
 ### 1. Which architectures or devices does RAGFlow support?
 
-Currently, we only support x86 CPU and Nvidia GPU. 
+Currently, we only support x86 CPU and Nvidia GPU.
 
 ### 2. Do you offer an API for integration with third-party applications?
 
-The corresponding APIs are now available. See the [RAGFlow API Reference](./api.md) for more information. 
+The corresponding APIs are now available. See the [RAGFlow HTTP API Reference](./http_api_reference.md) or the [RAGFlow Python API Reference](./python_api_reference.md) for more information.
 
 ### 3. Do you support stream output?
 
-No, this feature is still in development. Contributions are welcome. 
+This feature is supported.
 
 ### 4. Is it possible to share dialogue through URL?
 
-Yes, this feature is now available.
+No, this feature is not supported.
 
 ### 5. Do you support multiple rounds of dialogues, i.e., referencing previous dialogues as context for the current dialogue?
 
@@ -75,7 +77,6 @@ $ git clone https://github.com/infiniflow/ragflow.git
 $ cd ragflow
 $ docker build -t infiniflow/ragflow:latest .
 $ cd ragflow/docker
-$ chmod +x ./entrypoint.sh
 $ docker compose up -d
 ```
 
@@ -99,7 +100,7 @@ docker build -t infiniflow/ragflow:vX.Y.Z. --network host
 
 #### 2.1 Cannot access https://huggingface.co
  
-A *locally* deployed RAGflow downloads OCR and embedding modules from [Huggingface website](https://huggingface.co) by default. If your machine is unable to access this site, the following error occurs and PDF parsing fails: 
+A *locally* deployed RAGflow downloads OCR and embedding modules from [Huggingface website](https://huggingface.co) by default. If your machine is unable to access this site, the following error occurs and PDF parsing fails:
 
 ```
 FileNotFoundError: [Errno 2] No such file or directory: '/root/.cache/huggingface/hub/models--InfiniFlow--deepdoc/snapshots/be0c1e50eef6047b412d1800aa89aba4d275f997/ocr.res'
@@ -168,12 +169,11 @@ You will not log in to RAGFlow unless the server is fully initialized. Run `dock
 *The server is successfully initialized, if your system displays the following:*
 
 ```
-    ____                 ______ __
-   / __ \ ____ _ ____ _ / ____// /____  _      __
-  / /_/ // __ `// __ `// /_   / // __ \| | /| / /
- / _, _// /_/ // /_/ // __/  / // /_/ /| |/ |/ /
-/_/ |_| \__,_/ \__, //_/    /_/ \____/ |__/|__/
-              /____/
+     ____   ___    ______ ______ __               
+    / __ \ /   |  / ____// ____// /____  _      __
+   / /_/ // /| | / / __ / /_   / // __ \| | /| / /
+  / _, _// ___ |/ /_/ // __/  / // /_/ /| |/ |/ / 
+ /_/ |_|/_/  |_|\____//_/    /_/ \____/ |__/|__/  
 
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:9380
@@ -278,7 +278,7 @@ $ docker ps
 
 This is because you forgot to update the `vm.max_map_count` value in **/etc/sysctl.conf** and your change to this value was reset after a system reboot. 
 
-#### 4.10 `{"data":null,"retcode":100,"retmsg":"<NotFound '404: Not Found'>"}`
+#### 4.10 `{"data":null,"code":100,"message":"<NotFound '404: Not Found'>"}`
 
 Your IP address or port number may be incorrect. If you are using the default configurations, enter `http://<IP_OF_YOUR_MACHINE>` (**NOT 9380, AND NO PORT NUMBER REQUIRED!**) in your browser. This should work.
 
@@ -399,58 +399,5 @@ This error occurs because there are too many chunks matching your search criteri
 ![topn](https://github.com/infiniflow/ragflow/assets/93570324/7ec72ab3-0dd2-4cff-af44-e2663b67b2fc)
 
 ### 9. How to upgrade RAGFlow?
-   
-You can upgrade RAGFlow to either the dev version or the latest version:
 
-- Dev versions are for developers and contributors. They are published on a nightly basis and may crash because they are not fully tested. We cannot guarantee their validity and you are at your own risk trying out latest, untested features.
-- The latest version refers to the most recent, officially published release. It is stable and works best with regular users.
-
-
-To upgrade RAGFlow to the dev version:
-
-1. Pull the latest source code
-   ```bash
-   cd ragflow
-   git pull
-   ```
-2. If you used `docker compose up -d` to start up RAGFlow server:
-   ```bash
-   docker pull infiniflow/ragflow:dev
-   ```
-   ```bash
-   docker compose up ragflow -d
-   ```
-3. If you used `docker compose -f docker-compose-CN.yml up -d` to start up RAGFlow server:
-   ```bash
-   docker pull swr.cn-north-4.myhuaweicloud.com/infiniflow/ragflow:dev
-   ```
-   ```bash
-   docker compose -f docker-compose-CN.yml up -d
-   ```
-   
-To upgrade RAGFlow to the latest version:
-
-1. Update **ragflow/docker/.env** as follows:
-   ```bash
-   RAGFLOW_VERSION=latest
-   ```
-2. Pull the latest source code:
-   ```bash
-   cd ragflow
-   git pull
-   ```   
-
-3. If you used `docker compose up -d` to start up RAGFlow server:
-   ```bash
-   docker pull infiniflow/ragflow:latest
-   ```
-   ```bash
-   docker compose up ragflow -d
-   ```
-4. If you used `docker compose -f docker-compose-CN.yml up -d` to start up RAGFlow server:
-   ```bash
-   docker pull swr.cn-north-4.myhuaweicloud.com/infiniflow/ragflow:latest
-   ```
-   ```bash
-   docker compose -f docker-compose-CN.yml up -d
-   ```
+See [Upgrade RAGFlow](../guides/upgrade_ragflow.md) for more information.

@@ -133,12 +133,11 @@ class TaskService(CommonService):
                     cls.model.id == id).execute()
 
 
-def queue_tasks(doc, bucket, name):
+def queue_tasks(doc: dict, bucket: str, name: str):
     # 根据文件创建一个或多个异步任务，方便异步执行
     # 这个函数主要是根据doc文件的类型和配置，将文件拆分为多个任务（例如默认pdf为12页一个任务），插入到数据库中
     # 首先把任务信息插入到 Task 表中，然后调用 DocumentService.begin2parse 方法，更新文档状态
     def new_task():
-        nonlocal doc
         return {
             "id": get_uuid(),
             "doc_id": doc["id"]
@@ -154,15 +153,9 @@ def queue_tasks(doc, bucket, name):
         if doc["parser_id"] == "paper":
             # 默认单个任务处理 12 页 pdf，pager 类型的 pdf 一个任务处理 22 页，其他 pdf 不分页
             page_size = doc["parser_config"].get("task_page_size", 22)
-        if doc["parser_id"] == "one":
-            page_size = 1000000000
-        if doc["parser_id"] == "knowledge_graph":
-            page_size = 1000000000
-        if not do_layout:
-            page_size = 1000000000
-        page_ranges = doc["parser_config"].get("pages")
-        if not page_ranges:
-            page_ranges = [(1, 100000)]
+        if doc["parser_id"] in ["one", "knowledge_graph"] or not do_layout:
+            page_size = 10 ** 9
+        page_ranges = doc["parser_config"].get("pages") or [(1, 10 ** 5)]
         for s, e in page_ranges:
             s -= 1
             s = max(0, s)
@@ -175,8 +168,7 @@ def queue_tasks(doc, bucket, name):
 
     elif doc["parser_id"] == "table":
         file_bin = STORAGE_IMPL.get(bucket, name)
-        rn = RAGFlowExcelParser.row_number(
-            doc["name"], file_bin)
+        rn = RAGFlowExcelParser.row_number(doc["name"], file_bin)
         for i in range(0, rn, 3000):
             task = new_task()
             task["from_page"] = i

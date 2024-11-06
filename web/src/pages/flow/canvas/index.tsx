@@ -6,9 +6,8 @@ import ReactFlow, {
   NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-
-import { ButtonEdge } from './edge';
-
+import ChatDrawer from '../chat/drawer';
+import { Operator } from '../constant';
 import FlowDrawer from '../flow-drawer';
 import {
   useHandleDrop,
@@ -18,14 +17,21 @@ import {
   useValidateConnection,
   useWatchNodeFormDataChange,
 } from '../hooks';
-import { RagNode } from './node';
-
-import ChatDrawer from '../chat/drawer';
+import { ButtonEdge } from './edge';
 import styles from './index.less';
+import { RagNode } from './node';
 import { BeginNode } from './node/begin-node';
 import { CategorizeNode } from './node/categorize-node';
+import { GenerateNode } from './node/generate-node';
+import { InvokeNode } from './node/invoke-node';
+import { KeywordNode } from './node/keyword-node';
 import { LogicNode } from './node/logic-node';
+import { MessageNode } from './node/message-node';
+import NoteNode from './node/note-node';
 import { RelevantNode } from './node/relevant-node';
+import { RetrievalNode } from './node/retrieval-node';
+import { RewriteNode } from './node/rewrite-node';
+import { SwitchNode } from './node/switch-node';
 
 const nodeTypes = {
   ragNode: RagNode,
@@ -33,6 +39,14 @@ const nodeTypes = {
   beginNode: BeginNode,
   relevantNode: RelevantNode,
   logicNode: LogicNode,
+  noteNode: NoteNode,
+  switchNode: SwitchNode,
+  generateNode: GenerateNode,
+  retrievalNode: RetrievalNode,
+  messageNode: MessageNode,
+  rewriteNode: RewriteNode,
+  keywordNode: KeywordNode,
+  invokeNode: InvokeNode,
 };
 
 const edgeTypes = {
@@ -60,7 +74,9 @@ function FlowCanvas({ chatDrawerVisible, hideChatDrawer }: IProps) {
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (e, node) => {
-      showDrawer(node);
+      if (node.data.label !== Operator.Note) {
+        showDrawer(node);
+      }
     },
     [showDrawer],
   );
@@ -121,14 +137,7 @@ function FlowCanvas({ chatDrawerVisible, hideChatDrawer }: IProps) {
         defaultEdgeOptions={{
           type: 'buttonEdge',
           markerEnd: 'logo',
-          // markerEnd: {
-          //   type: MarkerType.ArrowClosed,
-          //   color: 'rgb(157 149 225)',
-          //   width: 20,
-          //   height: 20,
-          // },
           style: {
-            // edge style
             strokeWidth: 2,
             stroke: 'rgb(202 197 245)',
           },

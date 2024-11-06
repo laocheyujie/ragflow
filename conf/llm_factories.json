@@ -77,15 +77,27 @@
                     "tags": "LLM,CHAT,IMAGE2TEXT",
                     "max_tokens": 765,
                     "model_type": "image2text"
+                },
+                {
+                    "llm_name": "tts-1",
+                    "tags": "TTS",
+                    "max_tokens": 2048,
+                    "model_type": "tts"
                 }
             ]
         },
         {
             "name": "Tongyi-Qianwen",
             "logo": "",
-            "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
+            "tags": "LLM,TEXT EMBEDDING,TEXT RE-RANK,SPEECH2TEXT,MODERATION",
             "status": "1",
             "llm": [
+                {
+                    "llm_name": "qwen-long",
+                    "tags": "LLM,CHAT,10000K",
+                    "max_tokens": 1000000,
+                    "model_type": "chat"
+                },
                 {
                     "llm_name": "qwen-turbo",
                     "tags": "LLM,CHAT,8K",
@@ -133,6 +145,12 @@
                     "tags": "LLM,CHAT,IMAGE2TEXT",
                     "max_tokens": 765,
                     "model_type": "image2text"
+                },
+                {
+                    "llm_name": "gte-rerank",
+                    "tags": "RE-RANK,4k",
+                    "max_tokens": 4000,
+                    "model_type": "rerank"
                 }
             ]
         },
@@ -183,6 +201,12 @@
                     "tags": "LLM,CHAT,IMAGE2TEXT",
                     "max_tokens": 2000,
                     "model_type": "image2text"
+                },
+                {
+                    "llm_name": "glm-4-9b",
+                    "tags": "LLM,CHAT,",
+                    "max_tokens": 8192,
+                    "model_type": "chat"
                 },
                 {
                     "llm_name": "embedding-2",
@@ -240,6 +264,12 @@
                 {
                     "llm_name": "moonshot-v1-128k",
                     "tags": "LLM,CHAT",
+                    "max_tokens": 128000,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "moonshot-v1-auto",
+                    "tags": "LLM,CHAT,",
                     "max_tokens": 128000,
                     "model_type": "chat"
                 }
@@ -613,13 +643,13 @@
                     "model_type": "chat,image2text"
                 },
                 {
-                    "llm_name": "gpt-35-turbo",
+                    "llm_name": "gpt-3.5-turbo",
                     "tags": "LLM,CHAT,4K",
                     "max_tokens": 4096,
                     "model_type": "chat"
                 },
                 {
-                    "llm_name": "gpt-35-turbo-16k",
+                    "llm_name": "gpt-3.5-turbo-16k",
                     "tags": "LLM,CHAT,16k",
                     "max_tokens": 16385,
                     "model_type": "chat"
@@ -1988,6 +2018,60 @@
                     "model_type": "chat"
                 },
                 {
+                    "llm_name": "Qwen/Qwen2.5-72B-Instruct-128K",
+                    "tags": "LLM,CHAT,128k",
+                    "max_tokens": 131072,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Qwen/Qwen2.5-72B-Instruct",
+                    "tags": "LLM,CHAT,32k",
+                    "max_tokens": 32768,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Qwen/Qwen2.5-7B-Instruct",
+                    "tags": "LLM,CHAT,32k",
+                    "max_tokens": 32768,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Qwen/Qwen2.5-14B-Instruct",
+                    "tags": "LLM,CHAT,32k",
+                    "max_tokens": 32768,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Qwen/Qwen2.5-32B-Instruct",
+                    "tags": "LLM,CHAT,32k",
+                    "max_tokens": 32768,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Qwen/Qwen2.5-Math-72B-Instruct",
+                    "tags": "LLM,CHAT,Math,4k",
+                    "max_tokens": 4096,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Qwen/Qwen2.5-Coder-7B-Instruct",
+                    "tags": "LLM,CHAT,FIM,Coder,32k",
+                    "max_tokens": 32768,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Pro/Qwen/Qwen2.5-7B-Instruct",
+                    "tags": "LLM,CHAT,32k",
+                    "max_tokens": 32768,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "Pro/Qwen/Qwen2.5-Coder-7B-Instruct",
+                    "tags": "LLM,CHAT,FIM,Coder,32k",
+                    "max_tokens": 32768,
+                    "model_type": "chat"
+                },
+                {
                     "llm_name": "01-ai/Yi-1.5-34B-Chat-16K",
                     "tags": "LLM,CHAT,16k",
                     "max_tokens": 16384,
@@ -2091,6 +2175,12 @@
             "tags": "LLM,IMAGE2TEXT",
             "status": "1",
             "llm": [
+                {
+                    "llm_name": "yi-lightning",
+                    "tags": "LLM,CHAT,16k",
+                    "max_tokens": 16384,
+                    "model_type": "chat"
+                },
                 {
                     "llm_name": "yi-large",
                     "tags": "LLM,CHAT,32k",
@@ -2336,6 +2426,13 @@
             "name": "Google Cloud",
             "logo": "",
             "tags": "LLM",
+            "status": "1",
+            "llm": []
+        },
+        {
+            "name": "HuggingFace",
+            "logo": "",
+            "tags": "TEXT EMBEDDING",
             "status": "1",
             "llm": []
         }

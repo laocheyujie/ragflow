@@ -151,6 +151,7 @@ def qbullets_category(sections):
         maxium = h
     return res, QUESTION_PATTERN[res]
 
+
 BULLET_PATTERN = [[
     r"第[零一二三四五六七八九十百0-9]+(分?编|部分)",
     r"第[零一二三四五六七八九十百0-9]+章",
@@ -214,7 +215,7 @@ def is_english(texts):
     eng = 0
     if not texts: return False
     for t in texts:
-        if re.match(r"[a-zA-Z]{2,}", t.strip()):
+        if re.match(r"[ `a-zA-Z.,':;/\"?<>!\(\)-]", t.strip()):
             eng += 1
     if eng / len(texts) > 0.8:
         return True
@@ -507,17 +508,6 @@ def naive_merge(sections, chunk_token_num=128, delimiter="\n。；！？"):
 
     for sec, pos in sections:
         add_chunk(sec, pos)
-        continue
-        s, e = 0, 1
-        while e < len(sec):
-            if sec[e] in delimiter:
-                add_chunk(sec[s: e + 1], pos)
-                s = e + 1
-                e = s + 1
-            else:
-                e += 1
-        if s < e:
-            add_chunk(sec[s: e], pos)
 
     return cks
 
@@ -586,14 +576,3 @@ def naive_merge_docx(sections, chunk_token_num=128, delimiter="\n。；！？"):
 
     return cks, images
 
-
-def keyword_extraction(chat_mdl, content):
-    prompt = """
-You're a question analyzer. 
-1. Please give me the most important keyword/phrase of this question.
-Answer format: (in language of user's question)
- - keyword: 
-"""
-    kwd = chat_mdl.chat(prompt, [{"role": "user",  "content": content}], {"temperature": 0.2})
-    if isinstance(kwd, tuple): return kwd[0]
-    return kwd

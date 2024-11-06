@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-import re
+import os
 from concurrent.futures import ThreadPoolExecutor
 import json
 from functools import reduce
@@ -24,7 +24,7 @@ from api.db.services.llm_service import LLMBundle
 from api.db.services.user_service import TenantService
 from graphrag.community_reports_extractor import CommunityReportsExtractor
 from graphrag.entity_resolution import EntityResolution
-from graphrag.graph_extractor import GraphExtractor
+from graphrag.graph_extractor import GraphExtractor, DEFAULT_ENTITY_TYPES
 from graphrag.mind_map_extractor import MindMapExtractor
 from rag.nlp import rag_tokenizer
 from rag.utils import num_tokens_from_string
@@ -52,7 +52,7 @@ def graph_merge(g1, g2):
     return g
 
 
-def build_knowlege_graph_chunks(tenant_id: str, chunks: List[str], callback, entity_types=["organization", "person", "location", "event", "time"]):
+def build_knowledge_graph_chunks(tenant_id: str, chunks: List[str], callback, entity_types=DEFAULT_ENTITY_TYPES):
     _, tenant = TenantService.get_by_id(tenant_id)
     llm_bdl = LLMBundle(tenant_id, LLMType.CHAT, tenant.llm_id)
     ext = GraphExtractor(llm_bdl)
@@ -65,7 +65,8 @@ def build_knowlege_graph_chunks(tenant_id: str, chunks: List[str], callback, ent
     texts, graphs = [], []
     cnt = 0
     threads = []
-    exe = ThreadPoolExecutor(max_workers=50)
+    max_workers = int(os.environ.get('GRAPH_EXTRACTOR_MAX_WORKERS', 50))
+    exe = ThreadPoolExecutor(max_workers=max_workers)
     for i in range(len(chunks)):
         tkn_cnt = num_tokens_from_string(chunks[i])
         if cnt+tkn_cnt >= left_token_count and texts:
