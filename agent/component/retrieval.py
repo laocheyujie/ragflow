@@ -13,6 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import logging
 from abc import ABC
 
 import pandas as pd
@@ -80,7 +81,7 @@ class Retrieval(ComponentBase, ABC):
         df = pd.DataFrame(kbinfos["chunks"])
         df["content"] = df["content_with_weight"]
         del df["content_with_weight"]
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>\n", query, df)
+        logging.debug("{} {}".format(query, df))
         return df
 
 

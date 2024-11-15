@@ -161,6 +161,18 @@
             "status": "1",
             "llm": [
                 {
+                    "llm_name": "glm-4-plus",
+                    "tags": "LLM,CHAT,",
+                    "max_tokens": 128000,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "glm-4-0520",
+                    "tags": "LLM,CHAT,",
+                    "max_tokens": 128000,
+                    "model_type": "chat"
+                },
+                {
                     "llm_name": "glm-4",
                     "tags": "LLM,CHAT,",
                     "max_tokens": 128000,
@@ -180,6 +192,12 @@
                 },
                 {
                     "llm_name": "glm-4-flash",
+                    "tags": "LLM,CHAT,",
+                    "max_tokens": 128000,
+                    "model_type": "chat"
+                },
+                {
+                    "llm_name": "glm-4-flashx",
                     "tags": "LLM,CHAT,",
                     "max_tokens": 128000,
                     "model_type": "chat"
@@ -640,7 +658,7 @@
                     "llm_name": "gpt-4o",
                     "tags": "LLM,CHAT,128K",
                     "max_tokens": 128000,
-                    "model_type": "chat,image2text"
+                    "model_type": "image2text"
                 },
                 {
                     "llm_name": "gpt-3.5-turbo",
@@ -1299,7 +1317,7 @@
             "llm": []
         },
         {
-            "name": "cohere",
+            "name": "Cohere",
             "logo": "",
             "tags": "LLM,TEXT EMBEDDING, TEXT RE-RANK",
             "status": "1",
@@ -2323,6 +2341,12 @@
                     "model_type": "chat"
                 },
                 {
+                    "llm_name": "claude-3-5-sonnet-20241022",
+                    "tags": "LLM,CHAT,200k",
+                    "max_tokens": 204800,
+                    "model_type": "chat"
+                },
+                {
                     "llm_name": "claude-3-opus-20240229",
                     "tags": "LLM,CHAT,200k",
                     "max_tokens": 204800,
@@ -2353,8 +2377,8 @@
                     "model_type": "chat"
                 },
                 {
-                    "llm_name": "claude-instant-1.2",
-                    "tags": "LLM,CHAT,100k",
+                    "llm_name": "claude-3-5-sonnet-20241022",
+                    "tags": "LLM,CHAT,200k",
                     "max_tokens": 102400,
                     "model_type": "chat"
                 }

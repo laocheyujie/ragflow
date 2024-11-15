@@ -11,6 +11,7 @@
 #  limitations under the License.
 #
 
+import logging
 import os
 import random
 
@@ -18,8 +19,7 @@ import xgboost as xgb
 from io import BytesIO
 import re
 import pdfplumber
-import logging
-from PIL import Image, ImageDraw
+from PIL import Image
 import numpy as np
 from timeit import default_timer as timer
 from pypdf import PdfReader as pdf2_read
@@ -30,9 +30,6 @@ from deepdoc.vision import OCR, Recognizer, LayoutRecognizer, TableStructureReco
 from rag.nlp import rag_tokenizer
 from copy import deepcopy
 from huggingface_hub import snapshot_download
-
-logging.getLogger("pdfminer").setLevel(logging.WARNING)
-
 
 class RAGFlowPdfParser:
     def __init__(self):
@@ -56,15 +53,15 @@ class RAGFlowPdfParser:
                 import torch
                 if torch.cuda.is_available():
                     self.updown_cnt_mdl.set_param({"device": "cuda"})
-            except Exception as e:
-                logging.error(str(e))
+            except Exception:
+                logging.exception("RAGFlowPdfParser __init__")
         try:
             model_dir = os.path.join(
                 get_project_base_directory(),
                 "rag/res/deepdoc")
             self.updown_cnt_mdl.load_model(os.path.join(
                 model_dir, "updown_concat_xgb.model"))
-        except Exception as e:
+        except Exception:
             model_dir = snapshot_download(
                 repo_id="InfiniFlow/text_concat_xgb_v1.0",
                 local_dir=os.path.join(get_project_base_directory(), "rag/res/deepdoc"),
@@ -195,7 +192,7 @@ class RAGFlowPdfParser:
 
     def _table_transformer_job(self, ZM):
         # 遍历 page_layout，得到每一页的 layout，从 layout 中找到表格，并调用模型识别后再根据规则做处理
-        logging.info("Table processing...")
+        logging.debug("Table processing...")
         imgs, pos = [], []
         tbcnt = [0]
         MARGIN = 10
@@ -440,12 +437,12 @@ class RAGFlowPdfParser:
             detach_feats = [b["x1"] < b_["x0"],
                             b["x0"] > b_["x1"]]
             if (any(feats) and not any(concatting_feats)) or any(detach_feats):
-                print(
+                logging.debug("{} {} {} {}".format(
                     b["text"],
                     b_["text"],
                     any(feats),
                     any(concatting_feats),
-                    any(detach_feats))
+                    ))
                 i += 1
                 continue
             # merge up and down
@@ -934,7 +931,7 @@ class RAGFlowPdfParser:
                     dfs(boxes[0], 0)
                 else:
                     logging.debug("WASTE: " + boxes[0]["text"])
-            except Exception as e:
+            except Exception:
                 pass
             boxes.pop(0)
             mw = np.mean(widths)
@@ -953,8 +950,8 @@ class RAGFlowPdfParser:
             pdf = pdfplumber.open(
                 fnm) if not binary else pdfplumber.open(BytesIO(binary))
             return len(pdf.pages)
-        except Exception as e:
-            logging.error(str(e))
+        except Exception:
+            logging.exception("total_page_number")
 
     def __images__(self, fnm, zoomin=3, page_from=0,
                    page_to=299, callback=None):
@@ -978,8 +975,8 @@ class RAGFlowPdfParser:
             self.page_chars = [[{**c, 'top': c['top'], 'bottom': c['bottom']} for c in page.dedupe_chars().chars if self._has_color(c)] for page in
                                self.pdf.pages[page_from:page_to]]
             self.total_page = len(self.pdf.pages)
-        except Exception as e:
-            logging.error(str(e))
+        except Exception:
+            logging.exception("RAGFlowPdfParser __images__")
 
         # 读取 pdf 目录
         # NOTE: 这里貌似是基本的读取，其实pdf的目录可以关联到具体的章节内容，这里暂时看起来没有很好的利用
@@ -999,9 +996,9 @@ class RAGFlowPdfParser:
         except Exception as e:
             logging.warning(f"Outlines exception: {e}")
         if not self.outlines:
-            logging.warning(f"Miss outlines")
+            logging.warning("Miss outlines")
 
-        logging.info("Images converted.")
+        logging.debug("Images converted.")
 
         # 英文文档检测
         # 从每一页的字符集合中随机抽取最多 100 个字符，并检查这些字符是否包含至少 30 个连续的英文字母、数字或常见标点符号
@@ -1049,7 +1046,7 @@ class RAGFlowPdfParser:
             self.is_english = re.search(r"[\na-zA-Z0-9,/¸;:'\[\]\(\)!@#$%^&*\"?<>._-]{30,}",
                                         "".join([b["text"] for b in random.choices(bxes, k=min(30, len(bxes)))]))
 
-        logging.info("Is it English:", self.is_english)
+        logging.debug("Is it English:", self.is_english)
 
         self.page_cum_height = np.cumsum(self.page_cum_height)
         assert len(self.page_cum_height) == len(self.page_images) + 1
@@ -1195,10 +1192,10 @@ class PlainParser(object):
                     dfs(a, depth + 1)
 
             dfs(outlines, 0)
-        except Exception as e:
-            logging.warning(f"Outlines exception: {e}")
+        except Exception:
+            logging.exception("Outlines exception")
         if not self.outlines:
-            logging.warning(f"Miss outlines")
+            logging.warning("Miss outlines")
 
         return [(l, "") for l in lines], []
 

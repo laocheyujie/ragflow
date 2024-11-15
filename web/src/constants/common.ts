@@ -39,18 +39,28 @@ export const fileIconMap = {
   xml: 'xml.svg',
 };
 
-export const LanguageList = ['English', 'Chinese', 'Traditional Chinese'];
+export const LanguageList = [
+  'English',
+  'Chinese',
+  'Traditional Chinese',
+  'Indonesia',
+  'Spanish',
+];
 
 export const LanguageMap = {
   English: 'English',
   Chinese: '简体中文',
   'Traditional Chinese': '繁體中文',
+  Indonesia: 'Indonesia',
+  Spanish: 'Español',
 };
 
 export const LanguageTranslationMap = {
   English: 'en',
   Chinese: 'zh',
   'Traditional Chinese': 'zh-TRADITIONAL',
+  Indonesia: 'id',
+  Spanish: 'es',
 };
 
 export const FileMimeTypeMap = {

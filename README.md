@@ -8,7 +8,8 @@
   <a href="./README.md">English</a> |
   <a href="./README_zh.md">简体中文</a> |
   <a href="./README_ja.md">日本語</a> |
-  <a href="./README_ko.md">한국어</a>
+  <a href="./README_ko.md">한국어</a> |
+  <a href="./README_id.md">Bahasa Indonesia</a>
 </p>
 
 <p align="center">
@@ -174,14 +175,14 @@ releases! 🌟
    $ docker compose -f docker-compose.yml up -d
    ```
 
-   > - To download a RAGFlow slim Docker image of a specific version, update the `RAGFlow_IMAGE` variable in *
+   > - To download a RAGFlow slim Docker image of a specific version, update the `RAGFLOW_IMAGE` variable in *
        *docker/.env** to your desired version. For example, `RAGFLOW_IMAGE=infiniflow/ragflow:v0.13.0-slim`. After
        making this change, rerun the command above to initiate the download.
    > - To download the dev version of RAGFlow Docker image *including* embedding models and Python libraries, update the
-       `RAGFlow_IMAGE` variable in **docker/.env** to `RAGFLOW_IMAGE=infiniflow/ragflow:dev`. After making this change,
+       `RAGFLOW_IMAGE` variable in **docker/.env** to `RAGFLOW_IMAGE=infiniflow/ragflow:dev`. After making this change,
        rerun the command above to initiate the download.
    > - To download a specific version of RAGFlow Docker image *including* embedding models and Python libraries, update
-       the `RAGFlow_IMAGE` variable in **docker/.env** to your desired version. For example,
+       the `RAGFLOW_IMAGE` variable in **docker/.env** to your desired version. For example,
        `RAGFLOW_IMAGE=infiniflow/ragflow:v0.13.0`. After making this change, rerun the command above to initiate the
        download.
 
@@ -209,13 +210,13 @@ releases! 🌟
     * Running on http://x.x.x.x:9380
     INFO:werkzeug:Press CTRL+C to quit
    ```
-   > If you skip this confirmation step and directly log in to RAGFlow, your browser may prompt a `network abnormal`
+   > If you skip this confirmation step and directly log in to RAGFlow, your browser may prompt a `network anormal`
    error because, at that moment, your RAGFlow may not be fully initialized.
 
 5. In your web browser, enter the IP address of your server and log in to RAGFlow.
    > With the default settings, you only need to enter `http://IP_OF_YOUR_MACHINE` (**sans** port number) as the default
    HTTP serving port `80` can be omitted when using the default configurations.
-6. In [service_conf.yaml](./docker/service_conf.yaml), select the desired LLM factory in `user_default_llm` and update
+6. In [service_conf.yaml.template](./docker/service_conf.yaml.template), select the desired LLM factory in `user_default_llm` and update
    the `API_KEY` field with the corresponding API key.
 
    > See [llm_api_key_setup](https://ragflow.io/docs/dev/llm_api_key_setup) for more information.
@@ -228,17 +229,11 @@ When it comes to system configurations, you will need to manage the following fi
 
 - [.env](./docker/.env): Keeps the fundamental setups for the system, such as `SVR_HTTP_PORT`, `MYSQL_PASSWORD`, and
   `MINIO_PASSWORD`.
-- [service_conf.yaml](./docker/service_conf.yaml): Configures the back-end services.
-- [docker-compose.yml](./docker/docker-compose.yml): The system relies
-  on [docker-compose.yml](./docker/docker-compose.yml) to start up.
-
-You must ensure that changes to the [.env](./docker/.env) file are in line with what are in
-the [service_conf.yaml](./docker/service_conf.yaml) file.
+- [service_conf.yaml.template](./docker/service_conf.yaml.template): Configures the back-end services. The environment variables in this file will be automatically populated when the Docker container starts. Any environment variables set within the Docker container will be available for use, allowing you to customize service behavior based on the deployment environment.
+- [docker-compose.yml](./docker/docker-compose.yml): The system relies on [docker-compose.yml](./docker/docker-compose.yml) to start up.
 
 > The [./docker/README](./docker/README.md) file provides a detailed description of the environment settings and service
-> configurations, and you are REQUIRED to ensure that all environment settings listed in
-> the [./docker/README](./docker/README.md) file are aligned with the corresponding configurations in
-> the [service_conf.yaml](./docker/service_conf.yaml) file.
+> configurations which can be used as `${ENV_VARS}` in the [service_conf.yaml.template](./docker/service_conf.yaml.template) file.
 
 To update the default HTTP serving port (80), go to [docker-compose.yml](./docker/docker-compose.yml) and change `80:80`
 to `<YOUR_SERVING_PORT>:80`.
@@ -249,6 +244,27 @@ Updates to the above configurations require a reboot of all containers to take e
 > $ docker compose -f docker/docker-compose.yml up -d
 > ```
 
+### Switch doc engine from Elasticsearch to Infinity
+
+RAGFlow uses Elasticsearch by default for storing full text and vectors. To switch to [Infinity](https://github.com/infiniflow/infinity/), follow these steps:
+
+1. Stop all running containers:
+
+   ```bash
+   $ docker compose -f docker/docker-compose.yml down -v
+   ```
+
+2. Set `DOC_ENGINE` in **docker/.env** to `infinity`.
+
+3. Start the containers:
+
+   ```bash
+   $ docker compose -f docker/docker-compose.yml up -d
+   ```
+
+> [!WARNING] 
+> Switching to Infinity on a Linux/arm64 machine is not yet officially supported.
+
 ## 🔧 Build a Docker image without embedding models
 
 This image is approximately 1 GB in size and relies on external LLM and embedding services.
@@ -258,7 +274,7 @@ git clone https://github.com/infiniflow/ragflow.git
 cd ragflow/
 pip3 install huggingface-hub nltk
 python3 download_deps.py
-docker build -f Dockerfile.slim -t infiniflow/ragflow:dev-slim .
+build_docker_image.sh slim
 ```
 
 ## 🔧 Build a Docker image including embedding models
@@ -270,7 +286,7 @@ git clone https://github.com/infiniflow/ragflow.git
 cd ragflow/
 pip3 install huggingface-hub nltk
 python3 download_deps.py
-docker build -f Dockerfile -t infiniflow/ragflow:dev .
+build_docker_image.sh full
 ```
 
 ## 🔨 Launch service from source for development
@@ -285,7 +301,7 @@ docker build -f Dockerfile -t infiniflow/ragflow:dev .
    git clone https://github.com/infiniflow/ragflow.git
    cd ragflow/
    export POETRY_VIRTUALENVS_CREATE=true POETRY_VIRTUALENVS_IN_PROJECT=true
-   ~/.local/bin/poetry install --sync --no-root # install RAGFlow dependent python modules
+   ~/.local/bin/poetry install --sync --no-root --with=full # install RAGFlow dependent python modules
    ```
 
 3. Launch the dependent services (MinIO, Elasticsearch, Redis, and MySQL) using Docker Compose:
@@ -293,11 +309,11 @@ docker build -f Dockerfile -t infiniflow/ragflow:dev .
    docker compose -f docker/docker-compose-base.yml up -d
    ```
 
-   Add the following line to `/etc/hosts` to resolve all hosts specified in **docker/service_conf.yaml** to `127.0.0.1`:
+   Add the following line to `/etc/hosts` to resolve all hosts specified in **docker/.env** to `127.0.0.1`:
    ```
-   127.0.0.1       es01 mysql minio redis
+   127.0.0.1       es01 infinity mysql minio redis
    ```  
-   In **docker/service_conf.yaml**, update mysql port to `5455` and es port to `1200`, as specified in **docker/.env**.
+   In **docker/service_conf.yaml.template**, update mysql port to `5455` and es port to `1200`, as specified in **docker/.env**.
 
 4. If you cannot access HuggingFace, set the `HF_ENDPOINT` environment variable to use a mirror site:
 

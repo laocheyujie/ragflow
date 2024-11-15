@@ -14,6 +14,7 @@
 #  limitations under the License.
 #
 
+import logging
 import math
 import json
 import re
@@ -81,12 +82,12 @@ class Dealer:
         self.ne, self.df = {}, {}
         try:
             self.ne = json.load(open(os.path.join(fnm, "ner.json"), "r"))
-        except Exception as e:
-            print("[WARNING] Load ner.json FAIL!")
+        except Exception:
+            logging.warning("Load ner.json FAIL!")
         try:
             self.df = load_dict(os.path.join(fnm, "term.freq"))
-        except Exception as e:
-            print("[WARNING] Load term.freq FAIL!")
+        except Exception:
+            logging.warning("Load term.freq FAIL!")
 
     def pretoken(self, txt, num=False, stpwd=True):
         patt = [
@@ -227,7 +228,7 @@ class Dealer:
             idf2 = np.array([idf(df(t), 1000000000) for t in tks])
             wts = (0.3 * idf1 + 0.7 * idf2) * \
                 np.array([ner(t) * postag(t) for t in tks])
-            tw = zip(tks, wts)
+            tw = list(zip(tks, wts))
         else:
             for tk in tks:
                 tt = self.tokenMerge(self.pretoken(tk, True))

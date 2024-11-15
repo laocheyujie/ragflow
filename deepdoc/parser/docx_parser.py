@@ -112,7 +112,7 @@ class RAGFlowDocxParser:
             return lines
         return ["\n".join(lines)]
 
-    def __call__(self, fnm, from_page=0, to_page=100000):
+    def __call__(self, fnm, from_page=0, to_page=100000000):
         self.doc = Document(fnm) if isinstance(
             fnm, str) else Document(BytesIO(fnm))
         pn = 0 # parsed page
@@ -132,7 +132,7 @@ class RAGFlowDocxParser:
                 if 'lastRenderedPageBreak' in run._element.xml:
                     pn += 1
 
-            secs.append(("".join(runs_within_single_paragraph), p.style.name)) # then concat run.text as part of the paragraph
+            secs.append(("".join(runs_within_single_paragraph), p.style.name if hasattr(p.style, 'name') else '')) # then concat run.text as part of the paragraph
 
         # 通过 __extract_table_content 解析表格 （不需要模型来识别了，可以直接读取）
         tbls = [self.__extract_table_content(tb) for tb in self.doc.tables]

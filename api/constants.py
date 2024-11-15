@@ -12,10 +12,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#
 
-import operator
-import time
-import typing
-from api.utils.log_utils import sql_logger
-import peewee
+NAME_LENGTH_LIMIT = 2 ** 10
+
+IMG_BASE64_PREFIX = 'data:image/png;base64,'
+
+SERVICE_CONF = "service_conf.yaml"

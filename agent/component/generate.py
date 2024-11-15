@@ -63,7 +63,7 @@ class Generate(ComponentBase):
     component_name = "Generate"
 
     def get_dependent_components(self):
-        cpnts = [para["component_id"] for para in self._param.parameters]
+        cpnts = [para["component_id"] for para in self._param.parameters if para.get("component_id") and para["component_id"].lower().find("answer") < 0]
         return cpnts
 
     def set_cite(self, retrieval_res, answer):
@@ -101,9 +101,22 @@ class Generate(ComponentBase):
         chat_mdl = LLMBundle(self._canvas.get_tenant_id(), LLMType.CHAT, self._param.llm_id)
         prompt = self._param.prompt
 
-        retrieval_res = self.get_input()
-        input = ("  - "+"\n  - ".join([c for c in retrieval_res["content"] if isinstance(c, str)])) if "content" in retrieval_res else ""
+        retrieval_res = []
+        self._param.inputs = []
         for para in self._param.parameters:
+            if not para.get("component_id"): continue
+            if para["component_id"].split("@")[0].lower().find("begin") > 0:
+                cpn_id, key = para["component_id"].split("@")
+                for p in self._canvas.get_component(cpn_id)["obj"]._param.query:
+                    if p["key"] == key:
+                        kwargs[para["key"]] = p["value"]
+                        self._param.inputs.append(
+                            {"component_id": para["component_id"], "content": kwargs[para["key"]]})
+                        break
+                else:
+                    assert False, f"Can't find parameter '{key}' for {cpn_id}"
+                continue
+
             cpn = self._canvas.get_component(para["component_id"])["obj"]
             if cpn.component_name.lower() == "answer":
                 kwargs[para["key"]] = self._canvas.get_history(1)[0]["content"]
@@ -112,11 +125,23 @@ class Generate(ComponentBase):
             if "content" not in out.columns:
                 kwargs[para["key"]] = "Nothing"
             else:
+                if cpn.component_name.lower() == "retrieval":
+                    retrieval_res.append(out)
                 kwargs[para["key"]] = "  - "+"\n - ".join([o if isinstance(o, str) else str(o) for o in out["content"]])
+            self._param.inputs.append({"component_id": para["component_id"], "content": kwargs[para["key"]]})
 
-        kwargs["input"] = input
+        if retrieval_res:
+            retrieval_res = pd.concat(retrieval_res, ignore_index=True)
+        else: retrieval_res = pd.DataFrame([])
+
         for n, v in kwargs.items():
             prompt = re.sub(r"\{%s\}" % re.escape(n), re.escape(str(v)), prompt)
+
+        if not self._param.inputs and prompt.find("{input}") >= 0:
+            retrieval_res = self.get_input()
+            input = ("  - " + "\n  - ".join(
+                [c for c in retrieval_res["content"] if isinstance(c, str)])) if "content" in retrieval_res else ""
+            prompt = re.sub(r"\{input\}", re.escape(input), prompt)
 
         downstreams = self._canvas.get_component(self._id)["downstream"]
         if kwargs.get("stream") and len(downstreams) == 1 and self._canvas.get_component(downstreams[0])[
