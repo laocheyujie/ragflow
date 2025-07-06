@@ -1,12 +1,14 @@
-import { CardWithForm } from './card';
-import { HomeHeader } from './header';
+import { Applications } from './applications';
+import { NextBanner } from './banner';
+import { Datasets } from './datasets';
 
 const Home = () => {
   return (
-    <div>
-      <HomeHeader></HomeHeader>
+    <div className="mx-8">
       <section>
-        <CardWithForm></CardWithForm>
+        <NextBanner></NextBanner>
+        <Datasets></Datasets>
+        <Applications></Applications>
       </section>
     </div>
   );

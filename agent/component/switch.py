@@ -41,19 +41,44 @@ class SwitchParam(ComponentParamBase):
     def check(self):
         self.check_empty(self.conditions, "[Switch] conditions")
         for cond in self.conditions:
-            if not cond["to"]: raise ValueError(f"[Switch] 'To' can not be empty!")
+            if not cond["to"]:
+                raise ValueError("[Switch] 'To' can not be empty!")
 
 
 class Switch(ComponentBase, ABC):
     component_name = "Switch"
 
+    def get_dependent_components(self):
+        res = []
+        for cond in self._param.conditions:
+            for item in cond["items"]:
+                if not item["cpn_id"]:
+                    continue
+                if item["cpn_id"].lower().find("begin") >= 0 or item["cpn_id"].lower().find("answer") >= 0:
+                    continue
+                cid = item["cpn_id"].split("@")[0]
+                res.append(cid)
+
+        return list(set(res))
+
     def _run(self, history, **kwargs):
         for cond in self._param.conditions:
             res = []
             for item in cond["items"]:
-                out = self._canvas.get_component(item["cpn_id"])["obj"].output()[1]
-                cpn_input = "" if "content" not in out.columns else " ".join([str(s) for s in out["content"]])
-                res.append(self.process_operator(cpn_input, item["operator"], item["value"]))
+                if not item["cpn_id"]:
+                    continue
+                cid = item["cpn_id"].split("@")[0]
+                if item["cpn_id"].find("@") > 0:
+                    cpn_id, key = item["cpn_id"].split("@")
+                    for p in self._canvas.get_component(cid)["obj"]._param.query:
+                        if p["key"] == key:
+                            res.append(self.process_operator(p.get("value",""), item["operator"], item.get("value", "")))
+                            break
+                else:
+                    out = self._canvas.get_component(cid)["obj"].output(allow_partial=False)[1]
+                    cpn_input = "" if "content" not in out.columns else " ".join([str(s) for s in out["content"]])
+                    res.append(self.process_operator(cpn_input, item["operator"], item.get("value", "")))
+
                 if cond["logical_operator"] != "and" and any(res):
                     return Switch.be_output(cond["to"])
 
@@ -85,22 +110,22 @@ class Switch(ComponentBase, ABC):
         elif operator == ">":
             try:
                 return True if float(input) > float(value) else False
-            except Exception as e:
+            except Exception:
                 return True if input > value else False
         elif operator == "<":
             try:
                 return True if float(input) < float(value) else False
-            except Exception as e:
+            except Exception:
                 return True if input < value else False
         elif operator == "≥":
             try:
                 return True if float(input) >= float(value) else False
-            except Exception as e:
+            except Exception:
                 return True if input >= value else False
         elif operator == "≤":
             try:
                 return True if float(input) <= float(value) else False
-            except Exception as e:
+            except Exception:
                 return True if input <= value else False
 
         raise ValueError('Not supported operator' + operator)

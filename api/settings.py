@@ -13,194 +13,167 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import json
 import os
+import secrets
 from datetime import date
-from enum import IntEnum, Enum
-from api.utils.file_utils import get_project_base_directory
-import rag.utils.es_conn
-import rag.utils.infinity_conn
+from enum import Enum, IntEnum
 
 import rag.utils
-from rag.nlp import search
+import rag.utils.es_conn
+import rag.utils.infinity_conn
+import rag.utils.opensearch_conn
+from api.constants import RAG_FLOW_SERVICE_NAME
+from api.utils import decrypt_database_config, get_base_config
+from api.utils.file_utils import get_project_base_directory
 from graphrag import search as kg_search
-from api.utils import get_base_config, decrypt_database_config
+from rag.nlp import search
 
-API_VERSION = "v1"
-RAG_FLOW_SERVICE_NAME = "ragflow"
-SERVER_MODULE = "rag_flow_server.py"
-TEMP_DIRECTORY = os.path.join(get_project_base_directory(), "temp")
-RAG_FLOW_CONF_PATH = os.path.join(get_project_base_directory(), "conf")
-LIGHTEN = int(os.environ.get('LIGHTEN', "0"))
+LIGHTEN = int(os.environ.get("LIGHTEN", "0"))
 
-ERROR_REPORT = True
-ERROR_REPORT_WITH_PATH = False
+LLM = None
+LLM_FACTORY = None
+LLM_BASE_URL = None
+CHAT_MDL = ""
+EMBEDDING_MDL = ""
+RERANK_MDL = ""
+ASR_MDL = ""
+IMAGE2TEXT_MDL = ""
+API_KEY = None
+PARSERS = None
+HOST_IP = None
+HOST_PORT = None
+SECRET_KEY = None
+FACTORY_LLM_INFOS = None
 
-MAX_TIMESTAMP_INTERVAL = 60
-SESSION_VALID_PERIOD = 7 * 24 * 60 * 60
-
-REQUEST_TRY_TIMES = 3
-REQUEST_WAIT_SEC = 2
-REQUEST_MAX_WAIT_SEC = 300
-
-USE_REGISTRY = get_base_config("use_registry")
-
-LLM = get_base_config("user_default_llm", {})
-LLM_FACTORY = LLM.get("factory", "Tongyi-Qianwen")
-LLM_BASE_URL = LLM.get("base_url")
-
-CHAT_MDL = EMBEDDING_MDL = RERANK_MDL = ASR_MDL = IMAGE2TEXT_MDL = ""
-if not LIGHTEN:
-    default_llm = {
-        "Tongyi-Qianwen": {
-            "chat_model": "qwen-plus",
-            "embedding_model": "text-embedding-v2",
-            "image2text_model": "qwen-vl-max",
-            "asr_model": "paraformer-realtime-8k-v1",
-        },
-        "OpenAI": {
-            "chat_model": "gpt-3.5-turbo",
-            "embedding_model": "text-embedding-ada-002",
-            "image2text_model": "gpt-4-vision-preview",
-            "asr_model": "whisper-1",
-        },
-        "Azure-OpenAI": {
-            "chat_model": "gpt-35-turbo",
-            "embedding_model": "text-embedding-ada-002",
-            "image2text_model": "gpt-4-vision-preview",
-            "asr_model": "whisper-1",
-        },
-        "ZHIPU-AI": {
-            "chat_model": "glm-3-turbo",
-            "embedding_model": "embedding-2",
-            "image2text_model": "glm-4v",
-            "asr_model": "",
-        },
-        "Ollama": {
-            "chat_model": "qwen-14B-chat",
-            "embedding_model": "flag-embedding",
-            "image2text_model": "",
-            "asr_model": "",
-        },
-        "Moonshot": {
-            "chat_model": "moonshot-v1-8k",
-            "embedding_model": "",
-            "image2text_model": "",
-            "asr_model": "",
-        },
-        "DeepSeek": {
-            "chat_model": "deepseek-chat",
-            "embedding_model": "",
-            "image2text_model": "",
-            "asr_model": "",
-        },
-        "VolcEngine": {
-            "chat_model": "",
-            "embedding_model": "",
-            "image2text_model": "",
-            "asr_model": "",
-        },
-        "BAAI": {
-            "chat_model": "",
-            "embedding_model": "BAAI/bge-large-zh-v1.5",
-            "image2text_model": "",
-            "asr_model": "",
-            "rerank_model": "BAAI/bge-reranker-v2-m3",
-        }
-    }
-
-    if LLM_FACTORY:
-        CHAT_MDL = default_llm[LLM_FACTORY]["chat_model"] + f"@{LLM_FACTORY}"
-        ASR_MDL = default_llm[LLM_FACTORY]["asr_model"] + f"@{LLM_FACTORY}"
-        IMAGE2TEXT_MDL = default_llm[LLM_FACTORY]["image2text_model"] + f"@{LLM_FACTORY}"
-    EMBEDDING_MDL = default_llm["BAAI"]["embedding_model"] + "@BAAI"
-    RERANK_MDL = default_llm["BAAI"]["rerank_model"] + "@BAAI"
-
-
-API_KEY = LLM.get("api_key", "")
-PARSERS = LLM.get(
-    "parsers",
-    "naive:General,qa:Q&A,resume:Resume,manual:Manual,table:Table,paper:Paper,book:Book,laws:Laws,presentation:Presentation,picture:Picture,one:One,audio:Audio,knowledge_graph:Knowledge Graph,email:Email")
-
-# distribution
-DEPENDENT_DISTRIBUTION = get_base_config("dependent_distribution", False)
-RAG_FLOW_UPDATE_CHECK = False
-
-HOST = get_base_config(RAG_FLOW_SERVICE_NAME, {}).get("host", "127.0.0.1")
-HTTP_PORT = get_base_config(RAG_FLOW_SERVICE_NAME, {}).get("http_port")
-
-SECRET_KEY = get_base_config(
-    RAG_FLOW_SERVICE_NAME,
-    {}).get("secret_key", str(date.today()))
-
-TOKEN_EXPIRE_IN = get_base_config(
-    RAG_FLOW_SERVICE_NAME, {}).get(
-        "token_expires_in", 3600)
-
-NGINX_HOST = get_base_config(
-    RAG_FLOW_SERVICE_NAME, {}).get(
-        "nginx", {}).get("host") or HOST
-NGINX_HTTP_PORT = get_base_config(
-    RAG_FLOW_SERVICE_NAME, {}).get(
-        "nginx", {}).get("http_port") or HTTP_PORT
-
-RANDOM_INSTANCE_ID = get_base_config(
-    RAG_FLOW_SERVICE_NAME, {}).get(
-        "random_instance_id", False)
-
-PROXY = get_base_config(RAG_FLOW_SERVICE_NAME, {}).get("proxy")
-PROXY_PROTOCOL = get_base_config(RAG_FLOW_SERVICE_NAME, {}).get("protocol")
-
-DATABASE_TYPE = os.getenv("DB_TYPE", 'mysql')
+DATABASE_TYPE = os.getenv("DB_TYPE", "mysql")
 DATABASE = decrypt_database_config(name=DATABASE_TYPE)
 
-# Switch
-# upload
-UPLOAD_DATA_FROM_CLIENT = True
-
 # authentication
-AUTHENTICATION_CONF = get_base_config("authentication", {})
+AUTHENTICATION_CONF = None
 
 # client
-CLIENT_AUTHENTICATION = AUTHENTICATION_CONF.get(
-    "client", {}).get(
-        "switch", False)
-HTTP_APP_KEY = AUTHENTICATION_CONF.get("client", {}).get("http_app_key")
-GITHUB_OAUTH = get_base_config("oauth", {}).get("github")
-FEISHU_OAUTH = get_base_config("oauth", {}).get("feishu")
-WECHAT_OAUTH = get_base_config("oauth", {}).get("wechat")
+CLIENT_AUTHENTICATION = None
+HTTP_APP_KEY = None
+GITHUB_OAUTH = None
+FEISHU_OAUTH = None
+OAUTH_CONFIG = None
+DOC_ENGINE = None
+docStoreConn = None
 
-# site
-SITE_AUTHENTICATION = AUTHENTICATION_CONF.get("site", {}).get("switch", False)
+retrievaler = None
+kg_retrievaler = None
 
-# permission
-PERMISSION_CONF = get_base_config("permission", {})
-PERMISSION_SWITCH = PERMISSION_CONF.get("switch")
-COMPONENT_PERMISSION = PERMISSION_CONF.get("component")
-DATASET_PERMISSION = PERMISSION_CONF.get("dataset")
+# user registration switch
+REGISTER_ENABLED = 1
 
-HOOK_MODULE = get_base_config("hook_module")
-HOOK_SERVER_NAME = get_base_config("hook_server_name")
 
-ENABLE_MODEL_STORE = get_base_config('enable_model_store', False)
-# authentication
-USE_AUTHENTICATION = False
-USE_DATA_AUTHENTICATION = False
-AUTOMATIC_AUTHORIZATION_OUTPUT_DATA = True
-USE_DEFAULT_TIMEOUT = False
-AUTHENTICATION_DEFAULT_TIMEOUT = 7 * 24 * 60 * 60  # s
-PRIVILEGE_COMMAND_WHITELIST = []
-CHECK_NODES_IDENTITY = False
+# sandbox-executor-manager
+SANDBOX_ENABLED = 0
+SANDBOX_HOST = None
 
-DOC_ENGINE = os.environ.get('DOC_ENGINE', "elasticsearch")
-if DOC_ENGINE == "elasticsearch":
-    docStoreConn = rag.utils.es_conn.ESConnection()
-elif DOC_ENGINE == "infinity":
-    docStoreConn = rag.utils.infinity_conn.InfinityConnection()
-else:
-    raise Exception(f"Not supported doc engine: {DOC_ENGINE}")
+BUILTIN_EMBEDDING_MODELS = ["BAAI/bge-large-zh-v1.5@BAAI", "maidalun1020/bce-embedding-base_v1@Youdao"]
 
-retrievaler = search.Dealer(docStoreConn)
-kg_retrievaler = kg_search.KGSearch(docStoreConn)
+def get_or_create_secret_key():
+    secret_key = os.environ.get("RAGFLOW_SECRET_KEY")
+    if secret_key and len(secret_key) >= 32:
+        return secret_key
+    
+    # Check if there's a configured secret key
+    configured_key = get_base_config(RAG_FLOW_SERVICE_NAME, {}).get("secret_key")
+    if configured_key and configured_key != str(date.today()) and len(configured_key) >= 32:
+        return configured_key
+    
+    # Generate a new secure key and warn about it
+    import logging
+    new_key = secrets.token_hex(32)
+    logging.warning(
+        "SECURITY WARNING: Using auto-generated SECRET_KEY. "
+        f"Generated key: {new_key}"
+    )
+    return new_key
+
+
+def init_settings():
+    global LLM, LLM_FACTORY, LLM_BASE_URL, LIGHTEN, DATABASE_TYPE, DATABASE, FACTORY_LLM_INFOS, REGISTER_ENABLED
+    LIGHTEN = int(os.environ.get("LIGHTEN", "0"))
+    DATABASE_TYPE = os.getenv("DB_TYPE", "mysql")
+    DATABASE = decrypt_database_config(name=DATABASE_TYPE)
+    LLM = get_base_config("user_default_llm", {})
+    LLM_DEFAULT_MODELS = LLM.get("default_models", {})
+    LLM_FACTORY = LLM.get("factory")
+    LLM_BASE_URL = LLM.get("base_url")
+    try:
+        REGISTER_ENABLED = int(os.environ.get("REGISTER_ENABLED", "1"))
+    except Exception:
+        pass
+
+    try:
+        with open(os.path.join(get_project_base_directory(), "conf", "llm_factories.json"), "r") as f:
+            FACTORY_LLM_INFOS = json.load(f)["factory_llm_infos"]
+    except Exception:
+        FACTORY_LLM_INFOS = []
+
+    global CHAT_MDL, EMBEDDING_MDL, RERANK_MDL, ASR_MDL, IMAGE2TEXT_MDL
+    if not LIGHTEN:
+        EMBEDDING_MDL = BUILTIN_EMBEDDING_MODELS[0]
+
+    if LLM_DEFAULT_MODELS:
+        CHAT_MDL = LLM_DEFAULT_MODELS.get("chat_model", CHAT_MDL)
+        EMBEDDING_MDL = LLM_DEFAULT_MODELS.get("embedding_model", EMBEDDING_MDL)
+        RERANK_MDL = LLM_DEFAULT_MODELS.get("rerank_model", RERANK_MDL)
+        ASR_MDL = LLM_DEFAULT_MODELS.get("asr_model", ASR_MDL)
+        IMAGE2TEXT_MDL = LLM_DEFAULT_MODELS.get("image2text_model", IMAGE2TEXT_MDL)
+
+        # factory can be specified in the config name with "@". LLM_FACTORY will be used if not specified
+        CHAT_MDL = CHAT_MDL + (f"@{LLM_FACTORY}" if "@" not in CHAT_MDL and CHAT_MDL != "" else "")
+        EMBEDDING_MDL = EMBEDDING_MDL + (f"@{LLM_FACTORY}" if "@" not in EMBEDDING_MDL and EMBEDDING_MDL != "" else "")
+        RERANK_MDL = RERANK_MDL + (f"@{LLM_FACTORY}" if "@" not in RERANK_MDL and RERANK_MDL != "" else "")
+        ASR_MDL = ASR_MDL + (f"@{LLM_FACTORY}" if "@" not in ASR_MDL and ASR_MDL != "" else "")
+        IMAGE2TEXT_MDL = IMAGE2TEXT_MDL + (f"@{LLM_FACTORY}" if "@" not in IMAGE2TEXT_MDL and IMAGE2TEXT_MDL != "" else "")
+
+    global API_KEY, PARSERS, HOST_IP, HOST_PORT, SECRET_KEY
+    API_KEY = LLM.get("api_key")
+    PARSERS = LLM.get(
+        "parsers", "naive:General,qa:Q&A,resume:Resume,manual:Manual,table:Table,paper:Paper,book:Book,laws:Laws,presentation:Presentation,picture:Picture,one:One,audio:Audio,email:Email,tag:Tag"
+    )
+
+    HOST_IP = get_base_config(RAG_FLOW_SERVICE_NAME, {}).get("host", "127.0.0.1")
+    HOST_PORT = get_base_config(RAG_FLOW_SERVICE_NAME, {}).get("http_port")
+
+    SECRET_KEY = get_or_create_secret_key()
+
+    global AUTHENTICATION_CONF, CLIENT_AUTHENTICATION, HTTP_APP_KEY, GITHUB_OAUTH, FEISHU_OAUTH, OAUTH_CONFIG
+    # authentication
+    AUTHENTICATION_CONF = get_base_config("authentication", {})
+
+    # client
+    CLIENT_AUTHENTICATION = AUTHENTICATION_CONF.get("client", {}).get("switch", False)
+    HTTP_APP_KEY = AUTHENTICATION_CONF.get("client", {}).get("http_app_key")
+    GITHUB_OAUTH = get_base_config("oauth", {}).get("github")
+    FEISHU_OAUTH = get_base_config("oauth", {}).get("feishu")
+
+    OAUTH_CONFIG = get_base_config("oauth", {})
+
+    global DOC_ENGINE, docStoreConn, retrievaler, kg_retrievaler
+    DOC_ENGINE = os.environ.get("DOC_ENGINE", "elasticsearch")
+    # DOC_ENGINE = os.environ.get('DOC_ENGINE', "opensearch")
+    lower_case_doc_engine = DOC_ENGINE.lower()
+    if lower_case_doc_engine == "elasticsearch":
+        docStoreConn = rag.utils.es_conn.ESConnection()
+    elif lower_case_doc_engine == "infinity":
+        docStoreConn = rag.utils.infinity_conn.InfinityConnection()
+    elif lower_case_doc_engine == "opensearch":
+        docStoreConn = rag.utils.opensearch_coon.OSConnection()
+    else:
+        raise Exception(f"Not supported doc engine: {DOC_ENGINE}")
+
+    retrievaler = search.Dealer(docStoreConn)
+    kg_retrievaler = kg_search.KGSearch(docStoreConn)
+
+    if int(os.environ.get("SANDBOX_ENABLED", "0")):
+        global SANDBOX_HOST
+        SANDBOX_HOST = os.environ.get("SANDBOX_HOST", "sandbox-executor-manager")
 
 
 class CustomEnum(Enum):
@@ -219,16 +192,6 @@ class CustomEnum(Enum):
     @classmethod
     def names(cls):
         return [member.name for member in cls.__members__.values()]
-
-
-class PythonDependenceName(CustomEnum):
-    Rag_Source_Code = "python"
-    Python_Env = "miniconda"
-
-
-class ModelStorage(CustomEnum):
-    REDIS = "redis"
-    MYSQL = "mysql"
 
 
 class RetCode(IntEnum, CustomEnum):

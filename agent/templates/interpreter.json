@@ -1,253 +1,468 @@
 {
   "id": 4,
   "title": "Interpreter",
-  "description": "A simple interpreter that translates user input into a target language. Try 'Hi there => Spanish' to see the translation!",
+  "description": "A translation agent based on a reflection agentic workflow, inspired by Andrew Ng's project: https://github.com/andrewyng/translation-agent\n\n1. Prompt an LLM to translate a text into the target language.\n2. Have the LLM reflect on the translation and provide constructive suggestions for improvement.\n3. Use these suggestions to improve the translation.",
   "canvas_type": "chatbot",
   "dsl": {
-  "answer": [],
-  "components": {
-        "begin": {
-          "obj": {
-            "component_name": "Begin",
-            "params": {
-              "prologue": "Hi there! Please enter the text you want to translate in format like: 'text you want to translate' => target language. For an example: 您好！ => English"
-            }
-          },
-          "downstream": [
-            "Answer:ShortPapersShake"
-          ],
-          "upstream": []
-        },
-        "Answer:ShortPapersShake": {
+      "answer": [],
+      "components": {
+        "Answer:TinyGamesGuess": {
+          "downstream": [],
           "obj": {
             "component_name": "Answer",
-            "params": {}
+            "inputs": [],
+            "output": null,
+            "params": {
+              "debug_inputs": [],
+              "inputs": [],
+              "message_history_window_size": 22,
+              "output": null,
+              "output_var_name": "output",
+              "post_answers": [],
+              "query": []
+            }
           },
-          "downstream": [
-            "Generate:HeavyForksTell"
-          ],
           "upstream": [
-            "begin",
-            "Generate:HeavyForksTell"
+            "Generate:FuzzyEmusWork"
           ]
         },
-        "Generate:HeavyForksTell": {
+        "Generate:FuzzyEmusWork": {
+          "downstream": [
+            "Answer:TinyGamesGuess"
+          ],
           "obj": {
             "component_name": "Generate",
+            "inputs": [],
+            "output": null,
             "params": {
-              "cite": true,
+              "cite": false,
+              "debug_inputs": [],
               "frequency_penalty": 0.7,
+              "inputs": [],
               "llm_id": "deepseek-chat@DeepSeek",
-              "max_tokens": 256,
-              "message_history_window_size": 12,
+              "max_tokens": 0,
+              "message_history_window_size": 1,
+              "output": null,
+              "output_var_name": "output",
               "parameters": [],
               "presence_penalty": 0.4,
-              "prompt": "You are an professional interpreter.\n- Role: an professional interpreter.\n- Input format: content need to be translated => target language. \n- Answer format: => translated content in target language. \n- Examples:\n  - user: 您好！ => English. assistant: => How are you doing!\n  - user: You look good today. => Japanese. assistant: => 今日は調子がいいですね 。\n",
+              "prompt": "Your task is to carefully read, then edit, a translation to {begin@lang}, taking into\naccount a list of expert suggestions and constructive criticisms.\n\nThe source text, the initial translation, and the expert linguist suggestions are delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT>, <TRANSLATION></TRANSLATION> and <EXPERT_SUGGESTIONS></EXPERT_SUGGESTIONS>\nas follows:\n\n<SOURCE_TEXT>\n{begin@file}\n</SOURCE_TEXT>\n\n<TRANSLATION>\n{Generate:VastKeysKick}\n</TRANSLATION>\n\n<EXPERT_SUGGESTIONS>\n{Generate:ShinySquidsSneeze}\n</EXPERT_SUGGESTIONS>\n\nPlease take into account the expert suggestions when editing the translation. Edit the translation by ensuring:\n\n(i) accuracy (by correcting errors of addition, mistranslation, omission, or untranslated text),\n(ii) fluency (by applying {begin@lang} grammar, spelling and punctuation rules and ensuring there are no unnecessary repetitions), \n(iii) style (by ensuring the translations reflect the style of the source text)\n(iv) terminology (inappropriate for context, inconsistent use), or\n(v) other errors.\n\nOutput only the new translation and nothing else.",
+              "query": [],
               "temperature": 0.1,
               "top_p": 0.3
             }
           },
-          "downstream": [
-            "Answer:ShortPapersShake"
-          ],
           "upstream": [
-            "Answer:ShortPapersShake"
+            "Generate:ShinySquidsSneeze"
           ]
+        },
+        "Generate:ShinySquidsSneeze": {
+          "downstream": [
+            "Generate:FuzzyEmusWork"
+          ],
+          "obj": {
+            "component_name": "Generate",
+            "inputs": [],
+            "output": null,
+            "params": {
+              "cite": false,
+              "debug_inputs": [],
+              "frequency_penalty": 0.7,
+              "inputs": [],
+              "llm_id": "deepseek-chat@DeepSeek",
+              "max_tokens": 0,
+              "message_history_window_size": 1,
+              "output": null,
+              "output_var_name": "output",
+              "parameters": [],
+              "presence_penalty": 0.4,
+              "prompt": "Your task is to carefully read a source text and a translation to {begin@lang}, and then give constructive criticisms and helpful suggestions to improve the translation. \n\nThe source text and initial translation, delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT> and <TRANSLATION></TRANSLATION>, are as follows:\n\n<SOURCE_TEXT>\n{begin@file}\n</SOURCE_TEXT>\n\n<TRANSLATION>\n{Generate:VastKeysKick}\n</TRANSLATION>\n\nWhen writing suggestions, pay attention to whether there are ways to improve the translation's \n(i) accuracy (by correcting errors of addition, mistranslation, omission, or untranslated text),\n(ii) fluency (by applying {begin@lang} grammar, spelling and punctuation rules, and ensuring there are no unnecessary repetitions),\n(iii) style (by ensuring the translations reflect the style of the source text and take into account any cultural context),\n(iv) terminology (by ensuring terminology use is consistent and reflects the source text domain; and by only ensuring you use equivalent idioms {begin@lang}).\n\nWrite a list of specific, helpful and constructive suggestions for improving the translation.\nEach suggestion should address one specific part of the translation.\nOutput only the suggestions and nothing else.",
+              "query": [],
+              "temperature": 0.1,
+              "top_p": 0.3
+            }
+          },
+          "upstream": [
+            "Generate:VastKeysKick"
+          ]
+        },
+        "Generate:VastKeysKick": {
+          "downstream": [
+            "Generate:ShinySquidsSneeze"
+          ],
+          "obj": {
+            "component_name": "Generate",
+            "inputs": [],
+            "output": null,
+            "params": {
+              "cite": false,
+              "debug_inputs": [],
+              "frequency_penalty": 0.7,
+              "inputs": [],
+              "llm_id": "deepseek-chat@DeepSeek",
+              "max_tokens": 0,
+              "message_history_window_size": 1,
+              "output": null,
+              "output_var_name": "output",
+              "parameters": [],
+              "presence_penalty": 0.4,
+              "prompt": "Role: You are a professional translator proficient in {begin@lang}, with an exceptional ability to convert specialized academic papers into accessible popular science articles. Please assist me in translating the following paragraph into {begin@lang}, ensuring that its style resembles that of popular science articles in {begin@lang}.\n\nRequirements & Restrictions:\n - Use Markdown format to output.\n - DO NOT overlook any details.\n\n\n<ORIGINAL_TEXT>\n{begin@file}\n\n<TRANSLATED_TEXT>",
+              "query": [],
+              "temperature": 0.1,
+              "top_p": 0.3
+            }
+          },
+          "upstream": [
+            "begin"
+          ]
+        },
+        "begin": {
+          "downstream": [
+            "Generate:VastKeysKick"
+          ],
+          "obj": {
+            "component_name": "Begin",
+            "inputs": [],
+            "output": null,
+            "params": {
+              "debug_inputs": [],
+              "inputs": [],
+              "message_history_window_size": 22,
+              "output": null,
+              "output_var_name": "output",
+              "prologue": "",
+              "query": [
+                {
+                  "key": "lang",
+                  "name": "Target Language",
+                  "optional": false,
+                  "type": "line"
+                },
+                {
+                  "key": "file",
+                  "name": "Files",
+                  "optional": false,
+                  "type": "file"
+                }
+              ]
+            }
+          },
+          "upstream": []
         }
       },
       "embed_id": "",
       "graph": {
+        "edges": [
+          {
+            "id": "xy-edge__begin-Generate:VastKeysKickc",
+            "markerEnd": "logo",
+            "source": "begin",
+            "style": {
+              "stroke": "rgb(202 197 245)",
+              "strokeWidth": 2
+            },
+            "target": "Generate:VastKeysKick",
+            "targetHandle": "c",
+            "type": "buttonEdge",
+            "zIndex": 1001
+          },
+          {
+            "id": "xy-edge__Generate:VastKeysKickb-Generate:ShinySquidsSneezec",
+            "markerEnd": "logo",
+            "source": "Generate:VastKeysKick",
+            "sourceHandle": "b",
+            "style": {
+              "stroke": "rgb(202 197 245)",
+              "strokeWidth": 2
+            },
+            "target": "Generate:ShinySquidsSneeze",
+            "targetHandle": "c",
+            "type": "buttonEdge",
+            "zIndex": 1001
+          },
+          {
+            "id": "xy-edge__Generate:FuzzyEmusWorkb-Answer:TinyGamesGuessc",
+            "markerEnd": "logo",
+            "source": "Generate:FuzzyEmusWork",
+            "sourceHandle": "b",
+            "style": {
+              "stroke": "rgb(202 197 245)",
+              "strokeWidth": 2
+            },
+            "target": "Answer:TinyGamesGuess",
+            "targetHandle": "c",
+            "type": "buttonEdge",
+            "zIndex": 1001
+          },
+          {
+            "id": "xy-edge__Generate:ShinySquidsSneezeb-Generate:FuzzyEmusWorkc",
+            "markerEnd": "logo",
+            "source": "Generate:ShinySquidsSneeze",
+            "sourceHandle": "b",
+            "style": {
+              "stroke": "rgb(202 197 245)",
+              "strokeWidth": 2
+            },
+            "target": "Generate:FuzzyEmusWork",
+            "targetHandle": "c",
+            "type": "buttonEdge",
+            "zIndex": 1001
+          }
+        ],
         "nodes": [
           {
             "data": {
               "form": {
-                "prologue": "Hi there! Please enter the text you want to translate in format like: 'text you want to translate' => target language. For an example: 您好！ => English"
+                "prologue": "",
+                "query": [
+                  {
+                    "key": "lang",
+                    "name": "Target Language",
+                    "optional": false,
+                    "type": "line"
+                  },
+                  {
+                    "key": "file",
+                    "name": "Files",
+                    "optional": false,
+                    "type": "file"
+                  }
+                ]
               },
               "label": "Begin",
-              "name": "Instruction"
+              "name": "begin"
             },
             "dragging": false,
-            "height": 44,
+            "height": 128,
             "id": "begin",
+            "measured": {
+              "height": 128,
+              "width": 200
+            },
             "position": {
-              "x": -227.62119327532662,
-              "y": 204.18864081386155
+              "x": -383.5,
+              "y": 142.62256327439624
             },
             "positionAbsolute": {
-              "x": -227.62119327532662,
-              "y": 204.18864081386155
+              "x": -383.5,
+              "y": 143.5
             },
-            "selected": false,
+            "selected": true,
             "sourcePosition": "left",
             "targetPosition": "right",
             "type": "beginNode",
-            "width": 100
+            "width": 200
           },
           {
             "data": {
               "form": {},
               "label": "Answer",
-              "name": "Interface"
+              "name": "Interact_0"
             },
             "dragging": false,
             "height": 44,
-            "id": "Answer:ShortPapersShake",
+            "id": "Answer:TinyGamesGuess",
+            "measured": {
+              "height": 44,
+              "width": 200
+            },
             "position": {
-              "x": -2.51245296887717,
-              "y": 206.25402277426554
+              "x": 645.5056004454161,
+              "y": 182.98193827439627
             },
             "positionAbsolute": {
-              "x": -2.51245296887717,
-              "y": 206.25402277426554
+              "x": 688.5,
+              "y": 183.859375
             },
             "selected": false,
-            "sourcePosition": "left",
-            "targetPosition": "right",
+            "sourcePosition": "right",
+            "targetPosition": "left",
             "type": "logicNode",
             "width": 200
           },
           {
             "data": {
               "form": {
-                "cite": true,
+                "text": "Translation Agent: Agentic translation using reflection workflow\n\nThis is inspired by Andrew NG's project: https://github.com/andrewyng/translation-agent\n\n1. Prompt an LLM to translate a text into the target language;\n2. Have the LLM reflect on the translation and provide constructive suggestions for improvement;\n3. Use these suggestions to improve the translation."
+              },
+              "label": "Note",
+              "name": "Brief"
+            },
+            "dragHandle": ".note-drag-handle",
+            "dragging": false,
+            "height": 227,
+            "id": "Note:MoodyKnivesCheat",
+            "measured": {
+              "height": 227,
+              "width": 703
+            },
+            "position": {
+              "x": 46.02198421645994,
+              "y": -267.69527832581736
+            },
+            "positionAbsolute": {
+              "x": 46.02198421645994,
+              "y": -267.69527832581736
+            },
+            "resizing": false,
+            "selected": false,
+            "sourcePosition": "right",
+            "style": {
+              "height": 227,
+              "width": 703
+            },
+            "targetPosition": "left",
+            "type": "noteNode",
+            "width": 703
+          },
+          {
+            "data": {
+              "form": {
+                "text": "Many businesses use specialized terms that are not widely used on the internet and that LLMs thus don’t know about, and there are also many terms that can be translated in multiple ways. For example, ”open source” in Spanish can be “Código abierto” or “Fuente abierta”; both are fine, but it’d better to pick one and stick with it for a single document.\n\nYou can add those glossary translation into prompt to any of `Translate directly` or 'Reflect'."
+              },
+              "label": "Note",
+              "name": "Tip: Add glossary "
+            },
+            "dragHandle": ".note-drag-handle",
+            "dragging": false,
+            "height": 181,
+            "id": "Note:SourCarrotsAct",
+            "measured": {
+              "height": 181,
+              "width": 832
+            },
+            "position": {
+              "x": 65.0676250238289,
+              "y": 397.6323270065299
+            },
+            "positionAbsolute": {
+              "x": 65.0676250238289,
+              "y": 397.6323270065299
+            },
+            "resizing": false,
+            "selected": false,
+            "sourcePosition": "right",
+            "style": {
+              "height": 181,
+              "width": 832
+            },
+            "targetPosition": "left",
+            "type": "noteNode",
+            "width": 832
+          },
+          {
+            "data": {
+              "form": {
+                "cite": false,
                 "frequencyPenaltyEnabled": true,
                 "frequency_penalty": 0.7,
                 "llm_id": "deepseek-chat@DeepSeek",
-                "maxTokensEnabled": true,
+                "maxTokensEnabled": false,
                 "max_tokens": 256,
-                "message_history_window_size": 12,
+                "message_history_window_size": 1,
                 "parameter": "Precise",
                 "parameters": [],
                 "presencePenaltyEnabled": true,
                 "presence_penalty": 0.4,
-                "prompt": "You are an professional interpreter.\n- Role: an professional interpreter.\n- Input format: content need to be translated => target language. \n- Answer format: => translated content in target language. \n- Examples:\n  - user: 您好！ => English. assistant: => How are you doing!\n  - user: You look good today. => Japanese. assistant: => 今日は調子がいいですね 。\n",
+                "prompt": "Role: You are a professional translator proficient in {begin@lang}, with an exceptional ability to convert specialized academic papers into accessible popular science articles. Please assist me in translating the following paragraph into {begin@lang}, ensuring that its style resembles that of popular science articles in {begin@lang}.\n\nRequirements & Restrictions:\n - Use Markdown format to output.\n - DO NOT overlook any details.\n\n\n<ORIGINAL_TEXT>\n{begin@file}\n\n<TRANSLATED_TEXT>",
                 "temperature": 0.1,
                 "temperatureEnabled": true,
                 "topPEnabled": true,
                 "top_p": 0.3
               },
               "label": "Generate",
-              "name": "Translate"
+              "name": "Translate directly"
             },
             "dragging": false,
-            "height": 86,
-            "id": "Generate:HeavyForksTell",
-            "position": {
-              "x": -1.8557846635797546,
-              "y": 70.16420357406685
+            "id": "Generate:VastKeysKick",
+            "measured": {
+              "height": 106,
+              "width": 200
             },
-            "positionAbsolute": {
-              "x": -1.8557846635797546,
-              "y": 70.16420357406685
+            "position": {
+              "x": -132.6338674989604,
+              "y": 153.70663786774483
             },
             "selected": false,
             "sourcePosition": "right",
             "targetPosition": "left",
-            "type": "generateNode",
-            "width": 200
+            "type": "generateNode"
           },
           {
             "data": {
               "form": {
-                "text": "The large model translates the user's desired content into the target language, returns the translated language."
+                "cite": false,
+                "frequencyPenaltyEnabled": true,
+                "frequency_penalty": 0.7,
+                "llm_id": "deepseek-chat@DeepSeek",
+                "maxTokensEnabled": false,
+                "max_tokens": 256,
+                "message_history_window_size": 1,
+                "parameter": "Precise",
+                "parameters": [],
+                "presencePenaltyEnabled": true,
+                "presence_penalty": 0.4,
+                "prompt": "Your task is to carefully read a source text and a translation to {begin@lang}, and then give constructive criticisms and helpful suggestions to improve the translation. \n\nThe source text and initial translation, delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT> and <TRANSLATION></TRANSLATION>, are as follows:\n\n<SOURCE_TEXT>\n{begin@file}\n</SOURCE_TEXT>\n\n<TRANSLATION>\n{Generate:VastKeysKick}\n</TRANSLATION>\n\nWhen writing suggestions, pay attention to whether there are ways to improve the translation's \n(i) accuracy (by correcting errors of addition, mistranslation, omission, or untranslated text),\n(ii) fluency (by applying {begin@lang} grammar, spelling and punctuation rules, and ensuring there are no unnecessary repetitions),\n(iii) style (by ensuring the translations reflect the style of the source text and take into account any cultural context),\n(iv) terminology (by ensuring terminology use is consistent and reflects the source text domain; and by only ensuring you use equivalent idioms {begin@lang}).\n\nWrite a list of specific, helpful and constructive suggestions for improving the translation.\nEach suggestion should address one specific part of the translation.\nOutput only the suggestions and nothing else.",
+                "temperature": 0.1,
+                "temperatureEnabled": true,
+                "topPEnabled": true,
+                "top_p": 0.3
               },
-              "label": "Note",
-              "name": "N: Translate"
+              "label": "Generate",
+              "name": "Reflect"
             },
             "dragging": false,
-            "height": 180,
-            "id": "Note:VioletNumbersStrive",
+            "id": "Generate:ShinySquidsSneeze",
+            "measured": {
+              "height": 106,
+              "width": 200
+            },
             "position": {
-              "x": 0.8506882512325546,
-              "y": -119.10519445109118
+              "x": 121.1675336631696,
+              "y": 152.92865408917177
             },
-            "positionAbsolute": {
-              "x": 0.8506882512325546,
-              "y": -119.10519445109118
-            },
-            "resizing": false,
             "selected": false,
             "sourcePosition": "right",
-            "style": {
-              "height": 180,
-              "width": 209
-            },
             "targetPosition": "left",
-            "type": "noteNode",
-            "width": 209,
-            "dragHandle": ".note-drag-handle"
+            "type": "generateNode"
           },
           {
             "data": {
               "form": {
-                "text": "Receives the content the user wants to translate and the target language, displays the translation result from the large model."
+                "cite": false,
+                "frequencyPenaltyEnabled": true,
+                "frequency_penalty": 0.7,
+                "llm_id": "deepseek-chat@DeepSeek",
+                "maxTokensEnabled": false,
+                "max_tokens": 256,
+                "message_history_window_size": 1,
+                "parameter": "Precise",
+                "parameters": [],
+                "presencePenaltyEnabled": true,
+                "presence_penalty": 0.4,
+                "prompt": "Your task is to carefully read, then edit, a translation to {begin@lang}, taking into\naccount a list of expert suggestions and constructive criticisms.\n\nThe source text, the initial translation, and the expert linguist suggestions are delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT>, <TRANSLATION></TRANSLATION> and <EXPERT_SUGGESTIONS></EXPERT_SUGGESTIONS>\nas follows:\n\n<SOURCE_TEXT>\n{begin@file}\n</SOURCE_TEXT>\n\n<TRANSLATION>\n{Generate:VastKeysKick}\n</TRANSLATION>\n\n<EXPERT_SUGGESTIONS>\n{Generate:ShinySquidsSneeze}\n</EXPERT_SUGGESTIONS>\n\nPlease take into account the expert suggestions when editing the translation. Edit the translation by ensuring:\n\n(i) accuracy (by correcting errors of addition, mistranslation, omission, or untranslated text),\n(ii) fluency (by applying {begin@lang} grammar, spelling and punctuation rules and ensuring there are no unnecessary repetitions), \n(iii) style (by ensuring the translations reflect the style of the source text)\n(iv) terminology (inappropriate for context, inconsistent use), or\n(v) other errors.\n\nOutput only the new translation and nothing else.",
+                "temperature": 0.1,
+                "temperatureEnabled": true,
+                "topPEnabled": true,
+                "top_p": 0.3
               },
-              "label": "Note",
-              "name": "N: Interface"
+              "label": "Generate",
+              "name": "Improve"
             },
             "dragging": false,
-            "height": 157,
-            "id": "Note:WarmDoodlesSwim",
+            "id": "Generate:FuzzyEmusWork",
+            "measured": {
+              "height": 106,
+              "width": 200
+            },
             "position": {
-              "x": 22.5293807600396,
-              "y": 267.8448268086032
+              "x": 383.1474420163898,
+              "y": 152.0472805236579
             },
-            "positionAbsolute": {
-              "x": 22.5293807600396,
-              "y": 267.8448268086032
-            },
-            "resizing": false,
             "selected": false,
             "sourcePosition": "right",
-            "style": {
-              "height": 157,
-              "width": 252
-            },
             "targetPosition": "left",
-            "type": "noteNode",
-            "width": 252,
-            "dragHandle": ".note-drag-handle"
-          }
-        ],
-        "edges": [
-          {
-            "id": "reactflow__edge-begin-Answer:ShortPapersShakec",
-            "markerEnd": "logo",
-            "source": "begin",
-            "sourceHandle": null,
-            "style": {
-              "stroke": "rgb(202 197 245)",
-              "strokeWidth": 2
-            },
-            "target": "Answer:ShortPapersShake",
-            "targetHandle": "c",
-            "type": "buttonEdge"
-          },
-          {
-            "id": "reactflow__edge-Answer:ShortPapersShakeb-Generate:HeavyForksTellb",
-            "markerEnd": "logo",
-            "source": "Answer:ShortPapersShake",
-            "sourceHandle": "b",
-            "style": {
-              "stroke": "rgb(202 197 245)",
-              "strokeWidth": 2
-            },
-            "target": "Generate:HeavyForksTell",
-            "targetHandle": "b",
-            "type": "buttonEdge"
-          },
-          {
-            "id": "reactflow__edge-Generate:HeavyForksTellc-Answer:ShortPapersShakec",
-            "markerEnd": "logo",
-            "source": "Generate:HeavyForksTell",
-            "sourceHandle": "c",
-            "style": {
-              "stroke": "rgb(202 197 245)",
-              "strokeWidth": 2
-            },
-            "target": "Answer:ShortPapersShake",
-            "targetHandle": "c",
-            "type": "buttonEdge"
+            "type": "generateNode"
           }
         ]
       },

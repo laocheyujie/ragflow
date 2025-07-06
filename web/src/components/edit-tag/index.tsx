@@ -1,17 +1,17 @@
 import { PlusOutlined } from '@ant-design/icons';
 import type { InputRef } from 'antd';
-import { Input, Tag, theme } from 'antd';
+import { Input, Tag, theme, Tooltip } from 'antd';
 import { TweenOneGroup } from 'rc-tween-one';
 import React, { useEffect, useRef, useState } from 'react';
 
 import styles from './index.less';
 
 interface EditTagsProps {
-  tags?: string[];
-  setTags?: (tags: string[]) => void;
+  value?: string[];
+  onChange?: (tags: string[]) => void;
 }
 
-const EditTag = ({ tags, setTags }: EditTagsProps) => {
+const EditTag = ({ value = [], onChange }: EditTagsProps) => {
   const { token } = theme.useToken();
   const [inputVisible, setInputVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -24,8 +24,8 @@ const EditTag = ({ tags, setTags }: EditTagsProps) => {
   }, [inputVisible]);
 
   const handleClose = (removedTag: string) => {
-    const newTags = tags?.filter((tag) => tag !== removedTag);
-    setTags?.(newTags ?? []);
+    const newTags = value?.filter((tag) => tag !== removedTag);
+    onChange?.(newTags ?? []);
   };
 
   const showInput = () => {
@@ -37,33 +37,36 @@ const EditTag = ({ tags, setTags }: EditTagsProps) => {
   };
 
   const handleInputConfirm = () => {
-    if (inputValue && tags?.indexOf(inputValue) === -1) {
-      setTags?.([...tags, inputValue]);
+    if (inputValue && value) {
+      const newTags = inputValue
+        .split(';')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag && !value.includes(tag));
+      onChange?.([...value, ...newTags]);
     }
     setInputVisible(false);
     setInputValue('');
   };
 
   const forMap = (tag: string) => {
-    const tagElem = (
-      <Tag
-        closable
-        onClose={(e) => {
-          e.preventDefault();
-          handleClose(tag);
-        }}
-      >
-        {tag}
-      </Tag>
-    );
     return (
-      <span key={tag} style={{ display: 'inline-block' }}>
-        {tagElem}
-      </span>
+      <Tooltip title={tag}>
+        <Tag
+          key={tag}
+          className={styles.tag}
+          closable
+          onClose={(e) => {
+            e.preventDefault();
+            handleClose(tag);
+          }}
+        >
+          {tag}
+        </Tag>
+      </Tooltip>
     );
   };
 
-  const tagChild = tags?.map(forMap);
+  const tagChild = value?.map(forMap);
 
   const tagPlusStyle: React.CSSProperties = {
     background: token.colorBgContainer,
@@ -71,8 +74,8 @@ const EditTag = ({ tags, setTags }: EditTagsProps) => {
   };
 
   return (
-    <>
-      <span>
+    <div>
+      {Array.isArray(tagChild) && tagChild.length > 0 && (
         <TweenOneGroup
           className={styles.tweenGroup}
           enter={{
@@ -91,13 +94,12 @@ const EditTag = ({ tags, setTags }: EditTagsProps) => {
         >
           {tagChild}
         </TweenOneGroup>
-      </span>
+      )}
       {inputVisible ? (
         <Input
           ref={inputRef}
           type="text"
           size="small"
-          style={{ width: 78 }}
           value={inputValue}
           onChange={handleInputChange}
           onBlur={handleInputConfirm}
@@ -108,7 +110,7 @@ const EditTag = ({ tags, setTags }: EditTagsProps) => {
           <PlusOutlined />
         </Tag>
       )}
-    </>
+    </div>
   );
 };
 

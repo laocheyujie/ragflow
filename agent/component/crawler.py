@@ -17,6 +17,7 @@ from abc import ABC
 import asyncio
 from crawl4ai import AsyncWebCrawler
 from agent.component.base import ComponentBase, ComponentParamBase
+from api.utils.web_utils import is_valid_url
 
 
 class CrawlerParam(ComponentParamBase):
@@ -39,8 +40,8 @@ class Crawler(ComponentBase, ABC):
     def _run(self, history, **kwargs):
         ans = self.get_input()
         ans = " - ".join(ans["content"]) if "content" in ans else ""
-        if not ans:
-            return Crawler.be_output("")
+        if not is_valid_url(ans):
+            return Crawler.be_output("URL not valid")
         try:
             result = asyncio.run(self.get_web(ans))
 
@@ -64,7 +65,3 @@ class Crawler(ComponentBase, ABC):
             elif self._param.extract_type == 'content':
                 result.extracted_content
             return result.markdown
-            
-
-
-    

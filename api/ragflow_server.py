@@ -14,49 +14,63 @@
 #  limitations under the License.
 #
 
+# from beartype import BeartypeConf
+# from beartype.claw import beartype_all  # <-- you didn't sign up for this
+# beartype_all(conf=BeartypeConf(violation_type=UserWarning))    # <-- emit warnings from all code
+
+from api.utils.log_utils import init_root_logger
+from plugin import GlobalPluginManager
+init_root_logger("ragflow_server")
+
 import logging
-import inspect
-from api.utils.log_utils import initRootLogger
-
-initRootLogger(inspect.getfile(inspect.currentframe()))
-for module in ["pdfminer"]:
-    module_logger = logging.getLogger(module)
-    module_logger.setLevel(logging.WARNING)
-for module in ["peewee"]:
-    module_logger = logging.getLogger(module)
-    module_logger.handlers.clear()
-    module_logger.propagate = True
-
 import os
 import signal
 import sys
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor
+import threading
+import uuid
 
 from werkzeug.serving import run_simple
+from api import settings
 from api.apps import app
 from api.db.runtime_config import RuntimeConfig
 from api.db.services.document_service import DocumentService
-from api.settings import (
-    HOST, HTTP_PORT
-)
 from api import utils
 
 from api.db.db_models import init_database_tables as init_web_db
 from api.db.init_data import init_web_data
 from api.versions import get_ragflow_version
 from api.utils import show_configs
+from rag.settings import print_rag_settings
+from rag.utils.mcp_tool_call_conn import shutdown_all_mcp_sessions
+from rag.utils.redis_conn import RedisDistributedLock
 
+stop_event = threading.Event()
+
+RAGFLOW_DEBUGPY_LISTEN = int(os.environ.get('RAGFLOW_DEBUGPY_LISTEN', "0"))
 
 def update_progress():
-    while True:
-        time.sleep(3)
+    lock_value = str(uuid.uuid4())
+    redis_lock = RedisDistributedLock("update_progress", lock_value=lock_value, timeout=60)
+    logging.info(f"update_progress lock_value: {lock_value}")
+    while not stop_event.is_set():
         try:
-            DocumentService.update_progress()
+            if redis_lock.acquire():
+                DocumentService.update_progress()
+                redis_lock.release()
+            stop_event.wait(6)
         except Exception:
             logging.exception("update_progress exception")
+        finally:
+            redis_lock.release()
 
+def signal_handler(sig, frame):
+    logging.info("Received interrupt signal, shutting down...")
+    shutdown_all_mcp_sessions()
+    stop_event.set()
+    time.sleep(1)
+    sys.exit(0)
 
 if __name__ == '__main__':
     logging.info(r"""
@@ -74,6 +88,13 @@ if __name__ == '__main__':
         f'project base: {utils.file_utils.get_project_base_directory()}'
     )
     show_configs()
+    settings.init_settings()
+    print_rag_settings()
+
+    if RAGFLOW_DEBUGPY_LISTEN > 0:
+        logging.info(f"debugpy listen on {RAGFLOW_DEBUGPY_LISTEN}")
+        import debugpy
+        debugpy.listen(("0.0.0.0", RAGFLOW_DEBUGPY_LISTEN))
 
     # init db
     init_web_db()
@@ -98,17 +119,30 @@ if __name__ == '__main__':
         logging.info("run on debug mode")
 
     RuntimeConfig.init_env()
-    RuntimeConfig.init_config(JOB_SERVER_HOST=HOST, HTTP_PORT=HTTP_PORT)
+    RuntimeConfig.init_config(JOB_SERVER_HOST=settings.HOST_IP, HTTP_PORT=settings.HOST_PORT)
 
-    thread = ThreadPoolExecutor(max_workers=1)
-    thread.submit(update_progress)
+    GlobalPluginManager.load_plugins()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    def delayed_start_update_progress():
+        logging.info("Starting update_progress thread (delayed)")
+        t = threading.Thread(target=update_progress, daemon=True)
+        t.start()
+
+    if RuntimeConfig.DEBUG:
+        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            threading.Timer(1.0, delayed_start_update_progress).start()
+    else:
+        threading.Timer(1.0, delayed_start_update_progress).start()
 
     # start http server
     try:
         logging.info("RAGFlow HTTP server start...")
         run_simple(
-            hostname=HOST,
-            port=HTTP_PORT,
+            hostname=settings.HOST_IP,
+            port=settings.HOST_PORT,
             application=app,
             threaded=True,
             use_reloader=RuntimeConfig.DEBUG,
@@ -116,4 +150,6 @@ if __name__ == '__main__':
         )
     except Exception:
         traceback.print_exc()
+        stop_event.set()
+        time.sleep(1)
         os.kill(os.getpid(), signal.SIGKILL)

@@ -11,6 +11,8 @@ export default {
   user_info: `${api_host}/user/info`,
   tenant_info: `${api_host}/user/tenant_info`,
   set_tenant_info: `${api_host}/user/set_tenant_info`,
+  login_channels: `${api_host}/user/login/channels`,
+  login_channel: (channel: string) => `${api_host}/user/login/${channel}`,
 
   // team
   addTenantUser: (tenantId: string) => `${api_host}/tenant/${tenantId}/user`,
@@ -30,12 +32,24 @@ export default {
   delete_llm: `${api_host}/llm/delete_llm`,
   deleteFactory: `${api_host}/llm/delete_factory`,
 
+  // plugin
+  llm_tools: `${api_host}/plugin/llm_tools`,
+
   // knowledge base
   kb_list: `${api_host}/kb/list`,
   create_kb: `${api_host}/kb/create`,
   update_kb: `${api_host}/kb/update`,
   rm_kb: `${api_host}/kb/rm`,
   get_kb_detail: `${api_host}/kb/detail`,
+  getKnowledgeGraph: (knowledgeId: string) =>
+    `${api_host}/kb/${knowledgeId}/knowledge_graph`,
+
+  // tags
+  listTag: (knowledgeId: string) => `${api_host}/kb/${knowledgeId}/tags`,
+  listTagByKnowledgeIds: `${api_host}/kb/tags`,
+  removeTag: (knowledgeId: string) => `${api_host}/kb/${knowledgeId}/rm_tags`,
+  renameTag: (knowledgeId: string) =>
+    `${api_host}/kb/${knowledgeId}/rename_tag`,
 
   // chunk
   chunk_list: `${api_host}/chunk/list`,
@@ -62,6 +76,8 @@ export default {
   web_crawl: `${api_host}/document/web_crawl`,
   document_infos: `${api_host}/document/infos`,
   upload_and_parse: `${api_host}/document/upload_and_parse`,
+  parse: `${api_host}/document/parse`,
+  setMeta: `${api_host}/document/set_meta`,
 
   // chat
   setDialog: `${api_host}/dialog/set`,
@@ -70,6 +86,7 @@ export default {
   listDialog: `${api_host}/dialog/list`,
   setConversation: `${api_host}/conversation/set`,
   getConversation: `${api_host}/conversation/get`,
+  getConversationSSE: `${api_host}/conversation/getsse`,
   listConversation: `${api_host}/conversation/list`,
   removeConversation: `${api_host}/conversation/rm`,
   completeConversation: `${api_host}/conversation/completion`,
@@ -107,14 +124,31 @@ export default {
   createSystemToken: `${api_host}/system/new_token`,
   listSystemToken: `${api_host}/system/token_list`,
   removeSystemToken: `${api_host}/system/token`,
+  getSystemConfig: `${api_host}/system/config`,
+  setLangfuseConfig: `${api_host}/langfuse/api_key`,
 
   // flow
   listTemplates: `${api_host}/canvas/templates`,
   listCanvas: `${api_host}/canvas/list`,
+  listCanvasTeam: `${api_host}/canvas/listteam`,
   getCanvas: `${api_host}/canvas/get`,
+  getCanvasSSE: `${api_host}/canvas/getsse`,
   removeCanvas: `${api_host}/canvas/rm`,
   setCanvas: `${api_host}/canvas/set`,
+  settingCanvas: `${api_host}/canvas/setting`,
+  getListVersion: `${api_host}/canvas/getlistversion`,
+  getVersion: `${api_host}/canvas/getversion`,
   resetCanvas: `${api_host}/canvas/reset`,
   runCanvas: `${api_host}/canvas/completion`,
   testDbConnect: `${api_host}/canvas/test_db_connect`,
+  getInputElements: `${api_host}/canvas/input_elements`,
+  debug: `${api_host}/canvas/debug`,
+
+  // mcp server
+  getMcpServerList: `${api_host}/mcp_server/list`,
+  getMultipleMcpServers: `${api_host}/mcp_server/get_multiple`,
+  getMcpServer: (serverId: string) => `${api_host}/mcp_server/get/${serverId}`,
+  createMcpServer: `${api_host}/mcp_server/create`,
+  updateMcpServer: `${api_host}/mcp_server/update`,
+  deleteMcpServer: `${api_host}/mcp_server/rm`,
 };

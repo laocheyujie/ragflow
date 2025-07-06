@@ -11,7 +11,7 @@ export interface IDocumentInfo {
   name: string;
   parser_config: IParserConfig;
   parser_id: string;
-  process_begin_at: null;
+  process_begin_at?: string;
   process_duation: number;
   progress: number;
   progress_msg: string;
@@ -24,16 +24,26 @@ export interface IDocumentInfo {
   type: string;
   update_date: string;
   update_time: number;
+  meta_fields?: Record<string, any>;
 }
 
 export interface IParserConfig {
-  delimiter: string;
-  html4excel: boolean;
-  layout_recognize: boolean;
+  delimiter?: string;
+  html4excel?: boolean;
+  layout_recognize?: boolean;
   pages: any[];
-  raptor: Raptor;
+  raptor?: Raptor;
+  graphrag?: GraphRag;
 }
 
 interface Raptor {
   use_raptor: boolean;
+}
+
+interface GraphRag {
+  community?: boolean;
+  entity_types?: string[];
+  method?: string;
+  resolution?: boolean;
+  use_graphrag?: boolean;
 }

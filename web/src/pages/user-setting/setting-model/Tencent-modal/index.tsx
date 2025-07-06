@@ -30,10 +30,17 @@ const TencentCloudModal = ({
       ...omit(values),
       model_type: modelType,
       llm_factory: llmFactory,
+      max_tokens: 16000,
     };
     console.info(data);
 
     onOk?.(data);
+  };
+
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      await handleOk();
+    }
   };
 
   return (
@@ -59,13 +66,7 @@ const TencentCloudModal = ({
       }}
       confirmLoading={loading}
     >
-      <Form
-        name="basic"
-        style={{ maxWidth: 600 }}
-        autoComplete="off"
-        layout={'vertical'}
-        form={form}
-      >
+      <Form>
         <Form.Item<FieldType>
           label={t('modelType')}
           name="model_type"
@@ -112,14 +113,20 @@ const TencentCloudModal = ({
           name="TencentCloud_sid"
           rules={[{ required: true, message: t('TencentCloudSIDMessage') }]}
         >
-          <Input placeholder={t('TencentCloudSIDMessage')} />
+          <Input
+            placeholder={t('TencentCloudSIDMessage')}
+            onKeyDown={handleKeyDown}
+          />
         </Form.Item>
         <Form.Item<FieldType>
           label={t('addTencentCloudSK')}
           name="TencentCloud_sk"
           rules={[{ required: true, message: t('TencentCloudSKMessage') }]}
         >
-          <Input placeholder={t('TencentCloudSKMessage')} />
+          <Input
+            placeholder={t('TencentCloudSKMessage')}
+            onKeyDown={handleKeyDown}
+          />
         </Form.Item>
       </Form>
     </Modal>
