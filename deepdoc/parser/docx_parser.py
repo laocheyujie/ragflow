@@ -116,6 +116,7 @@ class RAGFlowDocxParser:
         return ["\n".join(lines)]
 
     def __call__(self, fnm, from_page=0, to_page=100000000):
+        # NOTE: DocxParser 1. 通过 docx 库加载 wor 文档
         self.doc = Document(fnm) if isinstance(
             fnm, str) else Document(BytesIO(fnm))
         pn = 0 # parsed page
