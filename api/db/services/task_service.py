@@ -314,22 +314,24 @@ def queue_tasks(doc: dict, bucket: str, name: str, priority: int):
         - Previous task chunks may be reused if available
     """
 
+    # NOTE: KEY 文件解析: /v1/document/run
     # NOTE: 根据文件创建一个或多个异步任务，方便异步执行
-    # 这个函数主要是根据doc文件的类型和配置，将文件拆分为多个任务（例如默认pdf为12页一个任务），插入到数据库中
-    # 首先把任务信息插入到 Task 表中，然后调用 DocumentService.begin2parse 方法，更新文档状态
+    # NOTE: 这个函数主要是根据doc文件的类型和配置，将文件拆分为多个任务（例如默认pdf为12页一个任务），插入到数据库中
+    # NOTE: 首先把任务信息插入到 Task 表中，然后调用 DocumentService.begin2parse 方法，更新文档状态
     def new_task():
         return {"id": get_uuid(), "doc_id": doc["id"], "progress": 0.0, "from_page": 0, "to_page": 100000000}
 
     parse_task_array = []
 
+    # NOTE: PDF 文件的解析
     if doc["type"] == FileType.PDF.value:
         file_bin = STORAGE_IMPL.get(bucket, name)
         do_layout = doc["parser_config"].get("layout_recognize", "DeepDOC")
         pages = PdfParser.total_page_number(doc["name"], file_bin)
         page_size = doc["parser_config"].get("task_page_size") or 12
-        # NOTE: pdf 文件的解析，根据不同的类型设置单个任务最多处理的页数
+        # NOTE: 根据不同的类型设置单个任务最多处理的页数
         if doc["parser_id"] == "paper":
-            # 默认单个任务处理 12 页 pdf，pager 类型的 pdf 一个任务处理 22 页，其他 pdf 不分页
+            # NOTE: 默认单个任务处理 12 页 pdf，pager 类型的 pdf 一个任务处理 22 页，其他 pdf 不分页
             page_size = doc["parser_config"].get("task_page_size") or 22
         if doc["parser_id"] in ["one", "knowledge_graph"] or do_layout != "DeepDOC":
             page_size = 10**9
@@ -344,9 +346,11 @@ def queue_tasks(doc: dict, bucket: str, name: str, priority: int):
                 task["to_page"] = min(p + page_size, e)
                 parse_task_array.append(task)
 
+    # NOTE: 表格文件的解析
     elif doc["parser_id"] == "table":
         file_bin = STORAGE_IMPL.get(bucket, name)
         rn = RAGFlowExcelParser.row_number(doc["name"], file_bin)
+        # NOTE: 表格数据单个任务处理 3000 行
         for i in range(0, rn, 3000):
             task = new_task()
             task["from_page"] = i
@@ -389,9 +393,9 @@ def queue_tasks(doc: dict, bucket: str, name: str, priority: int):
     DocumentService.begin2parse(doc["id"])
 
     unfinished_task_array = [task for task in parse_task_array if task["progress"] < 1.0]
-    # 把 tsks 里的任务插入 Redis 消息队列，方便异步处理
-    # 即，把任务 t 的信息插入到 Redis rag_flow_svr_queue 队列里
-    # 文件的解析是根据内容拆分为多个任务，通过 Redis 消息队列进行暂存，之后就可以离线异步处理
+    # NOTE: 把 tsks 里的任务插入 Redis 消息队列，方便异步处理
+    # NOTE: 即，把任务 t 的信息插入到 Redis rag_flow_svr_queue 队列里
+    # NOTE: 文件的解析是根据内容拆分为多个任务，通过 Redis 消息队列进行暂存，之后就可以离线异步处理
     for unfinished_task in unfinished_task_array:
         assert REDIS_CONN.queue_product(get_svr_queue_name(priority), message=unfinished_task), "Can't access Redis. Please check the Redis' status."
 

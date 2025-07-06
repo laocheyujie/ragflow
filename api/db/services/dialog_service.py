@@ -190,6 +190,7 @@ def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set):
 
 
 def chat(dialog, messages, stream=True, **kwargs):
+    # NOTE: 对话 API: /v1/conversation/completion
     assert messages[-1]["role"] == "user", "The last content of this conversation is not from user."
     if not dialog.kb_ids and not dialog.prompt_config.get("tavily_api_key"):
         for ans in chat_solo(dialog, messages, stream):
@@ -324,6 +325,7 @@ def chat(dialog, messages, stream=True, **kwargs):
     if knowledges and (prompt_config.get("quote", True) and kwargs.get("quote", True)):
         prompt4citation = citation_prompt()
     msg.extend([{"role": m["role"], "content": re.sub(r"##\d+\$\$", "", m["content"])} for m in messages if m["role"] != "system"])
+    # NOTE: 根据大模型可用的 token 数量进行过滤
     used_token_count, msg = message_fit_in(msg, int(max_tokens * 0.95))
     assert len(msg) >= 2, f"message_fit_in has bug: {msg}"
     prompt = msg[0]["content"]

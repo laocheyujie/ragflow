@@ -420,9 +420,12 @@ class Recognizer:
             start_index = i * batch_size
             end_index = min((i + 1) * batch_size, len(images))
             batch_image_list = images[start_index:end_index]
+            # NOTE: Recognizer 1. 先预处理，将图像列表转换为模型输入格式
             inputs = self.preprocess(batch_image_list)
             logging.debug("preprocess")
             for ins in inputs:
+                # NOTE: Recognizer 2. 然后调用 ort_sess 执行 onnx 推理
+                # NOTE: Recognizer 3. 最后 postprocess，提取模型返回的布局信息，包括区域类型、坐标和置信度
                 bb = self.postprocess(self.ort_sess.run(None, {k:v for k,v in ins.items() if k in self.input_names}, self.run_options)[0], ins, thr)
                 res.append(bb)
 

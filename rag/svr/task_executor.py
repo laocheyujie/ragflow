@@ -238,6 +238,7 @@ async def build_chunks(task, progress_callback):
         set_progress(task["id"], prog=-1, msg="File size exceeds( <= %dMb )" % (int(DOC_MAXIMUM_SIZE / 1024 / 1024)))
         return []
 
+    # NOTE: 根据类型选择合适的解析器
     chunker = FACTORY[task["parser_id"].lower()]
     try:
         # 从 minio 获取文件
@@ -259,6 +260,7 @@ async def build_chunks(task, progress_callback):
 
     try:
         async with chunk_limiter:
+            # NOTE: 执行文档的解析和切片
             cks = await trio.to_thread.run_sync(
                 lambda: chunker.chunk(
                     task["name"],
@@ -574,6 +576,7 @@ async def do_handle_task(task):
     else:
         # Standard chunking methods
         start_ts = timer()
+        # NOTE: 执行文件解析
         chunks = await build_chunks(task, progress_callback)
         logging.info("Build document {}: {:.2f}s".format(task_document_name, timer() - start_ts))
         if not chunks:
@@ -584,6 +587,7 @@ async def do_handle_task(task):
         progress_callback(msg="Generate {} chunks".format(len(chunks)))
         start_ts = timer()
         try:
+            # NOTE: 执行向量化
             token_count, vector_size = await embedding(chunks, embedding_model, task_parser_config, progress_callback)
         except Exception as e:
             error_message = "Generate embedding error:{}".format(str(e))

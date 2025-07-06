@@ -691,6 +691,7 @@ class OCR:
 
         start = time.time()
         ori_im = img.copy()
+        # NOTE: OCR 1. 使用 TextDetector 进行文本检测，获取文本框坐标
         dt_boxes, elapse = self.text_detector[device_id](img)
         time_dict['det'] = elapse
 
@@ -705,15 +706,18 @@ class OCR:
 
         for bno in range(len(dt_boxes)):
             tmp_box = copy.deepcopy(dt_boxes[bno])
+            # NOTE: OCR 2. 对每个文本框，使用 get_rotate_crop_image 方法进行旋转和裁剪
             img_crop = self.get_rotate_crop_image(ori_im, tmp_box)
             img_crop_list.append(img_crop)
 
+        # NOTE: OCR 3. 使用 TextRecognizer 对裁剪后的图像进行文本识别
         rec_res, elapse = self.text_recognizer[device_id](img_crop_list)
 
         time_dict['rec'] = elapse
 
         filter_boxes, filter_rec_res = [], []
         for box, rec_result in zip(dt_boxes, rec_res):
+            # NOTE: OCR 4. 对每个文本框，过滤掉置信度低于阈值的识别结果
             text, score = rec_result
             if score >= self.drop_score:
                 filter_boxes.append(box)
@@ -723,5 +727,5 @@ class OCR:
 
         # for bno in range(len(img_crop_list)):
         #    print(f"{bno}, {rec_res[bno]}")
-
+        # NOTE: OCR 5. 返回最终的文本框坐标和识别结果
         return list(zip([a.tolist() for a in filter_boxes], filter_rec_res))

@@ -72,6 +72,8 @@ class Dealer:
                highlight=False,
                rank_feature: dict | None = None
                ):
+        # NOTE: RAGFlow 的检索目前实现的是混合检索，实现的是文本检索 + 向量检索，混合检索完全依赖 ElasticSearch 实现
+        # NOTE: 构造 ElasticSearch 文本查询的请求
         filters = self.get_filters(req)
         orderBy = OrderByExpr()
 
@@ -88,6 +90,7 @@ class Dealer:
         kwds = set([])
 
         qst = req.get("question", "")
+        # NOTE: 补充向量查询的信息
         q_vec = []
         if not qst:
             if req.get("sort"):
@@ -281,10 +284,13 @@ class Dealer:
                vtweight=0.7, cfield="content_ltks",
                rank_feature: dict | None = None
                ):
+        # NOTE: 检索结果的重排
+        # NOTE: 获取文本关键词
         _, keywords = self.qryr.question(query)
         vector_size = len(sres.query_vector)
         vector_column = f"q_{vector_size}_vec"
         zero_vector = [0.0] * vector_size
+        # NOTE: 获取文本向量
         ins_embd = []
         for chunk_id in sres.ids:
             vector = sres.field[chunk_id].get(vector_column, zero_vector)
@@ -309,6 +315,7 @@ class Dealer:
         ## For rank feature(tag_fea) scores.
         rank_fea = self._rank_feature_scores(rank_feature, sres)
 
+        # NOTE: 获取整体相似分，文本相似分，向量相似分
         sim, tksim, vtsim = self.qryr.hybrid_similarity(sres.query_vector,
                                                         ins_embd,
                                                         keywords,

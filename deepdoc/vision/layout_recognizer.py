@@ -62,6 +62,13 @@ class LayoutRecognizer(Recognizer):
             self.client = DLAClient(os.environ["TENSORRT_DLA_SVR"])
 
     def __call__(self, image_list, ocr_res, scale_factor=3, thr=0.2, batch_size=16, drop=True):
+        # NOTE: LayoutRecognizer 1. 接收以下参数：
+        # image_list: 图像列表
+        # ocr_res: OCR 识别的文本框
+        # scale_factor: 缩放因子，默认值为 3
+        # thr: 阈值，默认值为 0.2
+        # batch_size: 批处理大小，默认值为 16
+        # drop: 是否删除，默认值为 True
         def __is_garbage(b):
             patt = [r"^•+$", "^[0-9]{1,2} / ?[0-9]{1,2}$",
                     r"^[0-9]{1,2} of [0-9]{1,2}$", "^http://[^ ]{12,}",
@@ -72,6 +79,7 @@ class LayoutRecognizer(Recognizer):
         if self.client:
             layouts = self.client.predict(image_list)
         else:
+            # NOTE: LayoutRecognizer 2. 调用父类的 call 方法，将图片交给 PP Structure 模型识别出 layouts
             layouts = super().__call__(image_list, thr, batch_size)
         # save_results(image_list, layouts, self.labels, output_dir='output/', threshold=0.7)
         assert len(image_list) == len(ocr_res)
@@ -90,10 +98,12 @@ class LayoutRecognizer(Recognizer):
                     } for b in lts if float(b["score"]) >= 0.4 or b["type"] not in self.garbage_layouts]
             lts = self.sort_Y_firstly(lts, np.mean(
                 [lt["bottom"] - lt["top"] for lt in lts]) / 2)
+            # NOTE: LayoutRecognizer 3. 清理重叠的 layout (layouts_cleanup)
             lts = self.layouts_cleanup(bxs, lts)
             page_layout.append(lts)
 
             # Tag layout type, layouts are ready
+            # NOTE: LayoutRecognizer 4. 为文本框 box 分配 layout，根据 layout type，从 layout 里找出对应 type 的 layout
             def findLayout(ty):
                 nonlocal bxs, lts, self
                 lts_ = [lt for lt in lts if lt["type"] == ty]
@@ -106,6 +116,7 @@ class LayoutRecognizer(Recognizer):
                         bxs.pop(i)
                         continue
 
+                    # NOTE: LayoutRecognizer 5. 如果和 box 有重叠大于阈值，就为 box 分配 layout
                     ii = self.find_overlapped_with_threshold(bxs[i], lts_,
                                                               thr=0.4)
                     if ii is None:  # belong to nothing
@@ -137,6 +148,7 @@ class LayoutRecognizer(Recognizer):
                 findLayout(lt)
 
             # add box to figure layouts which has not text box
+            # NOTE: LayoutRecognizer 6. 对于没有文本框的 figure, equation 添加到 boxes 中，并更新 ocr_res
             for i, lt in enumerate(
                     [lt for lt in lts if lt["type"] in ["figure", "equation"]]):
                 if lt.get("visited"):
@@ -160,6 +172,7 @@ class LayoutRecognizer(Recognizer):
                     garbag_set.add(g)
 
         ocr_res = [b for b in ocr_res if b["text"].strip() not in garbag_set]
+        # NOTE: LayoutRecognizer 7. 返回更新后的 ocr_res，以及 page_layout 信息
         return ocr_res, page_layout
 
     def forward(self, image_list, thr=0.7, batch_size=16):
