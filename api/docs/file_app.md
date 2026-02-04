@@ -40,10 +40,15 @@ curl -X POST "http://localhost:9380/v1/file/upload" \
       "parent_id": "folder_123",
       "tenant_id": "tenant_1",
       "created_by": "user_1",
-      "type": "pdf",
       "name": "file2.pdf",
       "location": "file2.pdf",
-      "size": 1024
+      "size": 1024,
+      "type": "pdf",
+      "source_type": "",
+      "create_time": 1738656000000,
+      "create_date": "2025-02-04 12:00:00",
+      "update_time": 1738656000000,
+      "update_date": "2025-02-04 12:00:00"
     }
   ],
   "message": "success"
@@ -86,10 +91,18 @@ curl -X POST "http://localhost:9380/v1/file/create" \
   "code": 0,
   "data": {
     "id": "folder_uuid",
-    "name": "New Folder",
-    "type": "folder",
     "parent_id": "root_folder_id",
-    "create_time": 1700000000
+    "tenant_id": "tenant_1",
+    "created_by": "user_1",
+    "name": "New Folder",
+    "location": "",
+    "size": 0,
+    "type": "folder",
+    "source_type": "",
+    "create_time": 1738656000000,
+    "create_date": "2025-02-04 12:00:00",
+    "update_time": 1738656000000,
+    "update_date": "2025-02-04 12:00:00"
   },
   "message": "success"
 }
@@ -130,18 +143,67 @@ curl -X GET "http://localhost:9380/v1/file/list?parent_id=folder_123&page=1&page
     "files": [
       {
         "id": "file_1",
+        "parent_id": "folder_123",
+        "tenant_id": "tenant_1",
+        "created_by": "user_1",
         "name": "document.pdf",
-        "type": "pdf"
+        "location": "document.pdf",
+        "size": 2048,
+        "type": "pdf",
+        "source_type": "",
+        "create_time": 1738656000000,
+        "create_date": "2025-02-04 12:00:00",
+        "update_time": 1738656000000,
+        "update_date": "2025-02-04 12:00:00",
+        "kbs_info": [
+          {
+            "kb_id": "kb_1",
+            "kb_name": "My Knowledge Base",
+            "document_id": "doc_1"
+          }
+        ]
+      },
+      {
+        "id": "folder_456",
+        "parent_id": "folder_123",
+        "tenant_id": "tenant_1",
+        "created_by": "user_1",
+        "name": "Sub Folder",
+        "location": "",
+        "size": 4096,
+        "type": "folder",
+        "source_type": "",
+        "create_time": 1738656000000,
+        "create_date": "2025-02-04 12:00:00",
+        "update_time": 1738656000000,
+        "update_date": "2025-02-04 12:00:00",
+        "kbs_info": [],
+        "has_child_folder": true
       }
     ],
     "parent_folder": {
       "id": "folder_123",
-      "name": "Parent Name"
+      "parent_id": "root_id",
+      "tenant_id": "tenant_1",
+      "created_by": "user_1",
+      "name": "Parent Name",
+      "location": "",
+      "size": 0,
+      "type": "folder",
+      "source_type": "",
+      "create_time": 1738656000000,
+      "create_date": "2025-02-04 12:00:00",
+      "update_time": 1738656000000,
+      "update_date": "2025-02-04 12:00:00"
     }
   },
   "message": "success"
 }
 ```
+
+**说明**:
+- 对于文件类型，`kbs_info` 返回关联的知识库信息列表
+- 对于文件夹类型，`kbs_info` 为空数组，`has_child_folder` 表示是否包含子文件夹，`size` 为文件夹内所有文件的总大小
 
 ---
 
@@ -168,8 +230,18 @@ curl -X GET "http://localhost:9380/v1/file/root_folder" \
   "data": {
     "root_folder": {
       "id": "root_id",
-      "name": "root",
-      "type": "folder"
+      "parent_id": "root_id",
+      "tenant_id": "tenant_1",
+      "created_by": "tenant_1",
+      "name": "/",
+      "location": "",
+      "size": 0,
+      "type": "folder",
+      "source_type": "",
+      "create_time": 1738656000000,
+      "create_date": "2025-02-04 12:00:00",
+      "update_time": 1738656000000,
+      "update_date": "2025-02-04 12:00:00"
     }
   },
   "message": "success"
@@ -204,7 +276,18 @@ curl -X GET "http://localhost:9380/v1/file/parent_folder?file_id=file_123" \
   "data": {
     "parent_folder": {
       "id": "folder_123",
-      "name": "My Folder"
+      "parent_id": "root_id",
+      "tenant_id": "tenant_1",
+      "created_by": "user_1",
+      "name": "My Folder",
+      "location": "",
+      "size": 0,
+      "type": "folder",
+      "source_type": "",
+      "create_time": 1738656000000,
+      "create_date": "2025-02-04 12:00:00",
+      "update_time": 1738656000000,
+      "update_date": "2025-02-04 12:00:00"
     }
   },
   "message": "success"
@@ -238,8 +321,51 @@ curl -X GET "http://localhost:9380/v1/file/all_parent_folder?file_id=file_123" \
   "code": 0,
   "data": {
     "parent_folders": [
-      { "id": "root", "name": "root" },
-      { "id": "folder_1", "name": "Docs" }
+      {
+        "id": "file_123",
+        "parent_id": "folder_1",
+        "tenant_id": "tenant_1",
+        "created_by": "user_1",
+        "name": "document.pdf",
+        "location": "document.pdf",
+        "size": 2048,
+        "type": "pdf",
+        "source_type": "",
+        "create_time": 1738656000000,
+        "create_date": "2025-02-04 12:00:00",
+        "update_time": 1738656000000,
+        "update_date": "2025-02-04 12:00:00"
+      },
+      {
+        "id": "folder_1",
+        "parent_id": "root_id",
+        "tenant_id": "tenant_1",
+        "created_by": "user_1",
+        "name": "Docs",
+        "location": "",
+        "size": 0,
+        "type": "folder",
+        "source_type": "",
+        "create_time": 1738656000000,
+        "create_date": "2025-02-04 12:00:00",
+        "update_time": 1738656000000,
+        "update_date": "2025-02-04 12:00:00"
+      },
+      {
+        "id": "root_id",
+        "parent_id": "root_id",
+        "tenant_id": "tenant_1",
+        "created_by": "tenant_1",
+        "name": "/",
+        "location": "",
+        "size": 0,
+        "type": "folder",
+        "source_type": "",
+        "create_time": 1738656000000,
+        "create_date": "2025-02-04 12:00:00",
+        "update_time": 1738656000000,
+        "update_date": "2025-02-04 12:00:00"
+      }
     ]
   },
   "message": "success"

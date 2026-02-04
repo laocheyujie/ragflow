@@ -32,22 +32,43 @@ curl -X POST "http://localhost:9380/v1/file2document/convert" \
          }'
 ```
 
-### 响应示例
+### 成功响应示例
 ```json
 {
   "code": 0,
   "data": [
     {
-      "id": "uuid_xxx",
-      "file_id": "file_123",
-      "document_id": "doc_789",
-      "create_time": 1700000000,
-      "create_date": "2024-01-01 12:00:00",
-      "update_time": null,
-      "update_date": null
+      "id": "a1b2c3d4e5f6789012345678",
+      "file_id": "f1a2b3c4d5e6f7890123456789abcdef",
+      "document_id": "d1a2b3c4d5e6f7890123456789abcdef",
+      "create_time": 1738636800000,
+      "create_date": "2025-02-04 12:00:00",
+      "update_time": 1738636800000,
+      "update_date": "2025-02-04 12:00:00"
     }
-  ],
-  "message": "success"
+  ]
+}
+```
+
+### 错误响应示例
+```json
+{
+  "code": 102,
+  "message": "File not found!"
+}
+```
+
+```json
+{
+  "code": 102,
+  "message": "Can't find this dataset!"
+}
+```
+
+```json
+{
+  "code": 102,
+  "message": "Document not found!"
 }
 ```
 
@@ -73,16 +94,52 @@ curl -X POST "http://localhost:9380/v1/file2document/rm" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "file_ids": ["file_123"]
+           "file_ids": ["f1a2b3c4d5e6f7890123456789abcdef"]
          }'
 ```
 
-### 响应示例
+### 成功响应示例
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
+}
+```
+
+### 错误响应示例
+```json
+{
+  "code": 100,
+  "data": false,
+  "message": "Lack of \"Files ID\""
+}
+```
+
+```json
+{
+  "code": 102,
+  "message": "Inform not found!"
+}
+```
+
+```json
+{
+  "code": 102,
+  "message": "Document not found!"
+}
+```
+
+```json
+{
+  "code": 102,
+  "message": "Tenant not found!"
+}
+```
+
+```json
+{
+  "code": 102,
+  "message": "Database error (Document removal)!"
 }
 ```
 

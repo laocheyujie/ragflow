@@ -44,9 +44,8 @@ curl -X POST "http://localhost:9380/v1/kb/create" \
 {
   "code": 0,
   "data": {
-    "kb_id": "kb_123456"
-  },
-  "message": "success"
+    "kb_id": "a1b2c3d4e5f6789012345678"
+  }
 }
 ```
 
@@ -81,7 +80,7 @@ curl -X POST "http://localhost:9380/v1/kb/update" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "kb_id": "kb_123456",
+           "kb_id": "a1b2c3d4e5f6789012345678",
            "name": "Updated Name",
            "description": "Updated Description",
            "parser_id": "naive",
@@ -94,16 +93,30 @@ curl -X POST "http://localhost:9380/v1/kb/update" \
 {
   "code": 0,
   "data": {
-    "id": "kb_123456",
+    "id": "a1b2c3d4e5f6789012345678",
     "name": "Updated Name",
     "description": "Updated Description",
+    "avatar": null,
+    "tenant_id": "user123456",
+    "language": "English",
     "permission": "me",
     "embd_id": "BAAI/bge-large-zh-v1.5",
     "parser_id": "naive",
-    "language": "English",
-    "pagerank": 0
-  },
-  "message": "success"
+    "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0
+    },
+    "pagerank": 0,
+    "doc_num": 10,
+    "token_num": 5000,
+    "chunk_num": 100,
+    "similarity_threshold": 0.2,
+    "vector_similarity_weight": 0.3,
+    "connectors": [],
+    "create_time": 1700000000,
+    "update_time": 1700001000
+  }
 }
 ```
 
@@ -128,7 +141,7 @@ curl -X POST "http://localhost:9380/v1/kb/update_metadata_setting" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "kb_id": "kb_123456",
+           "kb_id": "a1b2c3d4e5f6789012345678",
            "metadata": {
              "field1": "value1"
            }
@@ -140,14 +153,30 @@ curl -X POST "http://localhost:9380/v1/kb/update_metadata_setting" \
 {
   "code": 0,
   "data": {
-    "id": "kb_123456",
+    "id": "a1b2c3d4e5f6789012345678",
+    "name": "My KB",
+    "description": "KB description",
+    "avatar": null,
+    "tenant_id": "user123456",
+    "language": "English",
+    "permission": "me",
+    "embd_id": "BAAI/bge-large-zh-v1.5",
+    "parser_id": "naive",
     "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0,
       "metadata": {
         "field1": "value1"
       }
-    }
-  },
-  "message": "success"
+    },
+    "pagerank": 0,
+    "doc_num": 10,
+    "token_num": 5000,
+    "chunk_num": 100,
+    "create_time": 1700000000,
+    "update_time": 1700001000
+  }
 }
 ```
 
@@ -166,7 +195,7 @@ curl -X POST "http://localhost:9380/v1/kb/update_metadata_setting" \
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/kb/detail?kb_id=kb_123456" \
+curl -X GET "http://localhost:9380/v1/kb/detail?kb_id=a1b2c3d4e5f6789012345678" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -175,13 +204,37 @@ curl -X GET "http://localhost:9380/v1/kb/detail?kb_id=kb_123456" \
 {
   "code": 0,
   "data": {
-    "id": "kb_123456",
+    "id": "a1b2c3d4e5f6789012345678",
     "name": "My KB",
-    "description": "...",
-    "size": 1024,
-    "doc_num": 10
-  },
-  "message": "success"
+    "description": "KB description",
+    "avatar": null,
+    "language": "English",
+    "permission": "me",
+    "embd_id": "BAAI/bge-large-zh-v1.5",
+    "parser_id": "naive",
+    "pipeline_id": null,
+    "pipeline_name": null,
+    "pipeline_avatar": null,
+    "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0
+    },
+    "pagerank": 0,
+    "doc_num": 10,
+    "token_num": 5000,
+    "chunk_num": 100,
+    "size": 1048576,
+    "graphrag_task_id": null,
+    "graphrag_task_finish_at": null,
+    "raptor_task_id": null,
+    "raptor_task_finish_at": null,
+    "mindmap_task_id": null,
+    "mindmap_task_finish_at": null,
+    "connectors": [],
+    "create_time": 1700000000,
+    "update_time": 1700001000
+  }
 }
 ```
 
@@ -226,13 +279,24 @@ curl -X POST "http://localhost:9380/v1/kb/list?page=1&page_size=20" \
     "total": 5,
     "kbs": [
       {
-        "id": "kb_1",
-        "name": "KB 1",
-        "create_time": 1700000000
+        "id": "a1b2c3d4e5f6789012345678",
+        "name": "My KB",
+        "description": "KB description",
+        "avatar": null,
+        "tenant_id": "user123456",
+        "language": "English",
+        "permission": "me",
+        "embd_id": "BAAI/bge-large-zh-v1.5",
+        "parser_id": "naive",
+        "doc_num": 10,
+        "token_num": 5000,
+        "chunk_num": 100,
+        "nickname": "John Doe",
+        "tenant_avatar": null,
+        "update_time": 1700001000
       }
     ]
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -256,7 +320,7 @@ curl -X POST "http://localhost:9380/v1/kb/rm" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "kb_id": "kb_123456"
+           "kb_id": "a1b2c3d4e5f6789012345678"
          }'
 ```
 
@@ -264,8 +328,7 @@ curl -X POST "http://localhost:9380/v1/kb/rm" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -284,7 +347,7 @@ curl -X POST "http://localhost:9380/v1/kb/rm" \
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/kb/kb_123456/tags" \
+curl -X GET "http://localhost:9380/v1/kb/a1b2c3d4e5f6789012345678/tags" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -292,8 +355,7 @@ curl -X GET "http://localhost:9380/v1/kb/kb_123456/tags" \
 ```json
 {
   "code": 0,
-  "data": ["tag1", "tag2"],
-  "message": "success"
+  "data": ["技术文档", "产品手册", "FAQ"]
 }
 ```
 
@@ -320,8 +382,7 @@ curl -X GET "http://localhost:9380/v1/kb/tags?kb_ids=kb_1,kb_2" \
 ```json
 {
   "code": 0,
-  "data": ["tag1", "tag3"],
-  "message": "success"
+  "data": ["技术文档", "产品手册", "FAQ", "用户指南"]
 }
 ```
 
@@ -347,11 +408,11 @@ curl -X GET "http://localhost:9380/v1/kb/tags?kb_ids=kb_1,kb_2" \
 
 ### 请求示例
 ```bash
-curl -X POST "http://localhost:9380/v1/kb/kb_123456/rm_tags" \
+curl -X POST "http://localhost:9380/v1/kb/a1b2c3d4e5f6789012345678/rm_tags" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "tags": ["tag1"]
+           "tags": ["技术文档"]
          }'
 ```
 
@@ -359,8 +420,7 @@ curl -X POST "http://localhost:9380/v1/kb/kb_123456/rm_tags" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -387,12 +447,12 @@ curl -X POST "http://localhost:9380/v1/kb/kb_123456/rm_tags" \
 
 ### 请求示例
 ```bash
-curl -X POST "http://localhost:9380/v1/kb/kb_123456/rename_tag" \
+curl -X POST "http://localhost:9380/v1/kb/a1b2c3d4e5f6789012345678/rename_tag" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "from_tag": "tag1",
-           "to_tag": "tag_new"
+           "from_tag": "技术文档",
+           "to_tag": "技术资料"
          }'
 ```
 
@@ -400,8 +460,7 @@ curl -X POST "http://localhost:9380/v1/kb/kb_123456/rename_tag" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -420,7 +479,7 @@ curl -X POST "http://localhost:9380/v1/kb/kb_123456/rename_tag" \
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/kb/kb_123456/knowledge_graph" \
+curl -X GET "http://localhost:9380/v1/kb/a1b2c3d4e5f6789012345678/knowledge_graph" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -430,12 +489,28 @@ curl -X GET "http://localhost:9380/v1/kb/kb_123456/knowledge_graph" \
   "code": 0,
   "data": {
     "graph": {
-      "nodes": [],
-      "edges": []
+      "nodes": [
+        {
+          "id": "node_1",
+          "label": "Entity A",
+          "pagerank": 0.85
+        },
+        {
+          "id": "node_2",
+          "label": "Entity B",
+          "pagerank": 0.72
+        }
+      ],
+      "edges": [
+        {
+          "source": "node_1",
+          "target": "node_2",
+          "weight": 0.9
+        }
+      ]
     },
     "mind_map": {}
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -454,7 +529,7 @@ curl -X GET "http://localhost:9380/v1/kb/kb_123456/knowledge_graph" \
 
 ### 请求示例
 ```bash
-curl -X DELETE "http://localhost:9380/v1/kb/kb_123456/knowledge_graph" \
+curl -X DELETE "http://localhost:9380/v1/kb/a1b2c3d4e5f6789012345678/knowledge_graph" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -462,8 +537,7 @@ curl -X DELETE "http://localhost:9380/v1/kb/kb_123456/knowledge_graph" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -491,9 +565,19 @@ curl -X GET "http://localhost:9380/v1/kb/get_meta?kb_ids=kb_1,kb_2" \
 {
   "code": 0,
   "data": {
-    "kb_1": { "meta_field": "value" }
-  },
-  "message": "success"
+    "author": {
+      "John Doe": ["doc_id_1", "doc_id_2"],
+      "Jane Smith": ["doc_id_3"]
+    },
+    "category": {
+      "技术文档": ["doc_id_1"],
+      "用户手册": ["doc_id_2", "doc_id_3"]
+    },
+    "year": {
+      "2024": ["doc_id_1", "doc_id_2"],
+      "2025": ["doc_id_3"]
+    }
+  }
 }
 ```
 
@@ -512,7 +596,7 @@ curl -X GET "http://localhost:9380/v1/kb/get_meta?kb_ids=kb_1,kb_2" \
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/kb/basic_info?kb_id=kb_123456" \
+curl -X GET "http://localhost:9380/v1/kb/basic_info?kb_id=a1b2c3d4e5f6789012345678" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -521,13 +605,12 @@ curl -X GET "http://localhost:9380/v1/kb/basic_info?kb_id=kb_123456" \
 {
   "code": 0,
   "data": {
-    "processing": 1,
-    "finished": 0,
-    "failed": 0,
+    "processing": 2,
+    "finished": 15,
+    "failed": 1,
     "cancelled": 0,
-    "downloaded": 0,
-  },
-  "message": "success"
+    "downloaded": 3
+  }
 }
 ```
 
@@ -562,7 +645,7 @@ curl -X GET "http://localhost:9380/v1/kb/basic_info?kb_id=kb_123456" \
 
 ### 请求示例
 ```bash
-curl -X POST "http://localhost:9380/v1/kb/list_pipeline_logs?kb_id=kb_123456&page=1" \
+curl -X POST "http://localhost:9380/v1/kb/list_pipeline_logs?kb_id=a1b2c3d4e5f6789012345678&page=1&page_size=10" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
@@ -576,9 +659,35 @@ curl -X POST "http://localhost:9380/v1/kb/list_pipeline_logs?kb_id=kb_123456&pag
   "code": 0,
   "data": {
     "total": 100,
-    "logs": []
-  },
-  "message": "success"
+    "logs": [
+      {
+        "id": "log_123456",
+        "document_id": "doc_789012",
+        "tenant_id": "user123456",
+        "kb_id": "a1b2c3d4e5f6789012345678",
+        "pipeline_id": null,
+        "pipeline_title": "naive",
+        "parser_id": "naive",
+        "document_name": "example.pdf",
+        "document_suffix": "pdf",
+        "document_type": "pdf",
+        "source_from": "local",
+        "progress": 1.0,
+        "progress_msg": "Parsing completed successfully",
+        "process_begin_at": "2024-01-15 10:30:00",
+        "process_duration": 12.5,
+        "dsl": {},
+        "task_type": "file",
+        "operation_status": "3",
+        "avatar": null,
+        "status": "1",
+        "create_time": 1705300200,
+        "create_date": "2024-01-15 10:30:00",
+        "update_time": 1705300213,
+        "update_date": "2024-01-15 10:30:13"
+      }
+    ]
+  }
 }
 ```
 
@@ -610,7 +719,7 @@ curl -X POST "http://localhost:9380/v1/kb/list_pipeline_logs?kb_id=kb_123456&pag
 
 ### 请求示例
 ```bash
-curl -X POST "http://localhost:9380/v1/kb/list_pipeline_dataset_logs?kb_id=kb_123456&page=1" \
+curl -X POST "http://localhost:9380/v1/kb/list_pipeline_dataset_logs?kb_id=a1b2c3d4e5f6789012345678&page=1" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{}'
@@ -621,10 +730,27 @@ curl -X POST "http://localhost:9380/v1/kb/list_pipeline_dataset_logs?kb_id=kb_12
 {
   "code": 0,
   "data": {
-    "total": 50,
-    "logs": []
-  },
-  "message": "success"
+    "total": 5,
+    "logs": [
+      {
+        "id": "log_dataset_001",
+        "tenant_id": "user123456",
+        "kb_id": "a1b2c3d4e5f6789012345678",
+        "progress": 1.0,
+        "progress_msg": "GraphRAG completed",
+        "process_begin_at": "2024-01-15 11:00:00",
+        "process_duration": 300.5,
+        "task_type": "graphrag",
+        "operation_status": "3",
+        "avatar": null,
+        "status": "1",
+        "create_time": 1705302000,
+        "create_date": "2024-01-15 11:00:00",
+        "update_time": 1705302301,
+        "update_date": "2024-01-15 11:05:01"
+      }
+    ]
+  }
 }
 ```
 
@@ -650,7 +776,7 @@ curl -X POST "http://localhost:9380/v1/kb/list_pipeline_dataset_logs?kb_id=kb_12
 
 ### 请求示例
 ```bash
-curl -X POST "http://localhost:9380/v1/kb/delete_pipeline_logs?kb_id=kb_123456" \
+curl -X POST "http://localhost:9380/v1/kb/delete_pipeline_logs?kb_id=a1b2c3d4e5f6789012345678" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
@@ -662,8 +788,7 @@ curl -X POST "http://localhost:9380/v1/kb/delete_pipeline_logs?kb_id=kb_123456" 
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -682,7 +807,7 @@ curl -X POST "http://localhost:9380/v1/kb/delete_pipeline_logs?kb_id=kb_123456" 
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/kb/pipeline_log_detail?log_id=log_123" \
+curl -X GET "http://localhost:9380/v1/kb/pipeline_log_detail?log_id=log_123456" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -691,10 +816,31 @@ curl -X GET "http://localhost:9380/v1/kb/pipeline_log_detail?log_id=log_123" \
 {
   "code": 0,
   "data": {
-    "id": "log_123",
-    "content": "..."
-  },
-  "message": "success"
+    "id": "log_123456",
+    "document_id": "doc_789012",
+    "tenant_id": "user123456",
+    "kb_id": "a1b2c3d4e5f6789012345678",
+    "pipeline_id": null,
+    "pipeline_title": "naive",
+    "parser_id": "naive",
+    "document_name": "example.pdf",
+    "document_suffix": "pdf",
+    "document_type": "pdf",
+    "source_from": "local",
+    "progress": 1.0,
+    "progress_msg": "Parsing completed successfully",
+    "process_begin_at": "2024-01-15 10:30:00",
+    "process_duration": 12.5,
+    "dsl": {},
+    "task_type": "file",
+    "operation_status": "3",
+    "avatar": null,
+    "status": "1",
+    "create_time": 1705300200,
+    "create_date": "2024-01-15 10:30:00",
+    "update_time": 1705300213,
+    "update_date": "2024-01-15 10:30:13"
+  }
 }
 ```
 
@@ -702,10 +848,9 @@ curl -X GET "http://localhost:9380/v1/kb/pipeline_log_detail?log_id=log_123" \
 
 ## 19. 运行 GraphRAG 任务 (Run GraphRAG)
 
-同接口 7。
-
 - **URL**: `/run_graphrag`
 - **Method**: `POST`
+- **Content-Type**: `application/json`
 
 ### 请求参数 (Body)
 
@@ -713,20 +858,29 @@ curl -X GET "http://localhost:9380/v1/kb/pipeline_log_detail?log_id=log_123" \
 | :--- | :--- | :--- | :--- |
 | `kb_id` | string | 是 | 知识库 ID |
 
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/kb/run_graphrag" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "kb_id": "a1b2c3d4e5f6789012345678"
+         }'
+```
+
 ### 响应示例
 ```json
 {
   "code": 0,
-  "data": { "graphrag_task_id": "task_id" },
-  "message": "success"
+  "data": {
+    "graphrag_task_id": "task_graphrag_001"
+  }
 }
 ```
 
 ---
 
 ## 20. 追踪 GraphRAG 任务 (Trace GraphRAG)
-
-同接口 8。
 
 - **URL**: `/trace_graphrag`
 - **Method**: `GET`
@@ -737,12 +891,33 @@ curl -X GET "http://localhost:9380/v1/kb/pipeline_log_detail?log_id=log_123" \
 | :--- | :--- | :--- | :--- |
 | `kb_id` | string | 是 | 知识库 ID |
 
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/kb/trace_graphrag?kb_id=a1b2c3d4e5f6789012345678" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
 ### 响应示例
 ```json
 {
   "code": 0,
-  "data": { "progress": 0.8 },
-  "message": "success"
+  "data": {
+    "id": "task_graphrag_001",
+    "doc_id": "graph_raptor_x",
+    "from_page": 0,
+    "to_page": 100000000,
+    "task_type": "graphrag",
+    "priority": 0,
+    "begin_at": "2024-01-15 12:00:00",
+    "process_duration": 150.5,
+    "progress": 0.8,
+    "progress_msg": "Building knowledge graph...",
+    "retry_count": 0,
+    "digest": "",
+    "chunk_ids": "",
+    "create_time": 1705305600,
+    "update_time": 1705305750
+  }
 }
 ```
 
@@ -766,7 +941,7 @@ curl -X POST "http://localhost:9380/v1/kb/run_raptor" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "kb_id": "kb_123456"
+           "kb_id": "a1b2c3d4e5f6789012345678"
          }'
 ```
 
@@ -774,8 +949,9 @@ curl -X POST "http://localhost:9380/v1/kb/run_raptor" \
 ```json
 {
   "code": 0,
-  "data": { "raptor_task_id": "task_raptor_1" },
-  "message": "success"
+  "data": {
+    "raptor_task_id": "task_raptor_001"
+  }
 }
 ```
 
@@ -794,7 +970,7 @@ curl -X POST "http://localhost:9380/v1/kb/run_raptor" \
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/kb/trace_raptor?kb_id=kb_123456" \
+curl -X GET "http://localhost:9380/v1/kb/trace_raptor?kb_id=a1b2c3d4e5f6789012345678" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -802,8 +978,23 @@ curl -X GET "http://localhost:9380/v1/kb/trace_raptor?kb_id=kb_123456" \
 ```json
 {
   "code": 0,
-  "data": { "progress": 0.5 },
-  "message": "success"
+  "data": {
+    "id": "task_raptor_001",
+    "doc_id": "graph_raptor_x",
+    "from_page": 0,
+    "to_page": 100000000,
+    "task_type": "raptor",
+    "priority": 0,
+    "begin_at": "2024-01-15 13:00:00",
+    "process_duration": 200.0,
+    "progress": 0.5,
+    "progress_msg": "Building hierarchical summaries...",
+    "retry_count": 0,
+    "digest": "",
+    "chunk_ids": "",
+    "create_time": 1705309200,
+    "update_time": 1705309400
+  }
 }
 ```
 
@@ -827,7 +1018,7 @@ curl -X POST "http://localhost:9380/v1/kb/run_mindmap" \
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "kb_id": "kb_123456"
+           "kb_id": "a1b2c3d4e5f6789012345678"
          }'
 ```
 
@@ -835,8 +1026,9 @@ curl -X POST "http://localhost:9380/v1/kb/run_mindmap" \
 ```json
 {
   "code": 0,
-  "data": { "mindmap_task_id": "task_mm_1" },
-  "message": "success"
+  "data": {
+    "mindmap_task_id": "task_mindmap_001"
+  }
 }
 ```
 
@@ -855,7 +1047,7 @@ curl -X POST "http://localhost:9380/v1/kb/run_mindmap" \
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/kb/trace_mindmap?kb_id=kb_123456" \
+curl -X GET "http://localhost:9380/v1/kb/trace_mindmap?kb_id=a1b2c3d4e5f6789012345678" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -863,8 +1055,23 @@ curl -X GET "http://localhost:9380/v1/kb/trace_mindmap?kb_id=kb_123456" \
 ```json
 {
   "code": 0,
-  "data": { "progress": 1.0 },
-  "message": "success"
+  "data": {
+    "id": "task_mindmap_001",
+    "doc_id": "graph_raptor_x",
+    "from_page": 0,
+    "to_page": 100000000,
+    "task_type": "mindmap",
+    "priority": 0,
+    "begin_at": "2024-01-15 14:00:00",
+    "process_duration": 100.0,
+    "progress": 1.0,
+    "progress_msg": "Mindmap generation completed",
+    "retry_count": 0,
+    "digest": "",
+    "chunk_ids": "",
+    "create_time": 1705312800,
+    "update_time": 1705312900
+  }
 }
 ```
 
@@ -884,7 +1091,7 @@ curl -X GET "http://localhost:9380/v1/kb/trace_mindmap?kb_id=kb_123456" \
 
 ### 请求示例
 ```bash
-curl -X DELETE "http://localhost:9380/v1/kb/unbind_task?kb_id=kb_123456&pipeline_task_type=graphrag" \
+curl -X DELETE "http://localhost:9380/v1/kb/unbind_task?kb_id=a1b2c3d4e5f6789012345678&pipeline_task_type=graphrag" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
@@ -892,8 +1099,7 @@ curl -X DELETE "http://localhost:9380/v1/kb/unbind_task?kb_id=kb_123456&pipeline
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -901,10 +1107,11 @@ curl -X DELETE "http://localhost:9380/v1/kb/unbind_task?kb_id=kb_123456&pipeline
 
 ## 26. 检查 Embedding (Check Embedding)
 
-同接口 9。
+用于检查新的 Embedding 模型与知识库中现有向量的兼容性。
 
 - **URL**: `/check_embedding`
 - **Method**: `POST`
+- **Content-Type**: `application/json`
 
 ### 请求参数 (Body)
 
@@ -912,14 +1119,83 @@ curl -X DELETE "http://localhost:9380/v1/kb/unbind_task?kb_id=kb_123456&pipeline
 | :--- | :--- | :--- | :--- |
 | `kb_id` | string | 是 | 知识库 ID |
 | `embd_id` | string | 是 | 目标 Embedding 模型 ID |
-| `check_num` | int | 否 | 采样数量 |
+| `check_num` | int | 否 | 采样数量 (默认 5) |
 
-### 响应示例
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/kb/check_embedding" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "kb_id": "a1b2c3d4e5f6789012345678",
+           "embd_id": "BAAI/bge-large-zh-v1.5",
+           "check_num": 5
+         }'
+```
+
+### 响应示例 (兼容)
 ```json
 {
   "code": 0,
-  "data": { "summary": {}, "results": [] },
-  "message": "success"
+  "data": {
+    "summary": {
+      "kb_id": "a1b2c3d4e5f6789012345678",
+      "model": "BAAI/bge-large-zh-v1.5",
+      "sampled": 5,
+      "valid": 5,
+      "avg_cos_sim": 0.952341,
+      "min_cos_sim": 0.912456,
+      "max_cos_sim": 0.987654,
+      "match_mode": "content_only"
+    },
+    "results": [
+      {
+        "chunk_id": "chunk_001",
+        "doc_id": "doc_789012",
+        "doc_name": "example.pdf",
+        "vector_field": "q_1024_vec",
+        "vector_dim": 1024,
+        "cos_sim": 0.952341
+      },
+      {
+        "chunk_id": "chunk_002",
+        "doc_id": "doc_789012",
+        "doc_name": "example.pdf",
+        "vector_field": "q_1024_vec",
+        "vector_dim": 1024,
+        "cos_sim": 0.967890
+      }
+    ]
+  }
 }
 ```
 
+### 响应示例 (不兼容)
+```json
+{
+  "code": 108,
+  "message": "Embedding model switch failed: the average similarity between old and new vectors is below 0.9, indicating incompatible vector spaces.",
+  "data": {
+    "summary": {
+      "kb_id": "a1b2c3d4e5f6789012345678",
+      "model": "text-embedding-ada-002",
+      "sampled": 5,
+      "valid": 5,
+      "avg_cos_sim": 0.456789,
+      "min_cos_sim": 0.321456,
+      "max_cos_sim": 0.567890,
+      "match_mode": "content_only"
+    },
+    "results": [
+      {
+        "chunk_id": "chunk_001",
+        "doc_id": "doc_789012",
+        "doc_name": "example.pdf",
+        "vector_field": "q_1024_vec",
+        "vector_dim": 1024,
+        "cos_sim": 0.456789
+      }
+    ]
+  }
+}
+```

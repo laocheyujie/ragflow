@@ -57,20 +57,67 @@ curl -X POST "http://localhost:9380/v1/api/dify/retrieval" \
 ```
 
 ### 响应示例
+
+**成功响应 (200)**
 ```json
 {
   "records": [
     {
-      "content": "RAGFlow is an open-source RAG engine...",
+      "content": "RAGFlow is an open-source RAG engine based on deep document understanding...",
       "score": 0.89,
-      "title": "RAGFlow Introduction",
+      "title": "RAGFlow_Introduction.pdf",
       "metadata": {
-        "doc_id": "doc_1",
+        "doc_id": "abc123def456",
         "author": "admin",
-        "source": "manual"
+        "category": "技术文档"
+      }
+    },
+    {
+      "content": "RAGFlow 支持多种文档格式，包括 PDF、Word、Excel 等...",
+      "score": 0.75,
+      "title": "RAGFlow_用户手册.docx",
+      "metadata": {
+        "doc_id": "xyz789ghi012",
+        "version": "1.0"
       }
     }
   ]
 }
 ```
+
+**知识库不存在 (404)**
+```json
+{
+  "code": 102,
+  "message": "Knowledgebase not found!"
+}
+```
+
+**未找到相关 chunk (404)**
+```json
+{
+  "code": 102,
+  "message": "No chunk found! Check the chunk status please!"
+}
+```
+
+**服务器错误 (500)**
+```json
+{
+  "code": 100,
+  "message": "Internal server error message"
+}
+```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `records` | array | 检索结果列表 |
+| `records[].content` | string | Chunk 内容文本 |
+| `records[].score` | number | 相似度分数 (0-1) |
+| `records[].title` | string | 文档名称 |
+| `records[].metadata` | object | 元数据信息 |
+| `records[].metadata.doc_id` | string | 文档 ID |
+| `records[].metadata.*` | any | 其他用户自定义的元数据字段 |
 

@@ -32,18 +32,60 @@ curl -X POST "http://localhost:9380/v1/user/login" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "Welcome back!",
   "data": {
-    "id": "user_id_xxx",
-    "email": "user@example.com",
+    "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+    "access_token": "f6g7h8i9j0k1l2m3n4o5p6a1b2c3d4e5",
     "nickname": "User Nickname",
-    "access_token": "token_xxx",
-    "create_time": 1700000000,
-    "update_time": 1700000000
-  },
-  "message": "Welcome back!"
+    "email": "user@example.com",
+    "avatar": "base64_encoded_avatar_string...",
+    "language": "English",
+    "color_schema": "Bright",
+    "timezone": "UTC+8\tAsia/Shanghai",
+    "last_login_time": "2024-01-15 10:30:00",
+    "is_authenticated": "1",
+    "is_active": "1",
+    "is_anonymous": "0",
+    "login_channel": "password",
+    "status": "1",
+    "is_superuser": false,
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_time": 1700000000000,
+    "update_date": "2024-01-15 10:30:00"
+  }
+}
+```
+
+**失败响应 (用户未注册):**
+```json
+{
+  "code": 109,
+  "message": "Email: user@example.com is not registered!",
+  "data": false
+}
+```
+
+**失败响应 (密码错误):**
+```json
+{
+  "code": 109,
+  "message": "Email and password do not match!",
+  "data": false
+}
+```
+
+**失败响应 (账号被禁用):**
+```json
+{
+  "code": 110,
+  "message": "This account has been disabled, please contact the administrator!",
+  "data": false
 }
 ```
 
@@ -66,17 +108,33 @@ curl -X GET "http://localhost:9380/v1/user/login/channels"
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": [
     {
       "channel": "github",
       "display_name": "GitHub",
-      "icon": "github_icon_path"
+      "icon": "github"
+    },
+    {
+      "channel": "feishu",
+      "display_name": "Feishu",
+      "icon": "sso"
     }
-  ],
-  "message": "success"
+  ]
+}
+```
+
+**失败响应:**
+```json
+{
+  "code": 500,
+  "message": "Load channels failure, error: ...",
+  "data": []
 }
 ```
 
@@ -102,7 +160,7 @@ http://localhost:9380/v1/user/login/github
 ```
 
 ### 响应示例
-Redirect to OAuth provider.
+Redirect to OAuth provider authorization URL.
 
 ---
 
@@ -128,7 +186,9 @@ http://localhost:9380/v1/user/oauth/callback/github?code=xyz&state=abc
 ```
 
 ### 响应示例
-Redirect to frontend (e.g., `/?auth=user_id` or `/?error=xxx`).
+Redirect to frontend:
+- 成功: `/?auth=<user_auth_token>`
+- 失败: `/?error=<error_message>`
 
 ---
 
@@ -151,7 +211,9 @@ http://localhost:9380/v1/user/github_callback?code=xyz
 ```
 
 ### 响应示例
-Redirect to frontend.
+Redirect to frontend:
+- 成功: `/?auth=<user_auth_token>`
+- 失败: `/?error=<error_message>`
 
 ---
 
@@ -174,7 +236,9 @@ http://localhost:9380/v1/user/feishu_callback?code=xyz
 ```
 
 ### 响应示例
-Redirect to frontend.
+Redirect to frontend:
+- 成功: `/?auth=<user_auth_token>`
+- 失败: `/?error=<error_message>`
 
 ---
 
@@ -197,11 +261,13 @@ curl -X GET "http://localhost:9380/v1/user/logout" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
 }
 ```
 
@@ -209,7 +275,7 @@ curl -X GET "http://localhost:9380/v1/user/logout" \
 
 ## 8. 更新设置 (Update Settings)
 
-更新用户信息 (昵称, 邮箱, 密码等)。
+更新用户信息 (昵称, 密码等)。
 
 - **URL**: `/setting`
 - **Method**: `POST`
@@ -221,10 +287,14 @@ curl -X GET "http://localhost:9380/v1/user/logout" \
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `nickname` | string | 否 | 新昵称 |
-| `email` | string | 否 | 新邮箱 |
+| `avatar` | string | 否 | 头像 (base64 编码) |
+| `language` | string | 否 | 语言设置 (English/Chinese) |
+| `color_schema` | string | 否 | 颜色主题 (Bright/Dark) |
+| `timezone` | string | 否 | 时区设置 |
 | `password` | string | 否 | 当前密码 (若修改密码则必填, 加密) |
 | `new_password` | string | 否 | 新密码 (加密) |
-| `avatar` | string | 否 | 头像 URL |
+
+**注意**: 以下字段不可修改: `email`, `status`, `is_superuser`, `login_channel`, `is_anonymous`, `is_active`, `is_authenticated`, `last_login_time`
 
 ### 请求示例
 ```bash
@@ -237,11 +307,31 @@ curl -X POST "http://localhost:9380/v1/user/setting" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
+}
+```
+
+**失败响应 (密码错误):**
+```json
+{
+  "code": 109,
+  "message": "Password error!",
+  "data": false
+}
+```
+
+**失败响应 (更新失败):**
+```json
+{
+  "code": 500,
+  "message": "Update failure!",
+  "data": false
 }
 ```
 
@@ -266,15 +356,33 @@ curl -X GET "http://localhost:9380/v1/user/info" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
-    "id": "user_id_xxx",
+    "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+    "access_token": "f6g7h8i9j0k1l2m3n4o5p6a1b2c3d4e5",
     "nickname": "User Nickname",
-    "email": "user@example.com"
-  },
-  "message": "success"
+    "email": "user@example.com",
+    "avatar": "base64_encoded_avatar_string...",
+    "language": "English",
+    "color_schema": "Bright",
+    "timezone": "UTC+8\tAsia/Shanghai",
+    "last_login_time": "2024-01-15 10:30:00",
+    "is_authenticated": "1",
+    "is_active": "1",
+    "is_anonymous": "0",
+    "login_channel": "password",
+    "status": "1",
+    "is_superuser": false,
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_time": 1700000000000,
+    "update_date": "2024-01-15 10:30:00"
+  }
 }
 ```
 
@@ -308,15 +416,69 @@ curl -X POST "http://localhost:9380/v1/user/register" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "NewUser, welcome aboard!",
   "data": {
-    "id": "new_user_id",
+    "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+    "access_token": "f6g7h8i9j0k1l2m3n4o5p6a1b2c3d4e5",
+    "nickname": "NewUser",
     "email": "new@example.com",
-    "nickname": "NewUser"
-  },
-  "message": "NewUser, welcome aboard!"
+    "avatar": null,
+    "language": "English",
+    "color_schema": "Bright",
+    "timezone": "UTC+8\tAsia/Shanghai",
+    "last_login_time": "2024-01-15 10:30:00",
+    "is_authenticated": "1",
+    "is_active": "1",
+    "is_anonymous": "0",
+    "login_channel": "password",
+    "status": "1",
+    "is_superuser": false,
+    "create_time": 1700000000000,
+    "create_date": "2024-01-15 10:30:00",
+    "update_time": 1700000000000,
+    "update_date": "2024-01-15 10:30:00"
+  }
+}
+```
+
+**失败响应 (注册已禁用):**
+```json
+{
+  "code": 103,
+  "message": "User registration is disabled!",
+  "data": false
+}
+```
+
+**失败响应 (邮箱格式无效):**
+```json
+{
+  "code": 103,
+  "message": "Invalid email address: invalid_email!",
+  "data": false
+}
+```
+
+**失败响应 (邮箱已注册):**
+```json
+{
+  "code": 103,
+  "message": "Email: new@example.com has already registered!",
+  "data": false
+}
+```
+
+**失败响应 (注册失败):**
+```json
+{
+  "code": 500,
+  "message": "User registration failure, error: ...",
+  "data": false
 }
 ```
 
@@ -341,16 +503,33 @@ curl -X GET "http://localhost:9380/v1/user/tenant_info" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
-    "tenant_id": "user_id",
+    "tenant_id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
     "name": "User's Kingdom",
-    "llm_id": "gpt-3.5",
-    "embd_id": "embedding-model"
-  },
-  "message": "success"
+    "llm_id": "deepseek-chat@DeepSeek",
+    "embd_id": "BAAI/bge-large-zh-v1.5@Xinference",
+    "rerank_id": "BAAI/bge-reranker-v2-m3@Xinference",
+    "asr_id": "whisper-1@OpenAI",
+    "img2txt_id": "gpt-4o@OpenAI",
+    "tts_id": null,
+    "parser_ids": "naive,qa,resume,manual,table,paper,book,laws,presentation,one,knowledge_graph,email,picture,tag",
+    "role": "owner"
+  }
+}
+```
+
+**失败响应 (租户不存在):**
+```json
+{
+  "code": 101,
+  "message": "Tenant not found!",
+  "data": null
 }
 ```
 
@@ -381,20 +560,31 @@ curl -X POST "http://localhost:9380/v1/user/set_tenant_info" \
      -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" \
      -H "Content-Type: application/json" \
      -d '{
-           "tenant_id": "tenant_1",
-           "llm_id": "gpt-4",
-           "embd_id": "bge-large-zh",
-           "asr_id": "whisper-1",
-           "img2txt_id": "gpt-4-vision"
+           "tenant_id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+           "llm_id": "gpt-4@OpenAI",
+           "embd_id": "text-embedding-3-small@OpenAI",
+           "asr_id": "whisper-1@OpenAI",
+           "img2txt_id": "gpt-4o@OpenAI"
          }'
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
+}
+```
+
+**失败响应:**
+```json
+{
+  "code": 500,
+  "message": "Exception error message...",
+  "data": null
 }
 ```
 
@@ -419,7 +609,27 @@ curl -X GET "http://localhost:9380/v1/user/forget/captcha?email=user@example.com
 ```
 
 ### 响应示例
-Returns binary image data (JPEG).
+
+**成功响应:**
+Returns binary image data (JPEG, Content-Type: image/JPEG).
+
+**失败响应 (缺少邮箱):**
+```json
+{
+  "code": 102,
+  "message": "email is required",
+  "data": false
+}
+```
+
+**失败响应 (邮箱无效):**
+```json
+{
+  "code": 101,
+  "message": "invalid email",
+  "data": false
+}
+```
 
 ---
 
@@ -444,16 +654,72 @@ curl -X POST "http://localhost:9380/v1/user/forget/otp" \
      -H "Content-Type: application/json" \
      -d '{
            "email": "user@example.com",
-           "captcha": "AB12"
+           "captcha": "AB12CD"
          }'
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "verification passed, email sent"
+  "message": "verification passed, email sent",
+  "data": true
+}
+```
+
+**失败响应 (缺少参数):**
+```json
+{
+  "code": 102,
+  "message": "email and captcha required",
+  "data": false
+}
+```
+
+**失败响应 (邮箱无效):**
+```json
+{
+  "code": 101,
+  "message": "invalid email",
+  "data": false
+}
+```
+
+**失败响应 (验证码无效或过期):**
+```json
+{
+  "code": 104,
+  "message": "invalid or expired captcha",
+  "data": false
+}
+```
+
+**失败响应 (验证码错误):**
+```json
+{
+  "code": 109,
+  "message": "invalid or expired captcha",
+  "data": false
+}
+```
+
+**失败响应 (冷却时间):**
+```json
+{
+  "code": 104,
+  "message": "you still have to wait 45 seconds",
+  "data": false
+}
+```
+
+**失败响应 (发送失败):**
+```json
+{
+  "code": 100,
+  "message": "failed to send email",
+  "data": false
 }
 ```
 
@@ -485,11 +751,67 @@ curl -X POST "http://localhost:9380/v1/user/forget/verify-otp" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "otp verified"
+  "message": "otp verified",
+  "data": true
+}
+```
+
+**失败响应 (缺少参数):**
+```json
+{
+  "code": 102,
+  "message": "email and otp are required",
+  "data": false
+}
+```
+
+**失败响应 (邮箱无效):**
+```json
+{
+  "code": 101,
+  "message": "invalid email",
+  "data": false
+}
+```
+
+**失败响应 (尝试次数过多):**
+```json
+{
+  "code": 104,
+  "message": "too many attempts, try later",
+  "data": false
+}
+```
+
+**失败响应 (OTP 过期):**
+```json
+{
+  "code": 104,
+  "message": "expired otp",
+  "data": false
+}
+```
+
+**失败响应 (OTP 错误):**
+```json
+{
+  "code": 109,
+  "message": "expired otp",
+  "data": false
+}
+```
+
+**失败响应 (存储错误):**
+```json
+{
+  "code": 500,
+  "message": "otp storage corrupted",
+  "data": false
 }
 ```
 
@@ -517,20 +839,83 @@ curl -X POST "http://localhost:9380/v1/user/forget/reset-password" \
      -H "Content-Type: application/json" \
      -d '{
            "email": "user@example.com",
-           "new_password": "encrypted_pwd",
-           "confirm_new_password": "encrypted_pwd"
+           "new_password": "encrypted_new_pwd",
+           "confirm_new_password": "encrypted_new_pwd"
          }'
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "Password reset successful. Logged in.",
   "data": {
-    "id": "user_id",
-    "email": "user@example.com"
-  },
-  "message": "Password reset successful. Logged in."
+    "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+    "access_token": "f6g7h8i9j0k1l2m3n4o5p6a1b2c3d4e5",
+    "nickname": "User Nickname",
+    "email": "user@example.com",
+    "avatar": "base64_encoded_avatar_string...",
+    "language": "English",
+    "color_schema": "Bright",
+    "timezone": "UTC+8\tAsia/Shanghai",
+    "last_login_time": "2024-01-15 10:30:00",
+    "is_authenticated": "1",
+    "is_active": "1",
+    "is_anonymous": "0",
+    "login_channel": "password",
+    "status": "1",
+    "is_superuser": false,
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_time": 1700000000000,
+    "update_date": "2024-01-15 10:30:00"
+  }
 }
 ```
 
+**失败响应 (邮箱未验证):**
+```json
+{
+  "code": 109,
+  "message": "email not verified",
+  "data": false
+}
+```
+
+**失败响应 (缺少参数):**
+```json
+{
+  "code": 102,
+  "message": "email and passwords are required",
+  "data": false
+}
+```
+
+**失败响应 (密码不匹配):**
+```json
+{
+  "code": 102,
+  "message": "passwords do not match",
+  "data": false
+}
+```
+
+**失败响应 (邮箱无效):**
+```json
+{
+  "code": 101,
+  "message": "invalid email",
+  "data": false
+}
+```
+
+**失败响应 (重置失败):**
+```json
+{
+  "code": 500,
+  "message": "failed to reset password",
+  "data": false
+}
+```

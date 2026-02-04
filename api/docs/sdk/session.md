@@ -43,18 +43,21 @@ curl -X POST "http://localhost:9380/v1/api/chats/chat_123/sessions" \
 {
   "code": 0,
   "data": {
-    "id": "session_1",
+    "id": "550e8400e29b41d4a716446655440000",
     "chat_id": "chat_123",
     "name": "My Chat Session",
-    "create_time": "2024-01-01 12:00:00",
+    "user_id": "user_abc",
+    "create_time": 1704067200000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1704067200000,
+    "update_date": "2024-01-01 12:00:00",
     "messages": [
       {
         "role": "assistant",
-        "content": "Hello! How can I help you?"
+        "content": "Hi! I'm your assistant. What can I do for you?"
       }
     ]
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -91,14 +94,23 @@ curl -X POST "http://localhost:9380/v1/api/agents/agent_123/sessions?user_id=use
 {
   "code": 0,
   "data": {
-    "id": "session_agent_1",
+    "id": "550e8400e29b41d4a716446655440001",
     "agent_id": "agent_123",
     "user_id": "user_abc",
-    "messages": [{"role": "assistant", "content": "..."}],
+    "message": [
+      {
+        "role": "assistant",
+        "content": "Hello! How can I assist you today?"
+      }
+    ],
     "source": "agent",
-    "dsl": {...}
-  },
-  "message": "success"
+    "dsl": {
+      "components": {},
+      "history": [],
+      "path": [],
+      "answer": []
+    }
+  }
 }
 ```
 
@@ -138,9 +150,7 @@ curl -X PUT "http://localhost:9380/v1/api/chats/chat_123/sessions/session_1" \
 ### 响应示例
 ```json
 {
-  "code": 0,
-  "data": null,
-  "message": "success"
+  "code": 0
 }
 ```
 
@@ -183,9 +193,9 @@ curl -X POST "http://localhost:9380/v1/api/chats/chat_123/completions" \
 
 ### 响应示例 (Stream)
 ```text
-data:{"code": 0, "message": "", "data": {"answer": "RAG stands for...", "reference": [...]}}
+data:{"code": 0, "data": {"answer": "RAG stands for Retrieval-Augmented Generation...", "reference": {"total": 3, "chunks": [{"id": "chunk_1", "content": "...", "document_id": "doc_1", "document_name": "example.pdf", "dataset_id": "kb_1", "image_id": "", "positions": [[1, 100, 200, 300, 400]]}], "doc_aggs": [{"doc_id": "doc_1", "doc_name": "example.pdf", "count": 1}]}, "audio_binary": null, "id": "msg_123", "session_id": "session_1"}}
 
-data:{"code": 0, "message": "", "data": true}
+data:{"code": 0, "data": true}
 ```
 
 ### 响应示例 (Non-Stream)
@@ -193,10 +203,34 @@ data:{"code": 0, "message": "", "data": true}
 {
   "code": 0,
   "data": {
-      "answer": "RAG stands for...",
-      "reference": [...]
-  },
-  "message": "success"
+    "answer": "RAG stands for Retrieval-Augmented Generation...",
+    "reference": {
+      "total": 3,
+      "chunks": [
+        {
+          "id": "chunk_1",
+          "content": "RAG is a technique that combines retrieval and generation...",
+          "document_id": "doc_1",
+          "document_name": "example.pdf",
+          "dataset_id": "kb_1",
+          "image_id": "",
+          "positions": [[1, 100, 200, 300, 400]]
+        }
+      ],
+      "doc_aggs": [
+        {
+          "doc_id": "doc_1",
+          "doc_name": "example.pdf",
+          "count": 1
+        }
+      ]
+    },
+    "audio_binary": null,
+    "id": "msg_123",
+    "session_id": "session_1",
+    "prompt": "...",
+    "created_at": 1704067200.123
+  }
 }
 ```
 
@@ -239,8 +273,85 @@ curl -X POST "http://localhost:9380/v1/api/chats_openai/chat_123/chat/completion
          }'
 ```
 
-### 响应示例
-(符合 OpenAI Chat Completion Chunk 格式)
+### 响应示例 (Stream)
+```text
+data:{"id": "chatcmpl-chat_123", "choices": [{"delta": {"content": "Hello", "role": "assistant", "function_call": null, "tool_calls": null, "reasoning_content": null}, "finish_reason": null, "index": 0, "logprobs": null}], "created": 1704067200, "model": "model", "object": "chat.completion.chunk", "system_fingerprint": "", "usage": null}
+
+data:{"id": "chatcmpl-chat_123", "choices": [{"delta": {"content": null, "reasoning_content": null}, "finish_reason": "stop", "index": 0, "logprobs": null}], "created": 1704067200, "model": "model", "object": "chat.completion.chunk", "system_fingerprint": "", "usage": {"prompt_tokens": 5, "completion_tokens": 50, "total_tokens": 55}}
+
+data:[DONE]
+```
+
+### 响应示例 (Non-Stream)
+```json
+{
+  "id": "chatcmpl-chat_123",
+  "object": "chat.completion",
+  "created": 1704067200,
+  "model": "gpt-3.5-turbo",
+  "usage": {
+    "prompt_tokens": 5,
+    "completion_tokens": 50,
+    "total_tokens": 55,
+    "completion_tokens_details": {
+      "reasoning_tokens": 100,
+      "accepted_prediction_tokens": 50,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?"
+      },
+      "logprobs": null,
+      "finish_reason": "stop",
+      "index": 0
+    }
+  ]
+}
+```
+
+### 响应示例 (Non-Stream with Reference)
+```json
+{
+  "id": "chatcmpl-chat_123",
+  "object": "chat.completion",
+  "created": 1704067200,
+  "model": "gpt-3.5-turbo",
+  "usage": {
+    "prompt_tokens": 5,
+    "completion_tokens": 50,
+    "total_tokens": 55,
+    "completion_tokens_details": {
+      "reasoning_tokens": 100,
+      "accepted_prediction_tokens": 50,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "Based on the documents...",
+        "reference": [
+          {
+            "id": "chunk_1",
+            "content": "...",
+            "document_id": "doc_1",
+            "document_name": "example.pdf",
+            "dataset_id": "kb_1"
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "stop",
+      "index": 0
+    }
+  ]
+}
+```
 
 ---
 
@@ -278,6 +389,32 @@ curl -X POST "http://localhost:9380/v1/api/agents_openai/agent_123/chat/completi
          }'
 ```
 
+### 响应示例 (Non-Stream)
+```json
+{
+  "id": "agent_123",
+  "object": "chat.completion",
+  "created": 1704067200,
+  "model": "agent-model",
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 100,
+    "total_tokens": 110
+  },
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "The analysis results show..."
+      },
+      "logprobs": null,
+      "finish_reason": "stop",
+      "index": 0
+    }
+  ]
+}
+```
+
 ---
 
 ## 7. Agent 补全 (Agent Completion)
@@ -309,8 +446,61 @@ curl -X POST "http://localhost:9380/v1/api/agents/agent_123/completions" \
      -H "Content-Type: application/json" \
      -d '{
            "question": "Analyze this data",
-           "stream": true
+           "stream": true,
+           "return_trace": true
          }'
+```
+
+### 响应示例 (Stream)
+```text
+data:{"event": "message", "data": {"content": "Analyzing...", "session_id": "session_1"}}
+
+data:{"event": "node_finished", "data": {"component_id": "begin_0", "trace": [{"component_id": "begin_0", "...": "..."}]}}
+
+data:{"event": "message_end", "data": {"content": "Analysis complete.", "reference": {}, "session_id": "session_1"}}
+
+data:[DONE]
+```
+
+### 响应示例 (Non-Stream)
+```json
+{
+  "code": 0,
+  "data": {
+    "event": "message_end",
+    "data": {
+      "content": "The analysis shows that...",
+      "reference": {
+        "chunks": [
+          {
+            "id": "chunk_1",
+            "content": "...",
+            "document_id": "doc_1",
+            "document_name": "data.csv",
+            "dataset_id": "kb_1"
+          }
+        ],
+        "doc_aggs": [
+          {
+            "doc_id": "doc_1",
+            "doc_name": "data.csv",
+            "count": 1
+          }
+        ]
+      },
+      "trace": [
+        {
+          "component_id": "begin_0",
+          "trace": [{"component_id": "begin_0"}]
+        },
+        {
+          "component_id": "generate_1",
+          "trace": [{"component_id": "generate_1"}]
+        }
+      ]
+    }
+  }
+}
 ```
 
 ---
@@ -353,11 +543,44 @@ curl -X GET "http://localhost:9380/v1/api/chats/chat_123/sessions?page=1" \
   "data": [
     {
       "id": "session_1",
+      "chat_id": "chat_123",
       "name": "New session",
-      "create_time": "..."
+      "user_id": "user_abc",
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1704067200000,
+      "update_date": "2024-01-01 12:00:00",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Hi! How can I help you?",
+          "created_at": 1704067200.0
+        },
+        {
+          "role": "user",
+          "content": "What is RAG?",
+          "id": "msg_user_1"
+        },
+        {
+          "role": "assistant",
+          "content": "RAG stands for...",
+          "id": "msg_assistant_1",
+          "created_at": 1704067210.0,
+          "reference": [
+            {
+              "id": "chunk_1",
+              "content": "...",
+              "document_id": "doc_1",
+              "document_name": "example.pdf",
+              "dataset_id": "kb_1",
+              "image_id": "",
+              "positions": [[1, 100, 200, 300, 400]]
+            }
+          ]
+        }
+      ]
     }
-  ],
-  "message": "success"
+  ]
 }
 ```
 
@@ -394,6 +617,64 @@ curl -X GET "http://localhost:9380/v1/api/agents/agent_123/sessions" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "session_agent_1",
+      "agent_id": "agent_123",
+      "user_id": "user_abc",
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1704153600000,
+      "update_date": "2024-01-02 12:00:00",
+      "tokens": 1500,
+      "source": "agent",
+      "duration": 2.5,
+      "round": 3,
+      "thumb_up": 1,
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you?",
+          "created_at": 1704067200.0
+        },
+        {
+          "role": "user",
+          "content": "Analyze this data",
+          "id": "msg_user_1"
+        },
+        {
+          "role": "assistant",
+          "content": "The analysis shows...",
+          "id": "msg_assistant_1",
+          "created_at": 1704067210.0,
+          "reference": [
+            {
+              "id": "chunk_1",
+              "content": "...",
+              "document_id": "doc_1",
+              "document_name": "data.csv",
+              "dataset_id": "kb_1",
+              "image_id": "",
+              "positions": []
+            }
+          ]
+        }
+      ],
+      "dsl": {
+        "components": {},
+        "history": [],
+        "path": [],
+        "answer": []
+      }
+    }
+  ]
+}
+```
+
 ---
 
 ## 10. 删除会话 (Delete Sessions)
@@ -414,7 +695,7 @@ curl -X GET "http://localhost:9380/v1/api/agents/agent_123/sessions" \
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `ids` | list[string] | 否 | 要删除的会话 ID 列表 (若为空则可能删除全部，具体视实现而定) |
+| `ids` | list[string] | 否 | 要删除的会话 ID 列表 (若为空则删除该 chat 下的全部会话) |
 
 ### 请求示例
 ```bash
@@ -426,11 +707,24 @@ curl -X DELETE "http://localhost:9380/v1/api/chats/chat_123/sessions" \
          }'
 ```
 
-### 响应示例
+### 响应示例 (全部成功)
+```json
+{
+  "code": 0
+}
+```
+
+### 响应示例 (部分成功)
 ```json
 {
   "code": 0,
-  "message": "success"
+  "message": "Partially deleted 2 sessions with 1 errors",
+  "data": {
+    "success_count": 2,
+    "errors": [
+      "The chat doesn't own the session session_not_exist"
+    ]
+  }
 }
 ```
 
@@ -454,7 +748,7 @@ curl -X DELETE "http://localhost:9380/v1/api/chats/chat_123/sessions" \
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `ids` | list[string] | 否 | 要删除的会话 ID 列表 |
+| `ids` | list[string] | 否 | 要删除的会话 ID 列表 (若为空则删除该 agent 下的全部会话) |
 
 ### 请求示例
 ```bash
@@ -464,6 +758,27 @@ curl -X DELETE "http://localhost:9380/v1/api/agents/agent_123/sessions" \
      -d '{
            "ids": ["session_agent_1"]
          }'
+```
+
+### 响应示例 (全部成功)
+```json
+{
+  "code": 0
+}
+```
+
+### 响应示例 (部分成功)
+```json
+{
+  "code": 0,
+  "message": "Partially deleted 2 sessions with 1 errors",
+  "data": {
+    "success_count": 2,
+    "errors": [
+      "The agent doesn't own the session session_not_exist"
+    ]
+  }
+}
 ```
 
 ---
@@ -494,8 +809,14 @@ curl -X POST "http://localhost:9380/v1/api/sessions/ask" \
          }'
 ```
 
-### 响应示例
-(Stream 格式返回答案)
+### 响应示例 (Stream)
+```text
+data:{"code": 0, "message": "", "data": {"answer": "Based on the documents...", "reference": {}}}
+
+data:{"code": 0, "message": "", "data": {"answer": "Based on the documents, the content includes...", "reference": {"total": 2, "chunks": [{"id": "chunk_1", "content": "...", "document_id": "doc_1", "document_name": "example.pdf", "dataset_id": "kb_1"}], "doc_aggs": [{"doc_id": "doc_1", "doc_name": "example.pdf", "count": 1}]}}}
+
+data:{"code": 0, "message": "", "data": true}
+```
 
 ---
 
@@ -529,11 +850,12 @@ curl -X POST "http://localhost:9380/v1/api/sessions/related_questions" \
 {
   "code": 0,
   "data": [
-    "Neural Networks",
-    "Backpropagation",
-    "CNN vs RNN"
-  ],
-  "message": "success"
+    "What is deep learning?",
+    "Deep learning vs machine learning",
+    "Deep learning applications",
+    "Neural network architectures",
+    "How to get started with deep learning"
+  ]
 }
 ```
 
@@ -560,6 +882,7 @@ curl -X POST "http://localhost:9380/v1/api/sessions/related_questions" \
 | `question` | string | 是 | 用户提问 |
 | `stream` | boolean | 否 | 是否流式返回 (默认: true) |
 | `session_id` | string | 否 | 会话 ID |
+| `quote` | boolean | 否 | 是否返回引用 (默认: false) |
 
 ### 请求示例
 ```bash
@@ -569,6 +892,39 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
      -d '{
            "question": "Hello"
          }'
+```
+
+### 响应示例 (Stream - 新会话)
+```text
+data:{"code": 0, "message": "", "data": {"answer": "Hi! I'm your assistant. What can I do for you?", "reference": {}, "audio_binary": null, "id": null, "session_id": "550e8400e29b41d4a716446655440000"}}
+
+data:{"code": 0, "message": "", "data": true}
+```
+
+### 响应示例 (Stream - 已有会话)
+```text
+data:{"code": 0, "message": "", "data": {"answer": "Hello! How can I help you today?", "reference": {"chunks": [...], "doc_aggs": [...]}, "audio_binary": null, "id": "msg_123", "session_id": "session_1"}}
+
+data:{"code": 0, "message": "", "data": true}
+```
+
+### 响应示例 (Non-Stream)
+```json
+{
+  "code": 0,
+  "data": {
+    "answer": "Hello! How can I help you today?",
+    "reference": {
+      "chunks": [],
+      "doc_aggs": []
+    },
+    "audio_binary": null,
+    "id": "msg_123",
+    "session_id": "session_1",
+    "prompt": "...",
+    "created_at": 1704067200.123
+  }
+}
 ```
 
 ---
@@ -591,11 +947,10 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 {
   "code": 0,
   "data": {
-    "title": "Bot Name",
-    "avatar": "...",
-    "prologue": "Welcome!"
-  },
-  "message": "success"
+    "title": "Customer Service Bot",
+    "avatar": "data:image/png;base64,iVBORw0KGgo...",
+    "prologue": "Hi! I'm your assistant. What can I do for you?"
+  }
 }
 ```
 
@@ -620,7 +975,46 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `stream` | boolean | 否 | 是否流式返回 (默认: true) |
+| `question` | string | 否 | 用户问题 |
+| `session_id` | string | 否 | 会话 ID |
 | `...` | any | 否 | Agent 输入参数 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/agentbots/agent_123/completions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "Process this request",
+           "stream": true
+         }'
+```
+
+### 响应示例 (Stream)
+```text
+data:{"event": "message", "data": {"content": "Processing your request...", "session_id": "session_1"}}
+
+data:{"event": "message", "data": {"content": "Processing your request... Done!", "session_id": "session_1"}}
+
+data:{"event": "message_end", "data": {"content": "Processing your request... Done!", "reference": {}, "session_id": "session_1"}}
+
+data:[DONE]
+```
+
+### 响应示例 (Non-Stream)
+```json
+{
+  "code": 0,
+  "data": {
+    "event": "message_end",
+    "data": {
+      "content": "Request processed successfully.",
+      "reference": {},
+      "session_id": "session_1"
+    }
+  }
+}
+```
 
 ---
 
@@ -642,11 +1036,25 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 {
   "code": 0,
   "data": {
-    "title": "Agent Name",
-    "inputs": {...},
-    "prologue": "..."
-  },
-  "message": "success"
+    "title": "Data Analysis Agent",
+    "avatar": "data:image/png;base64,iVBORw0KGgo...",
+    "inputs": [
+      {
+        "key": "file",
+        "type": "file",
+        "name": "Upload File",
+        "required": true
+      },
+      {
+        "key": "query",
+        "type": "text",
+        "name": "Analysis Query",
+        "required": false
+      }
+    ],
+    "prologue": "Welcome! Please upload your data file to begin analysis.",
+    "mode": "chat"
+  }
 }
 ```
 
@@ -668,6 +1076,26 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 | `kb_ids` | list[string] | 是 | 知识库 ID 列表 |
 | `search_id` | string | 否 | 搜索应用 ID |
 
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/searchbots/ask" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "What is machine learning?",
+           "kb_ids": ["kb_1", "kb_2"]
+         }'
+```
+
+### 响应示例 (Stream)
+```text
+data:{"code": 0, "message": "", "data": {"answer": "Machine learning is...", "reference": {}}}
+
+data:{"code": 0, "message": "", "data": {"answer": "Machine learning is a subset of artificial intelligence...", "reference": {"total": 5, "chunks": [{"id": "chunk_1", "content": "...", "document_id": "doc_1", "document_name": "ml_guide.pdf", "dataset_id": "kb_1"}], "doc_aggs": [{"doc_id": "doc_1", "doc_name": "ml_guide.pdf", "count": 2}]}}}
+
+data:{"code": 0, "message": "", "data": true}
+```
+
 ---
 
 ## 19. 搜索机器人检索测试 (Searchbot Retrieval Test)
@@ -683,9 +1111,79 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `question` | string | 是 | 问题 |
-| `kb_id` | list[string] | 是 | 知识库 ID 列表 |
-| `top_k` | integer | 否 | 返回数量 |
-| `similarity_threshold` | number | 否 | 相似度阈值 |
+| `kb_id` | string 或 list[string] | 是 | 知识库 ID (列表) |
+| `top_k` | integer | 否 | 返回数量 (默认: 1024) |
+| `similarity_threshold` | number | 否 | 相似度阈值 (默认: 0.0) |
+| `vector_similarity_weight` | number | 否 | 向量相似度权重 (默认: 0.3) |
+| `doc_ids` | list[string] | 否 | 文档 ID 过滤列表 |
+| `page` | integer | 否 | 页码 (默认: 1) |
+| `size` | integer | 否 | 每页数量 (默认: 30) |
+| `rerank_id` | string | 否 | Rerank 模型 ID |
+| `use_kg` | boolean | 否 | 是否使用知识图谱 (默认: false) |
+| `highlight` | boolean | 否 | 是否高亮显示 |
+| `keyword` | boolean | 否 | 是否启用关键词提取 (默认: false) |
+| `cross_languages` | list[string] | 否 | 跨语言搜索列表 |
+| `search_id` | string | 否 | 搜索应用 ID |
+| `meta_data_filter` | object | 否 | 元数据过滤配置 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/searchbots/retrieval_test" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "What is RAG?",
+           "kb_id": ["kb_1"],
+           "top_k": 10,
+           "similarity_threshold": 0.2
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "total": 25,
+    "chunks": [
+      {
+        "chunk_id": "chunk_001",
+        "content_with_weight": "RAG (Retrieval-Augmented Generation) is a technique...",
+        "content_ltks": "rag retrieval augmented generation technique",
+        "doc_id": "doc_1",
+        "docnm_kwd": "rag_guide.pdf",
+        "kb_id": "kb_1",
+        "similarity": 0.89,
+        "vector_similarity": 0.85,
+        "term_similarity": 0.92,
+        "positions": [[1, 50, 100, 200, 150]],
+        "image_id": ""
+      },
+      {
+        "chunk_id": "chunk_002",
+        "content_with_weight": "RAG combines the power of retrieval...",
+        "content_ltks": "rag combines power retrieval",
+        "doc_id": "doc_1",
+        "docnm_kwd": "rag_guide.pdf",
+        "kb_id": "kb_1",
+        "similarity": 0.82,
+        "vector_similarity": 0.80,
+        "term_similarity": 0.84,
+        "positions": [[2, 60, 110, 210, 160]],
+        "image_id": ""
+      }
+    ],
+    "doc_aggs": [
+      {
+        "doc_id": "doc_1",
+        "doc_name": "rag_guide.pdf",
+        "count": 5
+      }
+    ],
+    "labels": ["technology", "ai"]
+  }
+}
+```
 
 ---
 
@@ -704,6 +1202,30 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 | `question` | string | 是 | 问题 |
 | `search_id` | string | 否 | 搜索应用 ID |
 
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/searchbots/related_questions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "What is RAG?"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    "How does RAG work?",
+    "RAG vs fine-tuning comparison",
+    "Best practices for RAG implementation",
+    "RAG architecture overview",
+    "Common RAG use cases"
+  ]
+}
+```
+
 ---
 
 ## 21. 获取搜索机器人详情 (Searchbot Detail)
@@ -718,6 +1240,53 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `search_id` | string | 是 | 搜索应用 ID |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/searchbots/detail?search_id=search_123" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "search_123",
+    "name": "Knowledge Search",
+    "avatar": "data:image/png;base64,iVBORw0KGgo...",
+    "description": "A search application for internal knowledge base",
+    "tenant_id": "tenant_1",
+    "created_by": "user_1",
+    "create_time": 1704067200000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1704153600000,
+    "update_date": "2024-01-02 12:00:00",
+    "status": "1",
+    "search_config": {
+      "kb_ids": ["kb_1", "kb_2"],
+      "doc_ids": [],
+      "similarity_threshold": 0.2,
+      "vector_similarity_weight": 0.3,
+      "use_kg": false,
+      "rerank_id": "",
+      "top_k": 1024,
+      "summary": true,
+      "chat_id": "llm_model_1",
+      "llm_setting": {
+        "temperature": 0.1,
+        "top_p": 0.3
+      },
+      "cross_languages": [],
+      "highlight": true,
+      "keyword": false,
+      "web_search": false,
+      "related_search": true,
+      "query_mindmap": false
+    }
+  }
+}
+```
 
 ---
 
@@ -736,3 +1305,47 @@ curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
 | `question` | string | 是 | 问题 |
 | `kb_ids` | list[string] | 是 | 知识库 ID 列表 |
 | `search_id` | string | 否 | 搜索应用 ID |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/searchbots/mindmap" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "Explain machine learning concepts",
+           "kb_ids": ["kb_1"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "name": "Machine Learning Concepts",
+    "children": [
+      {
+        "name": "Supervised Learning",
+        "children": [
+          {"name": "Classification"},
+          {"name": "Regression"}
+        ]
+      },
+      {
+        "name": "Unsupervised Learning",
+        "children": [
+          {"name": "Clustering"},
+          {"name": "Dimensionality Reduction"}
+        ]
+      },
+      {
+        "name": "Reinforcement Learning",
+        "children": [
+          {"name": "Q-Learning"},
+          {"name": "Policy Gradient"}
+        ]
+      }
+    ]
+  }
+}
+```

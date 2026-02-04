@@ -43,11 +43,33 @@ curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/documents" \
     {
       "id": "doc_1",
       "name": "document.pdf",
-      "chunk_count": 0,
-      "token_count": 0,
+      "thumbnail": null,
       "dataset_id": "dataset_123",
       "chunk_method": "naive",
-      "run": "UNSTART"
+      "parser_config": {
+        "pages": [[1, 1000000]],
+        "table_context_size": 0,
+        "image_context_size": 0
+      },
+      "source_type": "local",
+      "type": "doc",
+      "created_by": "user_123",
+      "location": "dataset_123/doc_1",
+      "size": 102400,
+      "token_count": 0,
+      "chunk_count": 0,
+      "progress": 0.0,
+      "progress_msg": "",
+      "process_begin_at": null,
+      "process_duration": 0.0,
+      "meta_fields": {},
+      "suffix": "pdf",
+      "run": "UNSTART",
+      "status": "1",
+      "create_time": "2024-01-01 12:00:00",
+      "create_date": "2024-01-01",
+      "update_time": "2024-01-01 12:00:00",
+      "update_date": "2024-01-01"
     }
   ],
   "message": "success"
@@ -97,11 +119,36 @@ curl -X PUT "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1" 
 {
   "code": 0,
   "data": {
-      "id": "doc_1",
-      "name": "new_name.pdf",
-      "run": "DONE",
-      "status": "1"
-      // ... 其他文档字段
+    "id": "doc_1",
+    "name": "new_name.pdf",
+    "thumbnail": null,
+    "dataset_id": "dataset_123",
+    "chunk_method": "naive",
+    "pipeline_id": null,
+    "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0
+    },
+    "source_type": "local",
+    "type": "doc",
+    "created_by": "user_123",
+    "location": "dataset_123/doc_1",
+    "size": 102400,
+    "token_count": 5000,
+    "chunk_count": 50,
+    "progress": 1.0,
+    "progress_msg": "Done",
+    "process_begin_at": "2024-01-01 12:00:00",
+    "process_duration": 10.5,
+    "meta_fields": {},
+    "suffix": "pdf",
+    "run": "DONE",
+    "status": "1",
+    "create_time": "2024-01-01 12:00:00",
+    "create_date": "2024-01-01",
+    "update_time": "2024-01-01 12:05:00",
+    "update_date": "2024-01-01"
   },
   "message": "success"
 }
@@ -130,7 +177,7 @@ curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1" 
 ```
 
 ### 响应示例
-(文件流)
+(文件流，Content-Type: application/octet-stream)
 
 ---
 
@@ -180,10 +227,37 @@ curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/documents?page=1&
       {
         "id": "doc_1",
         "name": "report.pdf",
-        "chunk_count": 50,
+        "thumbnail": null,
+        "dataset_id": "dataset_123",
+        "chunk_method": "naive",
+        "pipeline_id": null,
+        "parser_config": {
+          "pages": [[1, 1000000]],
+          "table_context_size": 0,
+          "image_context_size": 0
+        },
+        "source_type": "local",
+        "type": "doc",
+        "created_by": "user_123",
+        "location": "dataset_123/doc_1",
+        "size": 102400,
         "token_count": 5000,
+        "chunk_count": 50,
+        "progress": 1.0,
+        "progress_msg": "Done",
+        "process_begin_at": "2024-01-01 12:00:00",
+        "process_duration": 10.5,
+        "meta_fields": {
+          "author": "Alice"
+        },
+        "suffix": "pdf",
         "run": "DONE",
-        "create_time": "2024-01-01 12:00:00"
+        "status": "1",
+        "create_time": "2024-01-01 12:00:00",
+        "create_date": "2024-01-01",
+        "update_time": "2024-01-01 12:05:00",
+        "update_date": "2024-01-01",
+        "title": null
       }
     ]
   },
@@ -218,7 +292,9 @@ curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/metadata/summary"
   "code": 0,
   "data": {
     "summary": {
-       // 元数据统计信息
+      "author": ["Alice", "Bob"],
+      "department": ["Engineering", "Sales"],
+      "year": ["2023", "2024"]
     }
   },
   "message": "success"
@@ -438,13 +514,46 @@ curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/c
         "id": "chunk_1",
         "content": "This is a chunk content.",
         "document_id": "doc_1",
-        "important_keywords": ["keyword1"],
-        "dataset_id": "dataset_123"
+        "docnm_kwd": "report.pdf",
+        "important_keywords": ["keyword1", "keyword2"],
+        "questions": ["What is this?"],
+        "dataset_id": "dataset_123",
+        "image_id": "",
+        "available": true,
+        "positions": [[1, 100, 200, 300, 400]]
       }
     ],
     "doc": {
-        "id": "doc_1",
-        "name": "doc.pdf"
+      "id": "doc_1",
+      "name": "report.pdf",
+      "thumbnail": null,
+      "dataset_id": "dataset_123",
+      "chunk_method": "naive",
+      "pipeline_id": null,
+      "parser_config": {
+        "pages": [[1, 1000000]],
+        "table_context_size": 0,
+        "image_context_size": 0
+      },
+      "source_type": "local",
+      "type": "doc",
+      "created_by": "user_123",
+      "location": "dataset_123/doc_1",
+      "size": 102400,
+      "token_count": 5000,
+      "chunk_count": 50,
+      "progress": 1.0,
+      "progress_msg": "Done",
+      "process_begin_at": "2024-01-01 12:00:00",
+      "process_duration": 10.5,
+      "meta_fields": {},
+      "suffix": "pdf",
+      "run": "DONE",
+      "status": "1",
+      "create_time": "2024-01-01 12:00:00",
+      "create_date": "2024-01-01",
+      "update_time": "2024-01-01 12:05:00",
+      "update_date": "2024-01-01"
     }
   },
   "message": "success"
@@ -483,7 +592,8 @@ curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/
      -H "Content-Type: application/json" \
      -d '{
            "content": "New chunk content",
-           "important_keywords": ["new", "chunk"]
+           "important_keywords": ["new", "chunk"],
+           "questions": ["What is new?"]
          }'
 ```
 
@@ -493,9 +603,14 @@ curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/
   "code": 0,
   "data": {
     "chunk": {
-      "id": "generated_chunk_id",
+      "id": "a1b2c3d4e5f6g7h8",
       "content": "New chunk content",
-      // ...
+      "document_id": "doc_1",
+      "important_keywords": ["new", "chunk"],
+      "questions": ["What is new?"],
+      "dataset_id": "dataset_123",
+      "create_timestamp": 1704110400.0,
+      "create_time": "2024-01-01 12:00:00"
     }
   },
   "message": "success"
@@ -523,7 +638,7 @@ curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `chunk_ids` | list[string] | 否 | 要删除的 Chunk ID 列表 (若空则根据 API 逻辑可能删除全部或报错，具体视实现而定，建议明确指定) |
+| `chunk_ids` | list[string] | 否 | 要删除的 Chunk ID 列表 (若空则删除文档下所有 Chunk) |
 
 ### 请求示例
 ```bash
@@ -568,8 +683,8 @@ curl -X DELETE "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_
 | `content` | string | 否 | 新的 Chunk 内容 |
 | `important_keywords` | list[string] | 否 | 关键词列表 |
 | `questions` | list[string] | 否 | 相关问题列表 |
-| `available` | boolean | 否 | 是否启用 (1/0 or true/false) |
-| `positions` | list[string] | 否 | 位置信息 |
+| `available` | boolean | 否 | 是否启用 |
+| `positions` | list[list[int]] | 否 | 位置信息，每个元素为长度为 5 的整数数组 |
 
 ### 请求示例
 ```bash
@@ -577,7 +692,9 @@ curl -X PUT "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/c
      -H "Authorization: Bearer <YOUR_API_KEY>" \
      -H "Content-Type: application/json" \
      -d '{
-           "content": "Updated content"
+           "content": "Updated content",
+           "important_keywords": ["updated"],
+           "available": true
          }'
 ```
 
@@ -606,14 +723,17 @@ curl -X PUT "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/c
 | `dataset_ids` | list[string] | 是 | 搜索的数据集 ID 列表 |
 | `question` | string | 是 | 查询问题 |
 | `document_ids` | list[string] | 否 | 限定文档 ID 列表 |
+| `page` | integer | 否 | 页码 (默认: 1) |
+| `page_size` | integer | 否 | 每页数量 (默认: 30) |
 | `similarity_threshold` | number | 否 | 相似度阈值 (默认: 0.2) |
 | `vector_similarity_weight` | number | 否 | 向量相似度权重 (默认: 0.3) |
 | `top_k` | integer | 否 | 返回数量 (默认: 1024) |
-| `highlight` | boolean | 否 | 是否高亮匹配内容 |
+| `highlight` | boolean | 否 | 是否高亮匹配内容 (默认: true) |
 | `rerank_id` | string | 否 | 重排模型 ID |
 | `keyword` | boolean | 否 | 是否进行关键词增强 |
 | `cross_languages` | list[string] | 否 | 跨语言搜索配置 |
 | `use_kg` | boolean | 否 | 是否使用知识图谱 |
+| `toc_enhance` | boolean | 否 | 是否启用目录增强 |
 | `metadata_condition` | object | 否 | 元数据过滤条件 |
 
 ### 请求示例
@@ -624,7 +744,10 @@ curl -X POST "http://localhost:9380/v1/api/retrieval" \
      -d '{
            "dataset_ids": ["dataset_123"],
            "question": "what is ragflow?",
-           "top_k": 5
+           "top_k": 5,
+           "similarity_threshold": 0.2,
+           "vector_similarity_weight": 0.3,
+           "highlight": true
          }'
 ```
 
@@ -633,17 +756,39 @@ curl -X POST "http://localhost:9380/v1/api/retrieval" \
 {
   "code": 0,
   "data": {
+    "total": 5,
     "chunks": [
       {
         "id": "chunk_1",
-        "content": "RAGFlow is ...",
-        "similarity": 0.95,
+        "content": "RAGFlow is an open-source RAG engine based on deep document understanding.",
         "document_id": "doc_1",
-        "dataset_id": "dataset_123"
+        "document_keyword": "ragflow_intro.pdf",
+        "dataset_id": "dataset_123",
+        "important_keywords": ["RAGFlow", "RAG", "document understanding"],
+        "questions": [],
+        "similarity": 0.95,
+        "vector_similarity": 0.92,
+        "term_similarity": 0.98,
+        "positions": [[1, 100, 200, 300, 400]]
+      },
+      {
+        "id": "chunk_2",
+        "content": "RAGFlow provides deep document parsing capabilities.",
+        "document_id": "doc_1",
+        "document_keyword": "ragflow_intro.pdf",
+        "dataset_id": "dataset_123",
+        "important_keywords": ["document parsing"],
+        "questions": [],
+        "similarity": 0.88,
+        "vector_similarity": 0.85,
+        "term_similarity": 0.91,
+        "positions": [[2, 50, 100, 150, 200]]
       }
-    ]
+    ],
+    "doc_aggs": {
+      "doc_1": 2
+    }
   },
   "message": "success"
 }
 ```
-

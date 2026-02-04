@@ -39,9 +39,8 @@ curl -X POST "http://localhost:9380/v1/evaluation/dataset/create" \
 {
   "code": 0,
   "data": {
-    "dataset_id": "dataset_123"
-  },
-  "message": "success"
+    "dataset_id": "5a6b7c8d9e0f1a2b3c4d5e6f"
+  }
 }
 ```
 
@@ -74,15 +73,19 @@ curl -X GET "http://localhost:9380/v1/evaluation/dataset/list?page=1&page_size=1
   "data": {
     "datasets": [
       {
-        "id": "dataset_123",
+        "id": "5a6b7c8d9e0f1a2b3c4d5e6f",
+        "tenant_id": "tenant_abc123",
         "name": "My Evaluation Dataset",
-        "kb_ids": ["kb_1"],
-        "create_time": "2024-01-01 12:00:00"
+        "description": "Dataset for testing RAG performance",
+        "kb_ids": ["kb_1", "kb_2"],
+        "created_by": "user_xyz789",
+        "create_time": 1704067200000,
+        "update_time": 1704067200000,
+        "status": 1
       }
     ],
     "total": 1
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -112,13 +115,16 @@ curl -X GET "http://localhost:9380/v1/evaluation/dataset/dataset_123" \
 {
   "code": 0,
   "data": {
-    "id": "dataset_123",
+    "id": "5a6b7c8d9e0f1a2b3c4d5e6f",
+    "tenant_id": "tenant_abc123",
     "name": "My Evaluation Dataset",
     "description": "Dataset for testing RAG performance",
     "kb_ids": ["kb_1", "kb_2"],
-    "create_time": "2024-01-01 12:00:00"
-  },
-  "message": "success"
+    "created_by": "user_xyz789",
+    "create_time": 1704067200000,
+    "update_time": 1704067200000,
+    "status": 1
+  }
 }
 ```
 
@@ -155,9 +161,8 @@ curl -X PUT "http://localhost:9380/v1/evaluation/dataset/dataset_123" \
 {
   "code": 0,
   "data": {
-    "dataset_id": "dataset_123"
-  },
-  "message": "success"
+    "dataset_id": "5a6b7c8d9e0f1a2b3c4d5e6f"
+  }
 }
 ```
 
@@ -187,9 +192,8 @@ curl -X DELETE "http://localhost:9380/v1/evaluation/dataset/dataset_123" \
 {
   "code": 0,
   "data": {
-    "dataset_id": "dataset_123"
-  },
-  "message": "success"
+    "dataset_id": "5a6b7c8d9e0f1a2b3c4d5e6f"
+  }
 }
 ```
 
@@ -229,9 +233,8 @@ curl -X POST "http://localhost:9380/v1/evaluation/dataset/dataset_123/case/add" 
 {
   "code": 0,
   "data": {
-    "case_id": "case_456"
-  },
-  "message": "success"
+    "case_id": "a1b2c3d4e5f6a7b8c9d0e1f2"
+  }
 }
 ```
 
@@ -278,8 +281,7 @@ curl -X POST "http://localhost:9380/v1/evaluation/dataset/dataset_123/case/impor
     "success_count": 2,
     "failure_count": 0,
     "total": 2
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -311,14 +313,18 @@ curl -X GET "http://localhost:9380/v1/evaluation/dataset/dataset_123/cases" \
   "data": {
     "cases": [
       {
-        "id": "case_456",
+        "id": "a1b2c3d4e5f6a7b8c9d0e1f2",
+        "dataset_id": "5a6b7c8d9e0f1a2b3c4d5e6f",
         "question": "What is RAGFlow?",
-        "reference_answer": "RAGFlow is an open-source RAG engine."
+        "reference_answer": "RAGFlow is an open-source RAG engine.",
+        "relevant_doc_ids": ["doc_001", "doc_002"],
+        "relevant_chunk_ids": ["chunk_001", "chunk_002"],
+        "metadata": {"category": "general"},
+        "create_time": 1704067200000
       }
     ],
     "total": 1
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -348,9 +354,8 @@ curl -X DELETE "http://localhost:9380/v1/evaluation/case/case_456" \
 {
   "code": 0,
   "data": {
-    "case_id": "case_456"
-  },
-  "message": "success"
+    "case_id": "a1b2c3d4e5f6a7b8c9d0e1f2"
+  }
 }
 ```
 
@@ -389,9 +394,8 @@ curl -X POST "http://localhost:9380/v1/evaluation/run/start" \
 {
   "code": 0,
   "data": {
-    "run_id": "run_001"
-  },
-  "message": "success"
+    "run_id": "run1a2b3c4d5e6f7a8b9c0d1e"
+  }
 }
 ```
 
@@ -421,11 +425,26 @@ curl -X GET "http://localhost:9380/v1/evaluation/run/run_001" \
 {
   "code": 0,
   "data": {
-    "id": "run_001",
-    "status": "completed",
-    "score": 0.85
-  },
-  "message": "success"
+    "run": {
+      "id": "run1a2b3c4d5e6f7a8b9c0d1e",
+      "dataset_id": "5a6b7c8d9e0f1a2b3c4d5e6f",
+      "dialog_id": "dialog_abc123",
+      "name": "Evaluation Run 2024-01-01 12:00:00",
+      "config_snapshot": {},
+      "metrics_summary": {
+        "total_cases": 10,
+        "avg_execution_time": 2.5,
+        "avg_precision": 0.85,
+        "avg_recall": 0.78,
+        "avg_f1_score": 0.81
+      },
+      "status": "COMPLETED",
+      "created_by": "user_xyz789",
+      "create_time": 1704067200000,
+      "complete_time": 1704070800000
+    },
+    "results": []
+  }
 }
 ```
 
@@ -455,17 +474,52 @@ curl -X GET "http://localhost:9380/v1/evaluation/run/run_001/results" \
 {
   "code": 0,
   "data": {
-    "id": "run_001",
-    "items": [
+    "run": {
+      "id": "run1a2b3c4d5e6f7a8b9c0d1e",
+      "dataset_id": "5a6b7c8d9e0f1a2b3c4d5e6f",
+      "dialog_id": "dialog_abc123",
+      "name": "Evaluation Run 2024-01-01 12:00:00",
+      "config_snapshot": {},
+      "metrics_summary": {
+        "total_cases": 10,
+        "avg_execution_time": 2.5,
+        "avg_precision": 0.85,
+        "avg_recall": 0.78,
+        "avg_f1_score": 0.81
+      },
+      "status": "COMPLETED",
+      "created_by": "user_xyz789",
+      "create_time": 1704067200000,
+      "complete_time": 1704070800000
+    },
+    "results": [
       {
-        "case_id": "case_456",
-        "question": "Q1",
-        "answer": "A1",
-        "score": 1.0
+        "id": "result_abc123",
+        "run_id": "run1a2b3c4d5e6f7a8b9c0d1e",
+        "case_id": "a1b2c3d4e5f6a7b8c9d0e1f2",
+        "generated_answer": "RAGFlow is an open-source RAG engine based on deep document understanding.",
+        "retrieved_chunks": [
+          {
+            "chunk_id": "chunk_001",
+            "content": "RAGFlow is an open-source RAG engine...",
+            "similarity": 0.95
+          }
+        ],
+        "metrics": {
+          "precision": 0.9,
+          "recall": 0.85,
+          "f1_score": 0.87,
+          "hit_rate": 1.0,
+          "mrr": 1.0,
+          "answer_length": 78,
+          "has_answer": 1.0
+        },
+        "execution_time": 2.35,
+        "token_usage": null,
+        "create_time": 1704067250000
       }
     ]
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -500,10 +554,11 @@ curl -X GET "http://localhost:9380/v1/evaluation/run/list?page=1" \
   "data": {
     "runs": [],
     "total": 0
-  },
-  "message": "success"
+  }
 }
 ```
+
+> **注意**: 此接口尚未完全实现。
 
 ---
 
@@ -531,11 +586,12 @@ curl -X DELETE "http://localhost:9380/v1/evaluation/run/run_001" \
 {
   "code": 0,
   "data": {
-    "run_id": "run_001"
-  },
-  "message": "success"
+    "run_id": "run1a2b3c4d5e6f7a8b9c0d1e"
+  }
 }
 ```
+
+> **注意**: 此接口尚未完全实现。
 
 ---
 
@@ -564,11 +620,28 @@ curl -X GET "http://localhost:9380/v1/evaluation/run/run_001/recommendations" \
   "code": 0,
   "data": {
     "recommendations": [
-      "Increase top_k parameter",
-      "Adjust prompt template"
+      {
+        "issue": "Low Precision",
+        "severity": "high",
+        "description": "System is retrieving many irrelevant chunks",
+        "suggestions": [
+          "Increase similarity_threshold to filter out less relevant chunks",
+          "Enable reranking to improve chunk ordering",
+          "Reduce top_k to return fewer chunks"
+        ]
+      },
+      {
+        "issue": "Slow Response Time",
+        "severity": "medium",
+        "description": "Average response time is 5.50s",
+        "suggestions": [
+          "Reduce top_k to retrieve fewer chunks",
+          "Optimize embedding model selection",
+          "Consider caching frequently asked questions"
+        ]
+      }
     ]
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -604,10 +677,11 @@ curl -X POST "http://localhost:9380/v1/evaluation/compare" \
   "code": 0,
   "data": {
     "comparison": {}
-  },
-  "message": "success"
+  }
 }
 ```
+
+> **注意**: 此接口尚未完全实现。
 
 ---
 
@@ -634,7 +708,42 @@ curl -X GET "http://localhost:9380/v1/evaluation/run/run_001/export" \
 ```json
 {
   "code": 0,
-  "data": { "..." }
+  "data": {
+    "run": {
+      "id": "run1a2b3c4d5e6f7a8b9c0d1e",
+      "dataset_id": "5a6b7c8d9e0f1a2b3c4d5e6f",
+      "dialog_id": "dialog_abc123",
+      "name": "Evaluation Run 2024-01-01 12:00:00",
+      "config_snapshot": {},
+      "metrics_summary": {
+        "total_cases": 10,
+        "avg_execution_time": 2.5,
+        "avg_precision": 0.85,
+        "avg_recall": 0.78,
+        "avg_f1_score": 0.81
+      },
+      "status": "COMPLETED",
+      "created_by": "user_xyz789",
+      "create_time": 1704067200000,
+      "complete_time": 1704070800000
+    },
+    "results": [
+      {
+        "id": "result_abc123",
+        "run_id": "run1a2b3c4d5e6f7a8b9c0d1e",
+        "case_id": "a1b2c3d4e5f6a7b8c9d0e1f2",
+        "generated_answer": "RAGFlow is an open-source RAG engine.",
+        "retrieved_chunks": [],
+        "metrics": {
+          "answer_length": 40,
+          "has_answer": 1.0
+        },
+        "execution_time": 2.35,
+        "token_usage": null,
+        "create_time": 1704067250000
+      }
+    ]
+  }
 }
 ```
 
@@ -673,14 +782,12 @@ curl -X POST "http://localhost:9380/v1/evaluation/evaluate_single" \
 {
   "code": 0,
   "data": {
-    "answer": "Generated answer...",
-    "metrics": {
-      "fidelity": 0.9,
-      "relevance": 0.8
-    },
+    "answer": "",
+    "metrics": {},
     "retrieved_chunks": []
-  },
-  "message": "success"
+  }
 }
 ```
+
+> **注意**: 此接口尚未完全实现，返回值为占位符。
 

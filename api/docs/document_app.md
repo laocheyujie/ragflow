@@ -35,10 +35,34 @@ curl -X POST "http://localhost:9380/v1/document/upload" \
   "code": 0,
   "data": [
     {
-      "id": "doc_1",
+      "id": "550e8400e29b41d4a716446655440000",
+      "kb_id": "kb_123",
+      "parser_id": "naive",
+      "pipeline_id": null,
+      "parser_config": {
+        "pages": [[1, 1000000]],
+        "table_context_size": 0,
+        "image_context_size": 0
+      },
+      "source_type": "local",
+      "type": "doc",
+      "created_by": "user_123",
       "name": "file.pdf",
-      "size": 1024,
-      "type": "pdf"
+      "location": "file.pdf",
+      "size": 102400,
+      "token_num": 0,
+      "chunk_num": 0,
+      "progress": 0,
+      "progress_msg": "",
+      "process_begin_at": null,
+      "process_duration": 0,
+      "meta_fields": {},
+      "suffix": "pdf",
+      "run": "0",
+      "status": "1",
+      "thumbnail": "thumbnail_550e8400e29b41d4a716446655440000.png",
+      "create_time": 1706000000000,
+      "update_time": 1706000000000
     }
   ],
   "message": "success"
@@ -114,8 +138,34 @@ curl -X POST "http://localhost:9380/v1/document/create" \
 {
   "code": 0,
   "data": {
-    "id": "doc_123",
-    "name": "virtual_doc.txt"
+    "id": "550e8400e29b41d4a716446655440000",
+    "kb_id": "kb_123",
+    "parser_id": "naive",
+    "pipeline_id": null,
+    "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0
+    },
+    "source_type": "local",
+    "type": "virtual",
+    "created_by": "user_123",
+    "name": "virtual_doc.txt",
+    "location": "",
+    "size": 0,
+    "token_num": 0,
+    "chunk_num": 0,
+    "progress": 0,
+    "progress_msg": "",
+    "process_begin_at": null,
+    "process_duration": 0,
+    "meta_fields": {},
+    "suffix": "txt",
+    "run": "0",
+    "status": "1",
+    "thumbnail": null,
+    "create_time": 1706000000000,
+    "update_time": 1706000000000
   },
   "message": "success"
 }
@@ -170,9 +220,39 @@ curl -X POST "http://localhost:9380/v1/document/list?kb_id=kb_123&page=1&page_si
     "total": 100,
     "docs": [
       {
-        "id": "doc_1",
+        "id": "550e8400e29b41d4a716446655440000",
+        "kb_id": "kb_123",
+        "parser_id": "naive",
+        "pipeline_id": null,
+        "pipeline_name": null,
+        "parser_config": {
+          "pages": [[1, 1000000]],
+          "table_context_size": 0,
+          "image_context_size": 0
+        },
+        "source_type": "local",
+        "type": "doc",
+        "created_by": "user_123",
+        "nickname": "John",
         "name": "file.pdf",
-        "run_status": "1"
+        "location": "file.pdf",
+        "size": 102400,
+        "token_num": 5000,
+        "chunk_num": 50,
+        "progress": 1.0,
+        "progress_msg": "Task completed",
+        "process_begin_at": "2024-01-23 10:00:00",
+        "process_duration": 30.5,
+        "meta_fields": {
+          "author": "admin",
+          "category": "technical"
+        },
+        "suffix": "pdf",
+        "run": "3",
+        "status": "1",
+        "thumbnail": "/v1/document/image/kb_123-thumbnail_xxx.png",
+        "create_time": 1706000000000,
+        "update_time": 1706000000000
       }
     ]
   },
@@ -212,7 +292,33 @@ curl -X POST "http://localhost:9380/v1/document/filter" \
   "code": 0,
   "data": {
     "total": 50,
-    "filter": {}
+    "filter": {
+      "suffix": {
+        "pdf": 25,
+        "docx": 15,
+        "txt": 10
+      },
+      "run_status": {
+        "0": 5,
+        "1": 10,
+        "2": 3,
+        "3": 30,
+        "4": 2
+      },
+      "metadata": {
+        "author": {
+          "admin": 20,
+          "user1": 15
+        },
+        "category": {
+          "technical": 30,
+          "business": 20
+        },
+        "empty_metadata": {
+          "true": 5
+        }
+      }
+    }
   },
   "message": "success"
 }
@@ -250,9 +356,36 @@ curl -X POST "http://localhost:9380/v1/document/infos" \
   "code": 0,
   "data": [
     {
-      "id": "doc_1",
+      "id": "550e8400e29b41d4a716446655440000",
+      "kb_id": "kb_123",
+      "parser_id": "naive",
+      "pipeline_id": null,
+      "parser_config": {
+        "pages": [[1, 1000000]],
+        "table_context_size": 0,
+        "image_context_size": 0
+      },
+      "source_type": "local",
+      "type": "doc",
+      "created_by": "user_123",
       "name": "doc1.pdf",
-      "size": 1000
+      "location": "doc1.pdf",
+      "size": 102400,
+      "token_num": 5000,
+      "chunk_num": 50,
+      "progress": 1.0,
+      "progress_msg": "Task completed",
+      "process_begin_at": "2024-01-23 10:00:00",
+      "process_duration": 30.5,
+      "meta_fields": {
+        "author": "admin"
+      },
+      "suffix": "pdf",
+      "run": "3",
+      "status": "1",
+      "thumbnail": "thumbnail_xxx.png",
+      "create_time": 1706000000000,
+      "update_time": 1706000000000
     }
   ],
   "message": "success"
@@ -285,6 +418,31 @@ curl -X POST "http://localhost:9380/v1/document/metadata/summary" \
          }'
 ```
 
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "summary": {
+      "author": [
+        ["admin", 25],
+        ["user1", 15],
+        ["user2", 10]
+      ],
+      "category": [
+        ["technical", 30],
+        ["business", 20]
+      ],
+      "tags": [
+        ["important", 18],
+        ["archived", 12]
+      ]
+    }
+  },
+  "message": "success"
+}
+```
+
 ---
 
 ## 8. 批量更新元数据 (Metadata Update)
@@ -314,6 +472,18 @@ curl -X POST "http://localhost:9380/v1/document/metadata/update" \
            "selector": {"document_ids": ["doc_1"]},
            "updates": [{"key": "author", "value": "admin"}]
          }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "updated": 5,
+    "matched_docs": 10
+  },
+  "message": "success"
+}
 ```
 
 ---
@@ -349,8 +519,37 @@ curl -X POST "http://localhost:9380/v1/document/update_metadata_setting" \
 {
   "code": 0,
   "data": {
-    "id": "doc_1",
-    "metadata": {"title": "My Doc"}
+    "id": "550e8400e29b41d4a716446655440000",
+    "kb_id": "kb_123",
+    "parser_id": "naive",
+    "pipeline_id": null,
+    "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0,
+      "metadata": {
+        "title": "My Doc"
+      }
+    },
+    "source_type": "local",
+    "type": "doc",
+    "created_by": "user_123",
+    "name": "doc1.pdf",
+    "location": "doc1.pdf",
+    "size": 102400,
+    "token_num": 5000,
+    "chunk_num": 50,
+    "progress": 1.0,
+    "progress_msg": "Task completed",
+    "process_begin_at": "2024-01-23 10:00:00",
+    "process_duration": 30.5,
+    "meta_fields": {},
+    "suffix": "pdf",
+    "run": "3",
+    "status": "1",
+    "thumbnail": "thumbnail_xxx.png",
+    "create_time": 1706000000000,
+    "update_time": 1706000000000
   },
   "message": "success"
 }
@@ -382,8 +581,8 @@ curl -X GET "http://localhost:9380/v1/document/thumbnails?doc_ids=doc_1&doc_ids=
 {
   "code": 0,
   "data": {
-    "doc_1": "/v1/document/image/kb_1-thumb_1",
-    "doc_2": "/v1/document/image/kb_1-thumb_2"
+    "550e8400e29b41d4a716446655440000": "/v1/document/image/kb_123-thumbnail_550e8400e29b41d4a716446655440000.png",
+    "550e8400e29b41d4a716446655440001": "/v1/document/image/kb_123-thumbnail_550e8400e29b41d4a716446655440001.png"
   },
   "message": "success"
 }
@@ -418,12 +617,27 @@ curl -X POST "http://localhost:9380/v1/document/change_status" \
 ```
 
 ### 响应示例
+
+成功响应：
 ```json
 {
   "code": 0,
   "data": {
-    "doc_1": {"status": "1"},
-    "doc_2": {"status": "1"}
+    "550e8400e29b41d4a716446655440000": {"status": "1"},
+    "550e8400e29b41d4a716446655440001": {"status": "1"}
+  },
+  "message": "success"
+}
+```
+
+部分失败响应：
+```json
+{
+  "code": 0,
+  "data": {
+    "550e8400e29b41d4a716446655440000": {"status": "1"},
+    "550e8400e29b41d4a716446655440001": {"error": "No authorization."},
+    "550e8400e29b41d4a716446655440002": {"error": "Can't find this dataset!"}
   },
   "message": "success"
 }
@@ -686,7 +900,10 @@ curl -X POST "http://localhost:9380/v1/document/upload_and_parse" \
 ```json
 {
   "code": 0,
-  "data": ["doc_id_1", "doc_id_2"],
+  "data": [
+    "550e8400e29b41d4a716446655440000",
+    "550e8400e29b41d4a716446655440001"
+  ],
   "message": "success"
 }
 ```
@@ -734,7 +951,7 @@ curl -X POST "http://localhost:9380/v1/document/parse" \
 ```json
 {
   "code": 0,
-  "data": "Parsed text content...",
+  "data": "\n -----------------\nFile: document.pdf\nContent as following: \nThis is the first paragraph of the document.\n\nThis is the second paragraph with important information about the topic.\n\nConclusion and summary of the document content.",
   "message": "success"
 }
 ```
@@ -803,7 +1020,16 @@ curl -X POST "http://localhost:9380/v1/document/upload_info?url=https://example.
 ```json
 {
   "code": 0,
-  "data": { "..." },
+  "data": {
+    "id": "550e8400e29b41d4a716446655440000",
+    "name": "example.pdf",
+    "size": 102400,
+    "extension": "pdf",
+    "mime_type": "application/pdf",
+    "created_by": "user_123",
+    "created_at": 1706000000.123,
+    "preview_url": null
+  },
   "message": "success"
 }
 ```

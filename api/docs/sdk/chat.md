@@ -54,24 +54,39 @@ curl -X POST "http://localhost:9380/v1/api/chats" \
   "data": {
     "id": "chat_xxx",
     "name": "My Chat",
+    "description": "A helpful Assistant",
     "avatar": "",
     "tenant_id": "tenant_1",
+    "language": "English",
     "dataset_ids": ["kb_123"],
     "llm": {
-        "model_name": "gpt-3.5-turbo"
+      "model_name": "gpt-3.5-turbo",
+      "temperature": 0.1,
+      "top_p": 0.3,
+      "frequency_penalty": 0.7,
+      "presence_penalty": 0.4,
+      "max_tokens": 512
     },
     "prompt": {
-        "prompt": "You are a helpful Chat...",
-        "variables": [{"key": "knowledge", "optional": false}],
-        "opener": "Hi!",
-        "show_quote": true,
-        "top_n": 6,
-        "similarity_threshold": 0.2,
-        "keywords_similarity_weight": 0.7,
-        "rerank_model": ""
+      "prompt": "You are a helpful Chat...",
+      "variables": [{"key": "knowledge", "optional": false}],
+      "opener": "Hi!",
+      "show_quote": true,
+      "empty_response": "Sorry! No relevant content was found in the knowledge base!",
+      "tts": false,
+      "refine_multiturn": true,
+      "similarity_threshold": 0.2,
+      "keywords_similarity_weight": 0.7,
+      "top_n": 6,
+      "rerank_model": ""
     },
+    "prompt_type": "simple",
+    "do_refer": "1",
+    "status": "1",
     "create_time": 1700000000,
-    "update_time": 1700000000
+    "update_time": 1700000000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_date": "2024-01-01 00:00:00"
   },
   "message": "success"
 }
@@ -154,6 +169,18 @@ curl -X DELETE "http://localhost:9380/v1/api/chats" \
 }
 ```
 
+**部分删除成功时的响应示例**:
+```json
+{
+  "code": 0,
+  "data": {
+    "success_count": 2,
+    "errors": ["Assistant(chat_xxx) not found."]
+  },
+  "message": "Partially deleted 2 chats with 1 errors"
+}
+```
+
 ---
 
 ## 4. 获取对话列表 (List Chats)
@@ -188,19 +215,63 @@ curl -X GET "http://localhost:9380/v1/api/chats?page=1&page_size=10" \
     {
       "id": "chat_xxx",
       "name": "My Chat",
-      "dataset_ids": [],
+      "description": "A helpful Assistant",
+      "avatar": "",
+      "tenant_id": "tenant_1",
+      "language": "English",
+      "datasets": [
+        {
+          "id": "kb_123",
+          "name": "My Dataset",
+          "description": "Dataset description",
+          "tenant_id": "tenant_1",
+          "embd_id": "BAAI/bge-large-zh-v1.5",
+          "chunk_num": 100,
+          "doc_num": 10,
+          "token_num": 50000,
+          "parser_id": "naive",
+          "permission": "me",
+          "similarity_threshold": 0.2,
+          "vector_similarity_weight": 0.3,
+          "status": "1",
+          "create_time": 1700000000,
+          "update_time": 1700000000
+        }
+      ],
       "llm": {
-          "model_name": "gpt-3.5-turbo"
+        "model_name": "gpt-3.5-turbo",
+        "temperature": 0.1,
+        "top_p": 0.3,
+        "frequency_penalty": 0.7,
+        "presence_penalty": 0.4,
+        "max_tokens": 512
       },
       "prompt": {
-          "prompt": "You are a helpful Chat...",
-          "opener": "Hi!",
-          "variables": [{"key": "knowledge", "optional": false}]
+        "prompt": "You are a helpful Chat...",
+        "variables": [{"key": "knowledge", "optional": false}],
+        "opener": "Hi!",
+        "show_quote": true,
+        "empty_response": "Sorry! No relevant content was found in the knowledge base!",
+        "tts": false,
+        "refine_multiturn": true,
+        "similarity_threshold": 0.2,
+        "keywords_similarity_weight": 0.7,
+        "top_n": 6,
+        "rerank_model": ""
       },
-      "create_time": 1700000000
+      "prompt_type": "simple",
+      "do_refer": "1",
+      "status": "1",
+      "create_time": 1700000000,
+      "update_time": 1700000000,
+      "create_date": "2024-01-01 00:00:00",
+      "update_date": "2024-01-01 00:00:00"
     }
   ],
   "message": "success"
 }
 ```
 
+**注意**: 
+- 创建对话接口返回 `dataset_ids`（知识库 ID 列表）
+- 获取对话列表接口返回 `datasets`（完整的知识库对象列表）

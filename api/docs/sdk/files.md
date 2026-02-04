@@ -36,12 +36,18 @@ curl -X POST "http://localhost:9380/v1/api/file/upload" \
   "data": [
     {
       "id": "file_uuid",
+      "parent_id": "folder_123",
+      "tenant_id": "tenant_id",
+      "created_by": "tenant_id",
       "name": "document.pdf",
+      "location": "document.pdf",
       "size": 1024,
       "type": "pdf",
-      "location": "document.pdf",
-      "created_by": "tenant_id",
-      "create_time": "2024-01-01 12:00:00"
+      "source_type": "",
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1704067200000,
+      "update_date": "2024-01-01 12:00:00"
     }
   ],
   "message": "success"
@@ -85,10 +91,17 @@ curl -X POST "http://localhost:9380/v1/api/file/create" \
   "data": {
     "id": "folder_uuid",
     "parent_id": "root_id",
+    "tenant_id": "tenant_id",
+    "created_by": "tenant_id",
     "name": "New Folder",
-    "type": "FOLDER",
+    "location": "",
     "size": 0,
-    "location": ""
+    "type": "folder",
+    "source_type": "",
+    "create_time": 1704067200000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1704067200000,
+    "update_date": "2024-01-01 12:00:00"
   },
   "message": "success"
 }
@@ -129,15 +142,58 @@ curl -X GET "http://localhost:9380/v1/api/file/list?page=1&page_size=10" \
     "files": [
       {
         "id": "file_1",
+        "parent_id": "folder_id",
+        "tenant_id": "tenant_id",
+        "created_by": "tenant_id",
         "name": "doc.pdf",
-        "type": "pdf",
+        "location": "doc.pdf",
         "size": 2048,
-        "create_time": "2024-01-01 10:00:00"
+        "type": "pdf",
+        "source_type": "",
+        "create_time": 1704067200000,
+        "create_date": "2024-01-01 10:00:00",
+        "update_time": 1704067200000,
+        "update_date": "2024-01-01 10:00:00",
+        "kbs_info": [
+          {
+            "kb_id": "kb_id_1",
+            "kb_name": "My Dataset",
+            "document_id": "doc_id_1"
+          }
+        ]
+      },
+      {
+        "id": "folder_2",
+        "parent_id": "folder_id",
+        "tenant_id": "tenant_id",
+        "created_by": "tenant_id",
+        "name": "subfolder",
+        "location": "",
+        "size": 4096,
+        "type": "folder",
+        "source_type": "",
+        "create_time": 1704067200000,
+        "create_date": "2024-01-01 09:00:00",
+        "update_time": 1704067200000,
+        "update_date": "2024-01-01 09:00:00",
+        "kbs_info": [],
+        "has_child_folder": true
       }
     ],
     "parent_folder": {
       "id": "folder_id",
-      "name": "root"
+      "parent_id": "root_id",
+      "tenant_id": "tenant_id",
+      "created_by": "tenant_id",
+      "name": "root",
+      "location": "",
+      "size": 0,
+      "type": "folder",
+      "source_type": "",
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 08:00:00",
+      "update_time": 1704067200000,
+      "update_date": "2024-01-01 08:00:00"
     }
   },
   "message": "success"
@@ -169,8 +225,18 @@ curl -X GET "http://localhost:9380/v1/api/file/root_folder" \
   "data": {
     "root_folder": {
       "id": "root_id",
-      "name": "root",
-      "type": "FOLDER"
+      "parent_id": "root_id",
+      "tenant_id": "tenant_id",
+      "created_by": "tenant_id",
+      "name": "/",
+      "location": "",
+      "size": 0,
+      "type": "folder",
+      "source_type": "",
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 00:00:00",
+      "update_time": 1704067200000,
+      "update_date": "2024-01-01 00:00:00"
     }
   },
   "message": "success"
@@ -205,7 +271,18 @@ curl -X GET "http://localhost:9380/v1/api/file/parent_folder?file_id=file_xxx" \
   "data": {
     "parent_folder": {
       "id": "parent_id",
-      "name": "Parent Name"
+      "parent_id": "root_id",
+      "tenant_id": "tenant_id",
+      "created_by": "tenant_id",
+      "name": "Parent Folder",
+      "location": "",
+      "size": 0,
+      "type": "folder",
+      "source_type": "",
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 00:00:00",
+      "update_time": 1704067200000,
+      "update_date": "2024-01-01 00:00:00"
     }
   },
   "message": "success"
@@ -240,12 +317,49 @@ curl -X GET "http://localhost:9380/v1/api/file/all_parent_folder?file_id=file_xx
   "data": {
     "parent_folders": [
       {
-        "id": "root_id",
-        "name": "root"
+        "id": "file_xxx",
+        "parent_id": "folder_level_1",
+        "tenant_id": "tenant_id",
+        "created_by": "tenant_id",
+        "name": "current_file.pdf",
+        "location": "current_file.pdf",
+        "size": 1024,
+        "type": "pdf",
+        "source_type": "",
+        "create_time": 1704067200000,
+        "create_date": "2024-01-01 12:00:00",
+        "update_time": 1704067200000,
+        "update_date": "2024-01-01 12:00:00"
       },
       {
         "id": "folder_level_1",
-        "name": "Project A"
+        "parent_id": "root_id",
+        "tenant_id": "tenant_id",
+        "created_by": "tenant_id",
+        "name": "Project A",
+        "location": "",
+        "size": 0,
+        "type": "folder",
+        "source_type": "",
+        "create_time": 1704067200000,
+        "create_date": "2024-01-01 10:00:00",
+        "update_time": 1704067200000,
+        "update_date": "2024-01-01 10:00:00"
+      },
+      {
+        "id": "root_id",
+        "parent_id": "root_id",
+        "tenant_id": "tenant_id",
+        "created_by": "tenant_id",
+        "name": "/",
+        "location": "",
+        "size": 0,
+        "type": "folder",
+        "source_type": "",
+        "create_time": 1704067200000,
+        "create_date": "2024-01-01 00:00:00",
+        "update_time": 1704067200000,
+        "update_date": "2024-01-01 00:00:00"
       }
     ]
   },
@@ -348,7 +462,7 @@ curl -X GET "http://localhost:9380/v1/api/file/get/file_uuid_xxx" \
 ```
 
 ### 响应示例
-(返回二进制文件流)
+(返回二进制文件流，响应头包含 `Content-Type` 字段，如 `application/pdf` 或 `image/png`)
 
 ---
 
@@ -373,7 +487,7 @@ curl -X GET "http://localhost:9380/v1/api/file/download/att_uuid?ext=pdf" \
 ```
 
 ### 响应示例
-(返回二进制文件流)
+(返回二进制文件流，响应头包含 `Content-Type` 字段，如 `application/pdf` 或 `text/markdown`)
 
 ---
 
@@ -448,10 +562,13 @@ curl -X POST "http://localhost:9380/v1/api/file/convert" \
     {
       "id": "file2doc_id",
       "file_id": "file_1",
-      "document_id": "doc_1"
+      "document_id": "doc_1",
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1704067200000,
+      "update_date": "2024-01-01 12:00:00"
     }
   ],
   "message": "success"
 }
 ```
-

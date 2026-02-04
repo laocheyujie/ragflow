@@ -37,12 +37,34 @@ curl -X POST "http://localhost:9380/v1/api/new_token" \
   "code": 0,
   "data": {
     "tenant_id": "tenant_1",
-    "token": "generated_token_xxx",
+    "token": "ragflow-xxxxx",
     "dialog_id": "dialog_123",
+    "source": null,
+    "beta": null,
     "create_time": 1700000000,
-    "create_date": "2024-01-01 12:00:00"
-  },
-  "message": "success"
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": null,
+    "update_date": null
+  }
+}
+```
+
+若传入 `canvas_id`，则 `source` 为 `"agent"`：
+
+```json
+{
+  "code": 0,
+  "data": {
+    "tenant_id": "tenant_1",
+    "token": "ragflow-xxxxx",
+    "dialog_id": "canvas_123",
+    "source": "agent",
+    "beta": null,
+    "create_time": 1700000000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": null,
+    "update_date": null
+  }
 }
 ```
 
@@ -75,11 +97,16 @@ curl -X GET "http://localhost:9380/v1/api/token_list?dialog_id=dialog_123" \
   "data": [
     {
       "tenant_id": "tenant_1",
-      "token": "token_1",
-      "dialog_id": "dialog_123"
+      "token": "ragflow-xxxxx",
+      "dialog_id": "dialog_123",
+      "source": null,
+      "beta": null,
+      "create_time": 1700000000,
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1700001000,
+      "update_date": "2024-01-01 12:16:40"
     }
-  ],
-  "message": "success"
+  ]
 }
 ```
 
@@ -115,8 +142,7 @@ curl -X POST "http://localhost:9380/v1/api/rm" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -148,15 +174,25 @@ curl -X GET "http://localhost:9380/v1/api/stats?canvas_id=canvas_1" \
 {
   "code": 0,
   "data": {
-    "pv": [["2024-01-01 00:00:00", 10]],
-    "uv": [["2024-01-01 00:00:00", 5]],
-    "speed": [["2024-01-01 00:00:00", 15.5]],
-    "tokens": [["2024-01-01 00:00:00", 1.2]],
-    "round": [["2024-01-01 00:00:00", 20]],
-    "thumb_up": [["2024-01-01 00:00:00", 2]]
-  },
-  "message": "success"
+    "pv": [["2024-01-01", 10], ["2024-01-02", 15]],
+    "uv": [["2024-01-01", 5], ["2024-01-02", 8]],
+    "speed": [["2024-01-01", 15.5], ["2024-01-02", 18.2]],
+    "tokens": [["2024-01-01", 1.2], ["2024-01-02", 2.5]],
+    "round": [["2024-01-01", 3.5], ["2024-01-02", 4.2]],
+    "thumb_up": [["2024-01-01", 2], ["2024-01-02", 5]]
+  }
 }
 ```
+
+### 响应字段说明
+
+| 字段名 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `pv` | list | 页面访问量，格式为 `[[日期, 数量], ...]` |
+| `uv` | list | 独立访客数，格式为 `[[日期, 数量], ...]` |
+| `speed` | list | 平均响应速度 (tokens/秒)，格式为 `[[日期, 速度], ...]` |
+| `tokens` | list | Token 消耗量 (千)，格式为 `[[日期, 数量], ...]` |
+| `round` | list | 平均对话轮数，格式为 `[[日期, 轮数], ...]` |
+| `thumb_up` | list | 点赞数，格式为 `[[日期, 数量], ...]` |
 
 ---

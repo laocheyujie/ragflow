@@ -54,20 +54,39 @@ curl -X POST "http://localhost:9380/v1/dialog/set" \
   "code": 0,
   "data": {
     "id": "dialog_xyz",
+    "tenant_id": "user_abc",
     "name": "My Assistant",
-    "kb_ids": ["kb_123"],
-    "llm_id": "chatgpt-3.5",
-    "prompt_config": {
-        "system": "You are a helpful assistant.",
-        "parameters": []
-    },
     "description": "A helpful dialog",
     "icon": "",
+    "language": "English",
+    "llm_id": "chatgpt-3.5",
+    "llm_setting": {
+      "temperature": 0.1,
+      "top_p": 0.3,
+      "frequency_penalty": 0.7,
+      "presence_penalty": 0.4,
+      "max_tokens": 512
+    },
+    "prompt_type": "simple",
+    "prompt_config": {
+      "system": "You are a helpful assistant.",
+      "prologue": "Hi! I'm your assistant. What can I do for you?",
+      "parameters": [],
+      "empty_response": "Sorry! No relevant content was found in the knowledge base!"
+    },
+    "meta_data_filter": {},
+    "similarity_threshold": 0.1,
+    "vector_similarity_weight": 0.3,
     "top_n": 6,
     "top_k": 1024,
+    "do_refer": "1",
     "rerank_id": "",
-    "similarity_threshold": 0.1,
-    "vector_similarity_weight": 0.3
+    "kb_ids": ["kb_123"],
+    "status": "1",
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1700000000000,
+    "update_date": "2024-01-01 12:00:00"
   },
   "message": "success"
 }
@@ -100,21 +119,40 @@ curl -X GET "http://localhost:9380/v1/dialog/get?dialog_id=dialog_xyz" \
   "code": 0,
   "data": {
     "id": "dialog_xyz",
+    "tenant_id": "user_abc",
     "name": "My Assistant",
-    "kb_ids": ["kb_123"],
-    "kb_names": ["Knowledge Base 1"],
-    "llm_id": "chatgpt-3.5",
-    "prompt_config": {
-        "system": "You are a helpful assistant.",
-        "parameters": []
-    },
     "description": "A helpful dialog",
     "icon": "",
+    "language": "English",
+    "llm_id": "chatgpt-3.5",
+    "llm_setting": {
+      "temperature": 0.1,
+      "top_p": 0.3,
+      "frequency_penalty": 0.7,
+      "presence_penalty": 0.4,
+      "max_tokens": 512
+    },
+    "prompt_type": "simple",
+    "prompt_config": {
+      "system": "You are a helpful assistant.",
+      "prologue": "Hi! I'm your assistant. What can I do for you?",
+      "parameters": [],
+      "empty_response": "Sorry! No relevant content was found in the knowledge base!"
+    },
+    "meta_data_filter": {},
+    "similarity_threshold": 0.1,
+    "vector_similarity_weight": 0.3,
     "top_n": 6,
     "top_k": 1024,
+    "do_refer": "1",
     "rerank_id": "",
-    "similarity_threshold": 0.1,
-    "vector_similarity_weight": 0.3
+    "kb_ids": ["kb_123"],
+    "kb_names": ["Knowledge Base 1"],
+    "status": "1",
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1700000000000,
+    "update_date": "2024-01-01 12:00:00"
   },
   "message": "success"
 }
@@ -145,9 +183,40 @@ curl -X GET "http://localhost:9380/v1/dialog/list" \
   "data": [
     {
       "id": "dialog_xyz",
+      "tenant_id": "user_abc",
       "name": "My Assistant",
+      "description": "A helpful dialog",
+      "icon": "",
+      "language": "English",
+      "llm_id": "chatgpt-3.5",
+      "llm_setting": {
+        "temperature": 0.1,
+        "top_p": 0.3,
+        "frequency_penalty": 0.7,
+        "presence_penalty": 0.4,
+        "max_tokens": 512
+      },
+      "prompt_type": "simple",
+      "prompt_config": {
+        "system": "You are a helpful assistant.",
+        "prologue": "Hi! I'm your assistant. What can I do for you?",
+        "parameters": [],
+        "empty_response": "Sorry! No relevant content was found in the knowledge base!"
+      },
+      "meta_data_filter": {},
+      "similarity_threshold": 0.1,
+      "vector_similarity_weight": 0.3,
+      "top_n": 6,
+      "top_k": 1024,
+      "do_refer": "1",
+      "rerank_id": "",
       "kb_ids": ["kb_123"],
-      "kb_names": ["Knowledge Base 1"]
+      "kb_names": ["Knowledge Base 1"],
+      "status": "1",
+      "create_time": 1700000000000,
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1700000000000,
+      "update_date": "2024-01-01 12:00:00"
     }
   ],
   "message": "success"
@@ -194,10 +263,40 @@ curl -X POST "http://localhost:9380/v1/dialog/next?page=1&page_size=10" \
   "code": 0,
   "data": {
     "dialogs": [
-      { 
-        "id": "dialog_xyz", 
+      {
+        "id": "dialog_xyz",
+        "tenant_id": "user_abc",
         "name": "My Assistant",
-        "kb_ids": ["kb_123"]
+        "description": "A helpful dialog",
+        "language": "English",
+        "llm_id": "chatgpt-3.5",
+        "llm_setting": {
+          "temperature": 0.1,
+          "top_p": 0.3,
+          "frequency_penalty": 0.7,
+          "presence_penalty": 0.4,
+          "max_tokens": 512
+        },
+        "prompt_type": "simple",
+        "prompt_config": {
+          "system": "You are a helpful assistant.",
+          "prologue": "Hi! I'm your assistant. What can I do for you?",
+          "parameters": [],
+          "empty_response": "Sorry! No relevant content was found in the knowledge base!"
+        },
+        "similarity_threshold": 0.1,
+        "vector_similarity_weight": 0.3,
+        "top_n": 6,
+        "top_k": 1024,
+        "do_refer": "1",
+        "rerank_id": "",
+        "kb_ids": ["kb_123"],
+        "icon": "",
+        "status": "1",
+        "nickname": "John Doe",
+        "tenant_avatar": "",
+        "update_time": 1700000000000,
+        "create_time": 1700000000000
       }
     ],
     "total": 1

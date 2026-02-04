@@ -23,11 +23,13 @@ curl -X GET "http://localhost:9380/v1/system/version" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": "0.1.0",
-  "message": "success"
+  "message": "success",
+  "data": "v0.18.0"
 }
 ```
 
@@ -50,11 +52,15 @@ curl -X GET "http://localhost:9380/v1/system/status" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
     "doc_engine": {
+      "type": "elasticsearch",
       "status": "green",
       "elapsed": "10.5"
     },
@@ -72,9 +78,42 @@ curl -X GET "http://localhost:9380/v1/system/status" \
       "status": "green",
       "elapsed": "1.0"
     },
+    "task_executor_heartbeats": {
+      "task_executor_1": []
+    }
+  }
+}
+```
+
+**部分失败响应:**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "doc_engine": {
+      "type": "unknown",
+      "status": "red",
+      "elapsed": "50.0",
+      "error": "Connection refused"
+    },
+    "storage": {
+      "storage": "minio",
+      "status": "green",
+      "elapsed": "5.2"
+    },
+    "database": {
+      "database": "mysql",
+      "status": "green",
+      "elapsed": "2.1"
+    },
+    "redis": {
+      "status": "red",
+      "elapsed": "1.0",
+      "error": "Lost connection!"
+    },
     "task_executor_heartbeats": {}
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -96,9 +135,32 @@ curl -X GET "http://localhost:9380/v1/system/healthz"
 ```
 
 ### 响应示例
+
+**成功响应 (HTTP 200):**
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "db": "ok",
+  "redis": "ok",
+  "doc_engine": "ok",
+  "storage": "ok"
+}
+```
+
+**失败响应 (HTTP 500):**
+```json
+{
+  "status": "nok",
+  "db": "ok",
+  "redis": "nok",
+  "doc_engine": "ok",
+  "storage": "ok",
+  "_meta": {
+    "redis": {
+      "elapsed": "1.0",
+      "error": "Connection refused"
+    }
+  }
 }
 ```
 
@@ -146,19 +208,29 @@ curl -X POST "http://localhost:9380/v1/system/new_token?name=my_token" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
-    "tenant_id": "tenant_1",
-    "token": "ragflow-xxxxxxxx",
-    "beta": "xxxxxxxx",
+    "tenant_id": "abc123def456",
+    "token": "ragflow-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "beta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "create_time": 1700000000,
     "create_date": "2024-01-01 12:00:00",
     "update_time": null,
     "update_date": null
-  },
-  "message": "success"
+  }
+}
+```
+
+**失败响应 (Tenant 不存在):**
+```json
+{
+  "code": 102,
+  "message": "Tenant not found!"
 }
 ```
 
@@ -181,19 +253,33 @@ curl -X GET "http://localhost:9380/v1/system/token_list" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": [
     {
-      "tenant_id": "tenant_1",
-      "token": "ragflow-xxxxxxxx",
-      "beta": "xxxxxxxx",
+      "tenant_id": "abc123def456",
+      "token": "ragflow-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "beta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "create_time": 1700000000,
-      "create_date": "2024-01-01 12:00:00"
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1700001000,
+      "update_date": "2024-01-01 12:16:40",
+      "dialog_id": null,
+      "source": null
     }
-  ],
-  "message": "success"
+  ]
+}
+```
+
+**失败响应 (Tenant 不存在):**
+```json
+{
+  "code": 102,
+  "message": "Tenant not found!"
 }
 ```
 
@@ -219,11 +305,21 @@ curl -X DELETE "http://localhost:9380/v1/system/token/ragflow-xxxxxxxx" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
+}
+```
+
+**失败响应 (Tenant 不存在):**
+```json
+{
+  "code": 102,
+  "message": "Tenant not found!"
 }
 ```
 
@@ -245,13 +341,15 @@ curl -X GET "http://localhost:9380/v1/system/config"
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
     "registerEnabled": true
-  },
-  "message": "success"
+  }
 }
 ```
 

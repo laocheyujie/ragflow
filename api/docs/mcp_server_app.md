@@ -47,16 +47,26 @@ curl -X POST "http://localhost:9380/v1/mcp_server/list?page=1&page_size=10" \
   "data": {
     "mcp_servers": [
       {
-        "id": "mcp_1",
+        "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
         "name": "My MCP Server",
-        "url": "http://example.com/sse",
         "server_type": "sse",
-        "create_time": 1700000000
+        "url": "http://example.com/sse",
+        "description": "A sample MCP server",
+        "variables": {
+          "tools": {
+            "get_weather": {
+              "name": "get_weather",
+              "description": "Get weather info",
+              "enabled": true
+            }
+          }
+        },
+        "create_date": "2024-01-15 10:30:00",
+        "update_date": "2024-01-15 10:30:00"
       }
     ],
     "total": 1
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -86,14 +96,27 @@ curl -X GET "http://localhost:9380/v1/mcp_server/detail?mcp_id=mcp_1" \
 {
   "code": 0,
   "data": {
-    "id": "mcp_1",
+    "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
     "name": "My MCP Server",
+    "tenant_id": "tenant_abc123",
     "url": "http://example.com/sse",
     "server_type": "sse",
-    "variables": {},
-    "headers": {}
-  },
-  "message": "success"
+    "description": null,
+    "variables": {
+      "tools": {
+        "get_weather": {
+          "name": "get_weather",
+          "description": "Get weather info",
+          "enabled": true
+        }
+      }
+    },
+    "headers": {},
+    "create_time": 1705312200000,
+    "create_date": "2024-01-15 10:30:00",
+    "update_time": 1705312200000,
+    "update_date": "2024-01-15 10:30:00"
+  }
 }
 ```
 
@@ -136,12 +159,29 @@ curl -X POST "http://localhost:9380/v1/mcp_server/create" \
 {
   "code": 0,
   "data": {
-    "id": "generated_uuid",
+    "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+    "tenant_id": "tenant_abc123",
     "name": "Weather MCP",
     "url": "http://weather-mcp.example.com/sse",
-    "server_type": "sse"
-  },
-  "message": "success"
+    "server_type": "sse",
+    "headers": {"Authorization": "Basic xxx"},
+    "variables": {
+      "tools": {
+        "get_weather": {
+          "name": "get_weather",
+          "description": "Get weather info for a location",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "city": {"type": "string", "description": "City name"}
+            },
+            "required": ["city"]
+          },
+          "enabled": true
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -183,11 +223,27 @@ curl -X POST "http://localhost:9380/v1/mcp_server/update" \
 {
   "code": 0,
   "data": {
-    "id": "mcp_1",
+    "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
     "name": "Updated Weather MCP",
-    "url": "http://weather-mcp.example.com/sse"
-  },
-  "message": "success"
+    "tenant_id": "tenant_abc123",
+    "url": "http://weather-mcp.example.com/sse",
+    "server_type": "sse",
+    "description": null,
+    "variables": {
+      "tools": {
+        "get_weather": {
+          "name": "get_weather",
+          "description": "Get weather info",
+          "enabled": true
+        }
+      }
+    },
+    "headers": {},
+    "create_time": 1705312200000,
+    "create_date": "2024-01-15 10:30:00",
+    "update_time": 1705398600000,
+    "update_date": "2024-01-16 10:30:00"
+  }
 }
 ```
 
@@ -221,8 +277,7 @@ curl -X POST "http://localhost:9380/v1/mcp_server/rm" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -268,12 +323,24 @@ curl -X POST "http://localhost:9380/v1/mcp_server/import" \
         "server": "my-server",
         "success": true,
         "action": "created",
-        "id": "new_uuid",
+        "id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
         "new_name": "my-server"
+      },
+      {
+        "server": "existing-server",
+        "success": true,
+        "action": "created",
+        "id": "b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7",
+        "new_name": "existing-server_0",
+        "message": "Renamed from 'existing-server' to 'existing-server_0' avoid duplication"
+      },
+      {
+        "server": "invalid-server",
+        "success": false,
+        "message": "Missing required fields (type or url)"
       }
     ]
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -314,11 +381,23 @@ curl -X POST "http://localhost:9380/v1/mcp_server/export" \
         "url": "http://example.com/sse",
         "name": "My MCP Server",
         "authorization_token": "",
-        "tools": {}
+        "tools": {
+          "get_weather": {
+            "name": "get_weather",
+            "description": "Get weather info",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "city": {"type": "string"}
+              },
+              "required": ["city"]
+            },
+            "enabled": true
+          }
+        }
       }
     }
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -354,16 +433,37 @@ curl -X POST "http://localhost:9380/v1/mcp_server/list_tools" \
 {
   "code": 0,
   "data": {
-    "mcp_1": [
+    "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6": [
       {
         "name": "get_weather",
-        "description": "Get weather info",
-        "inputSchema": {},
+        "description": "Get weather info for a location",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "City name"
+            }
+          },
+          "required": ["city"]
+        },
         "enabled": true
+      },
+      {
+        "name": "get_forecast",
+        "description": "Get weather forecast",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "city": {"type": "string"},
+            "days": {"type": "integer", "default": 7}
+          },
+          "required": ["city"]
+        },
+        "enabled": false
       }
     ]
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -406,11 +506,11 @@ curl -X POST "http://localhost:9380/v1/mcp_server/test_tool" \
     "content": [
       {
         "type": "text",
-        "text": "Weather in Beijing is Sunny"
+        "text": "Weather in Beijing: Sunny, 25°C, Humidity 45%"
       }
-    ]
-  },
-  "message": "success"
+    ],
+    "isError": false
+  }
 }
 ```
 
@@ -447,9 +547,19 @@ curl -X POST "http://localhost:9380/v1/mcp_server/cache_tools" \
 {
   "code": 0,
   "data": {
-    "get_weather": {"name": "get_weather", "enabled": true}
-  },
-  "message": "success"
+    "get_weather": {
+      "name": "get_weather",
+      "description": "Get weather info",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {"type": "string"}
+        },
+        "required": ["city"]
+      },
+      "enabled": true
+    }
+  }
 }
 ```
 
@@ -490,11 +600,33 @@ curl -X POST "http://localhost:9380/v1/mcp_server/test_mcp" \
   "data": [
     {
       "name": "get_weather",
-      "description": "Get weather info",
+      "description": "Get weather info for a location",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City name"
+          }
+        },
+        "required": ["city"]
+      },
+      "enabled": true
+    },
+    {
+      "name": "get_forecast",
+      "description": "Get weather forecast for upcoming days",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {"type": "string"},
+          "days": {"type": "integer", "default": 7}
+        },
+        "required": ["city"]
+      },
       "enabled": true
     }
-  ],
-  "message": "success"
+  ]
 }
 ```
 

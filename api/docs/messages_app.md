@@ -40,10 +40,33 @@ curl -X POST "http://localhost:9380/v1/messages" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "message": "Successfully added to memories."
+  "message": "Successfully added to memories.",
+  "data": null
+}
+```
+
+**部分失败响应:**
+```json
+{
+  "code": 100,
+  "message": "Some messages failed to add.",
+  "data": [
+    {
+      "memory_id": "mem_123",
+      "success": true,
+      "message": "Message saved successfully."
+    },
+    {
+      "memory_id": "mem_456",
+      "success": false,
+      "message": "Memory 'mem_456' not found."
+    }
+  ]
 }
 ```
 
@@ -70,11 +93,31 @@ curl -X DELETE "http://localhost:9380/v1/messages/mem_123:1001" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": true,
+  "data": null
+}
+```
+
+**失败响应 (Memory 不存在):**
+```json
+{
+  "code": 101,
+  "message": "Memory 'mem_123' not found.",
+  "data": null
+}
+```
+
+**失败响应 (操作失败):**
+```json
+{
+  "code": 100,
+  "message": "Failed to forget message '1001' in memory 'mem_123'.",
+  "data": null
 }
 ```
 
@@ -112,11 +155,31 @@ curl -X PUT "http://localhost:9380/v1/messages/mem_123:1001" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": true,
+  "data": null
+}
+```
+
+**失败响应 (Memory 不存在):**
+```json
+{
+  "code": 101,
+  "message": "Memory 'mem_123' not found.",
+  "data": null
+}
+```
+
+**失败响应 (参数错误):**
+```json
+{
+  "code": 102,
+  "message": "Status must be a boolean.",
+  "data": null
 }
 ```
 
@@ -145,24 +208,51 @@ curl -X GET "http://localhost:9380/v1/messages?memory_id=mem_123&limit=5" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": true,
   "data": [
     {
-      "id": "msg_1",
-      "role": "user",
-      "content": "Hello",
-      "create_time": 1700000000
+      "message_id": 1001,
+      "message_type": "raw",
+      "source_id": 0,
+      "memory_id": "mem_123",
+      "user_id": "",
+      "agent_id": "agent_1",
+      "session_id": "session_abc",
+      "valid_at": "2024-01-01 12:00:00",
+      "invalid_at": null,
+      "forget_at": null,
+      "status": 1,
+      "content": "User Input: Hello\nAgent Response: Hi there!"
     },
     {
-      "id": "msg_2",
-      "role": "assistant",
-      "content": "Hi there!",
-      "create_time": 1700000001
+      "message_id": 1002,
+      "message_type": "semantic",
+      "source_id": 1001,
+      "memory_id": "mem_123",
+      "user_id": "",
+      "agent_id": "agent_1",
+      "session_id": "session_abc",
+      "valid_at": "2024-01-01 12:00:00",
+      "invalid_at": null,
+      "forget_at": null,
+      "status": 1,
+      "content": "The user greeted the agent."
     }
-  ],
-  "message": "success"
+  ]
+}
+```
+
+**失败响应 (参数缺失):**
+```json
+{
+  "code": 102,
+  "message": "memory_ids is required.",
+  "data": null
 }
 ```
 
@@ -194,17 +284,37 @@ curl -X GET "http://localhost:9380/v1/messages/search?memory_id=mem_123&query=He
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": true,
   "data": [
     {
-      "id": "msg_1",
-      "content": "Hello world",
-      "similarity": 0.9
+      "message_id": 1001,
+      "message_type": "raw",
+      "source_id": 0,
+      "memory_id": "mem_123",
+      "user_id": "",
+      "agent_id": "agent_1",
+      "session_id": "session_abc",
+      "valid_at": "2024-01-01 12:00:00",
+      "invalid_at": null,
+      "forget_at": null,
+      "status": 1,
+      "content": "User Input: Hello world\nAgent Response: Hi there!"
     }
-  ],
-  "message": "success"
+  ]
+}
+```
+
+**失败响应 (参数缺失):**
+```json
+{
+  "code": 102,
+  "message": "memory_id, query can't be empty.",
+  "data": null
 }
 ```
 
@@ -231,17 +341,44 @@ curl -X GET "http://localhost:9380/v1/messages/mem_123:1001/content" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": true,
   "data": {
-    "id": 1001,
+    "message_id": 1001,
+    "message_type": "raw",
+    "source_id": 0,
     "memory_id": "mem_123",
-    "content": "Message content here...",
-    "role": "user",
-    "create_time": "2024-01-01 12:00:00"
-  },
-  "message": "success"
+    "user_id": "",
+    "agent_id": "agent_1",
+    "session_id": "session_abc",
+    "valid_at": "2024-01-01 12:00:00",
+    "invalid_at": null,
+    "forget_at": null,
+    "status": 1,
+    "content": "User Input: Hello\nAgent Response: Hi there!"
+  }
+}
+```
+
+**失败响应 (Memory 不存在):**
+```json
+{
+  "code": 101,
+  "message": "Memory 'mem_123' not found.",
+  "data": null
+}
+```
+
+**失败响应 (Message 不存在):**
+```json
+{
+  "code": 101,
+  "message": "Message '1001' in memory 'mem_123' not found.",
+  "data": null
 }
 ```
 

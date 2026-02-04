@@ -43,16 +43,40 @@ curl -X POST "http://localhost:9380/v1/api/datasets" \
 {
   "code": 0,
   "data": {
-    "id": "kb_123456",
+    "id": "a1b2c3d4e5f6789012345678",
     "name": "My Knowledge Base",
     "avatar": "",
+    "tenant_id": "user123456789",
+    "language": "English",
     "description": "",
+    "embedding_model": "BAAI/bge-large-zh-v1.5",
     "permission": "me",
-    "embd_id": "BAAI/bge-large-zh-v1.5",
-    "parser_id": "naive",
-    "parser_config": { "..." },
-    "create_time": 1700000000,
-    "create_date": "2024-01-01 12:00:00"
+    "created_by": "user123456789",
+    "document_count": 0,
+    "token_num": 0,
+    "chunk_count": 0,
+    "similarity_threshold": 0.2,
+    "vector_similarity_weight": 0.3,
+    "chunk_method": "naive",
+    "pipeline_id": null,
+    "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0,
+      "llm_id": "deepseek-chat"
+    },
+    "pagerank": 0,
+    "graphrag_task_id": null,
+    "graphrag_task_finish_at": null,
+    "raptor_task_id": null,
+    "raptor_task_finish_at": null,
+    "mindmap_task_id": null,
+    "mindmap_task_finish_at": null,
+    "status": "1",
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1700000000000,
+    "update_date": "2024-01-01 12:00:00"
   },
   "message": "success"
 }
@@ -84,15 +108,24 @@ curl -X DELETE "http://localhost:9380/v1/api/datasets" \
          }'
 ```
 
-### 响应示例
+### 响应示例 (成功)
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+### 响应示例 (部分成功)
 ```json
 {
   "code": 0,
   "data": {
-    "success_count": 2,
-    "errors": []
+    "success_count": 1,
+    "errors": ["Remove document 'doc_123' error for dataset 'kb_2'"]
   },
-  "message": "Successfully deleted 2 datasets, 0 failed. Details: ..."
+  "message": "Successfully deleted 1 datasets, 1 failed. Details: Remove document 'doc_123' error for dataset 'kb_2'..."
 }
 ```
 
@@ -134,10 +167,40 @@ curl -X PUT "http://localhost:9380/v1/api/datasets/kb_123" \
 {
   "code": 0,
   "data": {
-    "id": "kb_123",
+    "id": "a1b2c3d4e5f6789012345678",
     "name": "My Knowledge Base",
+    "avatar": "",
+    "tenant_id": "user123456789",
+    "language": "English",
     "description": "Updated description",
-    ...
+    "embedding_model": "BAAI/bge-large-zh-v1.5",
+    "permission": "me",
+    "created_by": "user123456789",
+    "document_count": 5,
+    "token_num": 12345,
+    "chunk_count": 100,
+    "similarity_threshold": 0.2,
+    "vector_similarity_weight": 0.3,
+    "chunk_method": "naive",
+    "pipeline_id": null,
+    "parser_config": {
+      "pages": [[1, 1000000]],
+      "table_context_size": 0,
+      "image_context_size": 0,
+      "llm_id": "deepseek-chat"
+    },
+    "pagerank": 0,
+    "graphrag_task_id": null,
+    "graphrag_task_finish_at": null,
+    "raptor_task_id": null,
+    "raptor_task_finish_at": null,
+    "mindmap_task_id": null,
+    "mindmap_task_finish_at": null,
+    "status": "1",
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1700001000000,
+    "update_date": "2024-01-01 12:16:40"
   },
   "message": "success"
 }
@@ -175,11 +238,41 @@ curl -X GET "http://localhost:9380/v1/api/datasets?page=1&page_size=10" \
   "code": 0,
   "data": [
     {
-      "id": "kb_1",
+      "id": "a1b2c3d4e5f6789012345678",
       "name": "Dataset 1",
-      "create_time": 1700000000
-    },
-    ...
+      "avatar": "",
+      "tenant_id": "user123456789",
+      "language": "English",
+      "description": "My first dataset",
+      "embedding_model": "BAAI/bge-large-zh-v1.5",
+      "permission": "me",
+      "created_by": "user123456789",
+      "document_count": 10,
+      "token_num": 50000,
+      "chunk_count": 500,
+      "similarity_threshold": 0.2,
+      "vector_similarity_weight": 0.3,
+      "chunk_method": "naive",
+      "pipeline_id": null,
+      "parser_config": {
+        "pages": [[1, 1000000]],
+        "table_context_size": 0,
+        "image_context_size": 0,
+        "llm_id": "deepseek-chat"
+      },
+      "pagerank": 0,
+      "graphrag_task_id": null,
+      "graphrag_task_finish_at": null,
+      "raptor_task_id": null,
+      "raptor_task_finish_at": null,
+      "mindmap_task_id": null,
+      "mindmap_task_finish_at": null,
+      "status": "1",
+      "create_time": 1700000000000,
+      "create_date": "2024-01-01 12:00:00",
+      "update_time": 1700000000000,
+      "update_date": "2024-01-01 12:00:00"
+    }
   ],
   "total": 100,
   "message": "success"
@@ -211,10 +304,28 @@ curl -X GET "http://localhost:9380/v1/api/datasets/kb_123/knowledge_graph" \
   "code": 0,
   "data": {
     "graph": {
-      "nodes": [...],
-      "edges": [...]
+      "nodes": [
+        {
+          "id": "node_1",
+          "label": "Entity A",
+          "pagerank": 0.85
+        },
+        {
+          "id": "node_2",
+          "label": "Entity B",
+          "pagerank": 0.72
+        }
+      ],
+      "edges": [
+        {
+          "source": "node_1",
+          "target": "node_2",
+          "weight": 0.9,
+          "label": "related_to"
+        }
+      ]
     },
-    "mind_map": { "..." }
+    "mind_map": {}
   },
   "message": "success"
 }
@@ -272,7 +383,7 @@ curl -X POST "http://localhost:9380/v1/api/datasets/kb_123/run_graphrag" \
 {
   "code": 0,
   "data": {
-    "graphrag_task_id": "task_abc123"
+    "graphrag_task_id": "a1b2c3d4e5f6789012345678"
   },
   "message": "success"
 }
@@ -302,10 +413,33 @@ curl -X GET "http://localhost:9380/v1/api/datasets/kb_123/trace_graphrag" \
 {
   "code": 0,
   "data": {
-    "id": "task_abc123",
+    "id": "a1b2c3d4e5f6789012345678",
+    "doc_id": "graph_raptor_x",
+    "from_page": 0,
+    "to_page": 100000000,
+    "task_type": "graphrag",
+    "priority": 0,
+    "begin_at": "2024-01-01 12:00:00",
+    "process_duration": 120.5,
     "progress": 0.5,
-    "status": "running"
+    "progress_msg": "12:00:00 Task has been received.\n12:01:00 Processing entities...",
+    "retry_count": 0,
+    "digest": "",
+    "chunk_ids": "",
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1700000120000,
+    "update_date": "2024-01-01 12:02:00"
   },
+  "message": "success"
+}
+```
+
+### 响应示例 (任务未找到)
+```json
+{
+  "code": 0,
+  "data": {},
   "message": "success"
 }
 ```
@@ -334,7 +468,7 @@ curl -X POST "http://localhost:9380/v1/api/datasets/kb_123/run_raptor" \
 {
   "code": 0,
   "data": {
-    "raptor_task_id": "task_xyz789"
+    "raptor_task_id": "a1b2c3d4e5f6789012345678"
   },
   "message": "success"
 }
@@ -364,11 +498,33 @@ curl -X GET "http://localhost:9380/v1/api/datasets/kb_123/trace_raptor" \
 {
   "code": 0,
   "data": {
-    "id": "task_xyz789",
+    "id": "a1b2c3d4e5f6789012345678",
+    "doc_id": "graph_raptor_x",
+    "from_page": 0,
+    "to_page": 100000000,
+    "task_type": "raptor",
+    "priority": 0,
+    "begin_at": "2024-01-01 12:00:00",
+    "process_duration": 300.0,
     "progress": 1.0,
-    "status": "success"
+    "progress_msg": "12:00:00 Task has been received.\n12:05:00 RAPTOR completed successfully.",
+    "retry_count": 0,
+    "digest": "",
+    "chunk_ids": "chunk_1 chunk_2 chunk_3",
+    "create_time": 1700000000000,
+    "create_date": "2024-01-01 12:00:00",
+    "update_time": 1700000300000,
+    "update_date": "2024-01-01 12:05:00"
   },
   "message": "success"
 }
 ```
 
+### 响应示例 (任务未找到)
+```json
+{
+  "code": 0,
+  "data": {},
+  "message": "success"
+}
+```

@@ -30,17 +30,25 @@ curl -X GET "http://localhost:9380/v1/llm/factories" \
     {
       "name": "OpenAI",
       "logo": "base64_string...",
-      "tags": "LLM, Text Embedding",
-      "model_types": ["chat", "embedding"]
+      "tags": "LLM, Text Embedding, Image2Text, TTS",
+      "status": "1",
+      "model_types": ["chat", "embedding", "image2text", "tts"]
     },
     {
       "name": "VolcEngine",
       "logo": "base64_string...",
-      "tags": "LLM",
-      "model_types": ["chat", "embedding"]
+      "tags": "LLM, Text Embedding, Rerank",
+      "status": "1",
+      "model_types": ["chat", "embedding", "rerank"]
+    },
+    {
+      "name": "Ollama",
+      "logo": "base64_string...",
+      "tags": "LLM, Text Embedding, Image2Text",
+      "status": "1",
+      "model_types": ["chat", "embedding", "image2text", "speech2text", "rerank", "tts", "ocr"]
     }
-  ],
-  "message": "success"
+  ]
 }
 ```
 
@@ -77,8 +85,15 @@ curl -X POST "http://localhost:9380/v1/llm/set_api_key" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
+}
+```
+
+### 错误响应示例
+```json
+{
+  "code": 102,
+  "message": "\nFail to access embedding model(text-embedding-3-small) using this api key.Invalid API key provided."
 }
 ```
 
@@ -127,8 +142,22 @@ curl -X POST "http://localhost:9380/v1/llm/add_llm" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
+}
+```
+
+### 错误响应示例
+```json
+{
+  "code": 102,
+  "message": "LLM factory InvalidFactory is not allowed"
+}
+```
+
+```json
+{
+  "code": 102,
+  "message": "\nFail to access model(OpenAI/gpt-4o).Invalid API key provided."
 }
 ```
 
@@ -164,8 +193,7 @@ curl -X POST "http://localhost:9380/v1/llm/delete_llm" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -203,8 +231,7 @@ curl -X POST "http://localhost:9380/v1/llm/enable_llm" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -238,8 +265,7 @@ curl -X POST "http://localhost:9380/v1/llm/delete_factory" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -264,26 +290,83 @@ curl -X GET "http://localhost:9380/v1/llm/my_llms?include_details=true" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
-### 响应示例
+### 响应示例 (include_details=false，默认)
 ```json
 {
   "code": 0,
   "data": {
     "OpenAI": {
-      "tags": "LLM, Text Embedding",
+      "tags": "LLM, Text Embedding, Image2Text, TTS",
       "llm": [
         {
           "type": "chat",
-          "name": "gpt-3.5-turbo",
-          "used_token": 1000,
+          "name": "gpt-4o",
+          "used_token": 15000,
+          "status": "1"
+        },
+        {
+          "type": "embedding",
+          "name": "text-embedding-3-small",
+          "used_token": 5000,
+          "status": "1"
+        }
+      ]
+    },
+    "VolcEngine": {
+      "tags": "LLM, Text Embedding, Rerank",
+      "llm": [
+        {
+          "type": "chat",
+          "name": "doubao-pro-32k",
+          "used_token": 2000,
+          "status": "1"
+        }
+      ]
+    }
+  }
+}
+```
+
+### 响应示例 (include_details=true)
+```json
+{
+  "code": 0,
+  "data": {
+    "OpenAI": {
+      "tags": "LLM, Text Embedding, Image2Text, TTS",
+      "llm": [
+        {
+          "type": "chat",
+          "name": "gpt-4o",
+          "used_token": 15000,
+          "api_base": "https://api.openai.com/v1",
+          "max_tokens": 128000,
+          "status": "1"
+        },
+        {
+          "type": "embedding",
+          "name": "text-embedding-3-small",
+          "used_token": 5000,
           "api_base": "",
+          "max_tokens": 8191,
+          "status": "1"
+        }
+      ]
+    },
+    "Ollama": {
+      "tags": "LLM, Text Embedding, Image2Text",
+      "llm": [
+        {
+          "type": "chat",
+          "name": "llama3.1:8b",
+          "used_token": 0,
+          "api_base": "http://localhost:11434",
           "max_tokens": 8192,
           "status": "1"
         }
       ]
     }
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -315,15 +398,101 @@ curl -X GET "http://localhost:9380/v1/llm/list?model_type=chat" \
   "data": {
     "OpenAI": [
       {
-        "llm_name": "gpt-3.5-turbo",
+        "llm_name": "gpt-4o",
         "model_type": "chat",
         "fid": "OpenAI",
+        "max_tokens": 128000,
+        "tags": "LLM, 128k",
+        "is_tools": true,
+        "status": "1",
+        "available": true
+      },
+      {
+        "llm_name": "gpt-4o-mini",
+        "model_type": "chat",
+        "fid": "OpenAI",
+        "max_tokens": 128000,
+        "tags": "LLM, 128k",
+        "is_tools": true,
+        "status": "1",
+        "available": true
+      },
+      {
+        "llm_name": "text-embedding-3-small",
+        "model_type": "embedding",
+        "fid": "OpenAI",
+        "max_tokens": 8191,
+        "tags": "Text Embedding",
+        "is_tools": false,
+        "status": "1",
+        "available": true
+      }
+    ],
+    "Ollama": [
+      {
+        "llm_name": "llama3.1:8b",
+        "model_type": "chat",
+        "fid": "Ollama",
         "available": true,
         "status": "1"
       }
+    ],
+    "Builtin": [
+      {
+        "llm_name": "flag-embedding",
+        "model_type": "embedding",
+        "fid": "Builtin",
+        "max_tokens": 8192,
+        "tags": "Text Embedding",
+        "is_tools": false,
+        "status": "1",
+        "available": true
+      }
     ]
-  },
-  "message": "success"
+  }
+}
+```
+
+### 响应示例 (筛选 model_type=embedding)
+```json
+{
+  "code": 0,
+  "data": {
+    "OpenAI": [
+      {
+        "llm_name": "text-embedding-3-small",
+        "model_type": "embedding",
+        "fid": "OpenAI",
+        "max_tokens": 8191,
+        "tags": "Text Embedding",
+        "is_tools": false,
+        "status": "1",
+        "available": true
+      },
+      {
+        "llm_name": "text-embedding-3-large",
+        "model_type": "embedding",
+        "fid": "OpenAI",
+        "max_tokens": 8191,
+        "tags": "Text Embedding",
+        "is_tools": false,
+        "status": "1",
+        "available": true
+      }
+    ],
+    "Builtin": [
+      {
+        "llm_name": "flag-embedding",
+        "model_type": "embedding",
+        "fid": "Builtin",
+        "max_tokens": 8192,
+        "tags": "Text Embedding",
+        "is_tools": false,
+        "status": "1",
+        "available": true
+      }
+    ]
+  }
 }
 ```
 

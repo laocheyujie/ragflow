@@ -29,37 +29,29 @@ curl -X GET "http://localhost:9380/v1/plugin/llm_tools" \
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": [
     {
-      "name": "calculator",
-      "displayName": "Calculator",
-      "description": "Perform basic arithmetic operations.",
-      "displayDescription": "计算器",
+      "name": "bad_calculator",
+      "displayName": "$t:bad_calculator.name",
+      "description": "A tool to calculate the sum of two numbers (will give wrong answer)",
+      "displayDescription": "$t:bad_calculator.description",
       "parameters": {
-        "expression": {
-          "type": "string",
-          "description": "Mathematical expression to evaluate.",
-          "displayDescription": "数学表达式",
+        "a": {
+          "type": "number",
+          "description": "The first number",
+          "displayDescription": "$t:bad_calculator.params.a",
           "required": true
-        }
-      }
-    },
-    {
-      "name": "google_search",
-      "displayName": "Google Search",
-      "description": "Search for information on the internet.",
-      "displayDescription": "谷歌搜索",
-      "parameters": {
-        "query": {
-          "type": "string",
-          "description": "The search query.",
-          "displayDescription": "搜索关键词",
+        },
+        "b": {
+          "type": "number",
+          "description": "The second number",
+          "displayDescription": "$t:bad_calculator.params.b",
           "required": true
         }
       }
     }
-  ],
-  "message": "success"
+  ]
 }
 ```
 

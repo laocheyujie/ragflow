@@ -37,13 +37,23 @@ curl -X GET "http://localhost:9380/v1/api/agents?page=1&page_size=10" \
   "data": [
     {
       "id": "agent_id_1",
+      "avatar": null,
+      "user_id": "user_id_xxx",
       "title": "Agent Title",
-      "dsl": { "..." },
-      "create_time": 1700000000,
-      "update_time": 1700000000
+      "permission": "me",
+      "description": "Agent description",
+      "canvas_type": null,
+      "canvas_category": "agent_canvas",
+      "dsl": {
+        "components": {},
+        "connections": []
+      },
+      "create_time": 1700000000000,
+      "create_date": "2023-11-14 22:13:20",
+      "update_time": 1700000000000,
+      "update_date": "2023-11-14 22:13:20"
     }
-  ],
-  "message": "success"
+  ]
 }
 ```
 
@@ -78,12 +88,29 @@ curl -X POST "http://localhost:9380/v1/api/agents" \
          }'
 ```
 
-### 响应示例
+### 成功响应
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
+}
+```
+
+### 失败响应 - 标题已存在
+```json
+{
+  "code": 102,
+  "message": "Agent with title My New Agent already exists."
+}
+```
+
+### 失败响应 - 缺少必填参数
+```json
+{
+  "code": 101,
+  "message": "No DSL data in request.",
+  "data": false
 }
 ```
 
@@ -114,12 +141,21 @@ curl -X PUT "http://localhost:9380/v1/api/agents/agent_id_1" \
          }'
 ```
 
-### 响应示例
+### 成功响应
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
+}
+```
+
+### 失败响应 - 无权限操作
+```json
+{
+  "code": 103,
+  "message": "Only owner of canvas authorized for this operation.",
+  "data": false
 }
 ```
 
@@ -142,12 +178,21 @@ curl -X DELETE "http://localhost:9380/v1/api/agents/agent_id_1" \
      -H "Authorization: Bearer <YOUR_API_KEY>"
 ```
 
-### 响应示例
+### 成功响应
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
+}
+```
+
+### 失败响应 - 无权限操作
+```json
+{
+  "code": 103,
+  "message": "Only owner of canvas authorized for this operation.",
+  "data": false
 }
 ```
 
@@ -175,13 +220,87 @@ curl -X POST "http://localhost:9380/v1/api/webhook/agent_id_1" \
 ```
 
 ### 响应示例
-响应内容取决于 Agent DSL 中的配置。如果是流式响应 (SSE)，则返回数据流；如果是立即返回，则返回配置的 JSON 响应。
+
+响应内容取决于 Agent DSL 中 Webhook 组件的 `execution_mode` 配置：
+
+#### 立即返回模式 (Immediately)
+当 `execution_mode` 为 `Immediately` 时，Webhook 会立即返回配置的响应，Agent 在后台异步执行：
 
 ```json
 {
-  "message": "Agent execution result...",
+  "result": "ok"
+}
+```
+> 注意: 响应内容由 DSL 中的 `response.body_template` 配置决定
+
+#### 等待结果模式 (Wait for Result)
+当 `execution_mode` 不为 `Immediately` 时，Webhook 会等待 Agent 执行完成后返回结果：
+
+**成功响应**
+```json
+{
+  "message": "Agent execution completed. Here is the result...",
   "success": true,
   "code": 200
+}
+```
+
+**失败响应**
+```json
+{
+  "code": 400,
+  "message": "Error message describing what went wrong",
+  "success": false
+}
+```
+
+### 错误响应示例
+
+**Canvas 不存在**
+```json
+{
+  "code": 100,
+  "message": "Canvas not found."
+}
+```
+
+**Webhook 未配置**
+```json
+{
+  "code": 100,
+  "message": "Webhook not configured for this agent."
+}
+```
+
+**HTTP 方法不允许**
+```json
+{
+  "code": 100,
+  "message": "HTTP method 'DELETE' not allowed for this webhook."
+}
+```
+
+**请求体过大**
+```json
+{
+  "code": 100,
+  "message": "Request body too large: 15728640 > 10485760"
+}
+```
+
+**认证失败**
+```json
+{
+  "code": 100,
+  "message": "Invalid token authentication"
+}
+```
+
+**速率限制**
+```json
+{
+  "code": 100,
+  "message": "Too many requests (rate limit exceeded)"
 }
 ```
 
@@ -208,27 +327,117 @@ curl -X GET "http://localhost:9380/v1/api/webhook_trace/agent_id_1?since_ts=1700
 ```
 
 ### 响应示例
+
+#### 初次请求 (未提供 since_ts)
 ```json
 {
   "code": 0,
   "data": {
-    "webhook_id": "encoded_id_xxx",
+    "webhook_id": null,
+    "events": [],
+    "next_since_ts": 1700000000.0,
+    "finished": false
+  }
+}
+```
+
+#### 发现新 Webhook 执行
+```json
+{
+  "code": 0,
+  "data": {
+    "webhook_id": "dGltZXN0YW1wX2hhc2g",
+    "events": [],
+    "next_since_ts": 1700000001.5,
+    "finished": false
+  }
+}
+```
+
+#### 获取执行过程中的事件
+```json
+{
+  "code": 0,
+  "data": {
+    "webhook_id": "dGltZXN0YW1wX2hhc2g",
     "events": [
       {
         "ts": 1700000001.5,
-        "event": "node_start",
-        "data": { "..." }
+        "event": "message",
+        "data": {
+          "content": "Processing your request..."
+        }
       },
       {
         "ts": 1700000002.0,
-        "event": "finished",
-        "success": true
+        "event": "message",
+        "data": {
+          "content": "Analysis complete."
+        }
       }
     ],
     "next_since_ts": 1700000002.0,
+    "finished": false
+  }
+}
+```
+
+#### 执行完成
+```json
+{
+  "code": 0,
+  "data": {
+    "webhook_id": "dGltZXN0YW1wX2hhc2g",
+    "events": [
+      {
+        "ts": 1700000003.0,
+        "event": "finished",
+        "elapsed_time": 2.5,
+        "success": true
+      }
+    ],
+    "next_since_ts": 1700000003.0,
     "finished": true
-  },
-  "message": "success"
+  }
+}
+```
+
+#### 执行出错
+```json
+{
+  "code": 0,
+  "data": {
+    "webhook_id": "dGltZXN0YW1wX2hhc2g",
+    "events": [
+      {
+        "ts": 1700000002.5,
+        "event": "error",
+        "message": "Connection timeout",
+        "error_type": "TimeoutError"
+      },
+      {
+        "ts": 1700000002.6,
+        "event": "finished",
+        "elapsed_time": 1.1,
+        "success": false
+      }
+    ],
+    "next_since_ts": 1700000002.6,
+    "finished": true
+  }
+}
+```
+
+#### 无追踪数据
+```json
+{
+  "code": 0,
+  "data": {
+    "webhook_id": null,
+    "events": [],
+    "next_since_ts": 1700000000.0,
+    "finished": false
+  }
 }
 ```
 

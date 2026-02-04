@@ -44,15 +44,21 @@ curl -X POST "http://localhost:9380/v1/connector/set" \
 {
   "code": 0,
   "data": {
-    "id": "connector_123",
+    "id": "a1b2c3d4e5f6789012345678",
+    "tenant_id": "tenant_abc123",
     "name": "My Drive Connector",
     "source": "google_drive",
-    "status": "1",
-    "config": {"folder_id": "xxx", "api_key": "xxx"},
+    "input_type": "poll",
+    "config": {"folder_id": "xxx", "credentials": {}},
     "refresh_freq": 60,
     "prune_freq": 720,
     "timeout_secs": 1740,
-    "tenant_id": "tenant_1"
+    "indexing_start": null,
+    "status": "schedule",
+    "create_time": 1706150400000,
+    "create_date": "2024-01-25 08:00:00",
+    "update_time": 1706150400000,
+    "update_date": "2024-01-25 08:00:00"
   },
   "message": "success"
 }
@@ -82,10 +88,16 @@ curl -X GET "http://localhost:9380/v1/connector/list" \
   "code": 0,
   "data": [
     {
-      "id": "connector_123",
+      "id": "a1b2c3d4e5f6789012345678",
       "name": "My Drive Connector",
       "source": "google_drive",
-      "status": "1"
+      "status": "schedule"
+    },
+    {
+      "id": "b2c3d4e5f67890123456789a",
+      "name": "Gmail Connector",
+      "source": "gmail",
+      "status": "running"
     }
   ],
   "message": "success"
@@ -118,10 +130,21 @@ curl -X GET "http://localhost:9380/v1/connector/connector_123" \
 {
   "code": 0,
   "data": {
-    "id": "connector_123",
+    "id": "a1b2c3d4e5f6789012345678",
+    "tenant_id": "tenant_abc123",
     "name": "My Drive Connector",
     "source": "google_drive",
-    "config": { "..." }
+    "input_type": "poll",
+    "config": {"folder_id": "xxx", "credentials": {}},
+    "refresh_freq": 60,
+    "prune_freq": 720,
+    "timeout_secs": 1740,
+    "indexing_start": null,
+    "status": "schedule",
+    "create_time": 1706150400000,
+    "create_date": "2024-01-25 08:00:00",
+    "update_time": 1706150400000,
+    "update_date": "2024-01-25 08:00:00"
   },
   "message": "success"
 }
@@ -158,10 +181,27 @@ curl -X GET "http://localhost:9380/v1/connector/connector_123/logs?page=1&page_s
     "total": 100,
     "logs": [
       {
-        "id": "log_1",
-        "connector_id": "connector_123",
-        "status": "success",
-        "start_time": "2024-01-01 12:00:00"
+        "id": "log_a1b2c3d4e5f6789012345678",
+        "connector_id": "a1b2c3d4e5f6789012345678",
+        "kb_id": "kb_abc123def456",
+        "update_date": "2024-01-25 12:00:00",
+        "poll_range_start": "2024-01-01T00:00:00+00:00",
+        "poll_range_end": "2024-01-25T12:00:00+00:00",
+        "new_docs_indexed": 10,
+        "total_docs_indexed": 150,
+        "error_msg": "",
+        "full_exception_trace": "",
+        "error_count": 0,
+        "name": "My Drive Connector",
+        "source": "google_drive",
+        "tenant_id": "tenant_abc123",
+        "timeout_secs": 1740,
+        "kb_name": "My Knowledge Base",
+        "kb_avatar": null,
+        "auto_parse": "1",
+        "reindex": "0",
+        "status": "done",
+        "update_time": 1706184000000
       }
     ]
   },
@@ -196,11 +236,12 @@ curl -X PUT "http://localhost:9380/v1/connector/connector_123/resume" \
 ```
 
 ### 响应示例
+
+**成功:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -231,11 +272,21 @@ curl -X PUT "http://localhost:9380/v1/connector/connector_123/rebuild" \
 ```
 
 ### 响应示例
+
+**成功:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
+}
+```
+
+**失败:**
+```json
+{
+  "code": 100,
+  "data": false,
+  "message": "Error message describing the failure"
 }
 ```
 
@@ -264,8 +315,7 @@ curl -X POST "http://localhost:9380/v1/connector/connector_123/rm" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": true
 }
 ```
 
@@ -297,15 +347,32 @@ curl -X POST "http://localhost:9380/v1/connector/google/oauth/web/start?type=goo
 ```
 
 ### 响应示例
+
+**成功:**
 ```json
 {
   "code": 0,
   "data": {
-    "flow_id": "uuid_flow_id",
-    "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth?...",
+    "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+    "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=xxx.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fexample.com%2Fcallback&scope=...&state=550e8400-e29b-41d4-a716-446655440000&access_type=offline&include_granted_scopes=true&prompt=consent",
     "expires_in": 900
-  },
-  "message": "success"
+  }
+}
+```
+
+**错误 (凭证已包含 refresh_token):**
+```json
+{
+  "code": 102,
+  "message": "Uploaded credentials already include a refresh token."
+}
+```
+
+**错误 (缺少 web 配置):**
+```json
+{
+  "code": 102,
+  "message": "Google OAuth JSON must include a 'web' client configuration to use browser-based authorization."
 }
 ```
 
@@ -329,6 +396,39 @@ Google OAuth 授权完成后的回调接口 (通常由浏览器重定向调用)�
 ### 响应
 返回 HTML 页面，提示授权成功或失败，并自动关闭窗口。
 
+**成功示例 (HTML):**
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Google Gmail Authorization</title></head>
+<body>
+  <h1>Authorization complete</h1>
+  <p>Authorization completed successfully.</p>
+  <script>
+    window.opener.postMessage({
+      "type": "ragflow-gmail-oauth",
+      "status": "success",
+      "flowId": "550e8400-e29b-41d4-a716-446655440000",
+      "message": "Authorization completed successfully."
+    }, "*");
+    window.close();
+  </script>
+</body>
+</html>
+```
+
+**失败示例 (HTML):**
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Google Gmail Authorization</title></head>
+<body>
+  <h1>Authorization failed</h1>
+  <p>Authorization session expired. Please restart from the main window.</p>
+</body>
+</html>
+```
+
 ---
 
 ## 10. Google Drive OAuth 回调 (Drive Callback)
@@ -348,6 +448,39 @@ Google OAuth 授权完成后的回调接口 (通常由浏览器重定向调用)�
 
 ### 响应
 返回 HTML 页面，提示授权成功或失败，并自动关闭窗口。
+
+**成功示例 (HTML):**
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Google Drive Authorization</title></head>
+<body>
+  <h1>Authorization complete</h1>
+  <p>Authorization completed successfully.</p>
+  <script>
+    window.opener.postMessage({
+      "type": "ragflow-google-drive-oauth",
+      "status": "success",
+      "flowId": "550e8400-e29b-41d4-a716-446655440000",
+      "message": "Authorization completed successfully."
+    }, "*");
+    window.close();
+  </script>
+</body>
+</html>
+```
+
+**失败示例 (HTML):**
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Google Drive Authorization</title></head>
+<body>
+  <h1>Authorization failed</h1>
+  <p>Missing authorization code from Google.</p>
+</body>
+</html>
+```
 
 ---
 
@@ -377,13 +510,30 @@ curl -X POST "http://localhost:9380/v1/connector/google/oauth/web/result?type=go
 ```
 
 ### 响应示例
+
+**成功 (授权已完成):**
 ```json
 {
   "code": 0,
   "data": {
-    "credentials": { "token": "...", "refresh_token": "..." }
-  },
-  "message": "success"
+    "credentials": "{\"token\": \"ya29.xxx\", \"refresh_token\": \"1//xxx\", \"token_uri\": \"https://oauth2.googleapis.com/token\", \"client_id\": \"xxx.apps.googleusercontent.com\", \"client_secret\": \"xxx\", \"scopes\": [\"https://www.googleapis.com/auth/drive.readonly\"]}"
+  }
+}
+```
+
+**等待中 (授权尚未完成):**
+```json
+{
+  "code": 110,
+  "message": "Authorization is still pending."
+}
+```
+
+**权限错误:**
+```json
+{
+  "code": 109,
+  "message": "You are not allowed to access this authorization result."
 }
 ```
 
@@ -417,15 +567,24 @@ curl -X POST "http://localhost:9380/v1/connector/box/oauth/web/start" \
 ```
 
 ### 响应示例
+
+**成功:**
 ```json
 {
   "code": 0,
   "data": {
-    "flow_id": "uuid_flow_id",
-    "authorization_url": "https://account.box.com/api/oauth2/authorize?...",
+    "flow_id": "550e8400-e29b-41d4-a716-446655440000",
+    "authorization_url": "https://account.box.com/api/oauth2/authorize?response_type=code&client_id=xxx&redirect_uri=https%3A%2F%2Fexample.com%2Fcallback&state=550e8400-e29b-41d4-a716-446655440000",
     "expires_in": 900
-  },
-  "message": "success"
+  }
+}
+```
+
+**错误 (缺少必要参数):**
+```json
+{
+  "code": 102,
+  "message": "Box client_id and client_secret are required."
 }
 ```
 
@@ -448,6 +607,39 @@ Box OAuth 授权完成后的回调接口。
 
 ### 响应
 返回 HTML 页面，提示授权成功或失败，并自动关闭窗口。
+
+**成功示例 (HTML):**
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Box Authorization</title></head>
+<body>
+  <h1>Authorization complete</h1>
+  <p>Authorization completed successfully.</p>
+  <script>
+    window.opener.postMessage({
+      "type": "ragflow-box-oauth",
+      "status": "success",
+      "flowId": "550e8400-e29b-41d4-a716-446655440000",
+      "message": "Authorization completed successfully."
+    }, "*");
+    window.close();
+  </script>
+</body>
+</html>
+```
+
+**失败示例 (HTML):**
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Box Authorization</title></head>
+<body>
+  <h1>Authorization failed</h1>
+  <p>Missing authorization code from Box.</p>
+</body>
+</html>
+```
 
 ---
 
@@ -476,18 +668,36 @@ curl -X POST "http://localhost:9380/v1/connector/box/oauth/web/result" \
 ```
 
 ### 响应示例
+
+**成功 (授权已完成):**
 ```json
 {
   "code": 0,
   "data": {
     "credentials": {
-      "user_id": "...",
-      "client_id": "...",
-      "access_token": "...",
-      "refresh_token": "..."
+      "user_id": "user_abc123def456",
+      "client_id": "box_client_id_xxx",
+      "client_secret": "box_client_secret_xxx",
+      "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refresh_token": "abc123def456ghi789..."
     }
-  },
-  "message": "success"
+  }
+}
+```
+
+**等待中 (授权尚未完成):**
+```json
+{
+  "code": 110,
+  "message": "Authorization is still pending."
+}
+```
+
+**权限错误:**
+```json
+{
+  "code": 109,
+  "message": "You are not allowed to access this authorization result."
 }
 ```
 

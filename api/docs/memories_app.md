@@ -43,13 +43,26 @@ curl -X POST "http://localhost:9380/v1/memories" \
   "data": {
     "id": "mem_xxx",
     "name": "My Memory",
+    "avatar": null,
+    "tenant_id": "tenant_xxx",
+    "owner_name": null,
     "memory_type": ["raw", "semantic"],
+    "storage_type": "table",
     "embd_id": "embd_123",
     "llm_id": "llm_123",
+    "permissions": "me",
+    "description": null,
+    "memory_size": 5242880,
+    "forgetting_policy": "FIFO",
+    "temperature": 0.5,
+    "system_prompt": "...",
+    "user_prompt": null,
     "create_time": 1700000000,
-    "update_time": 1700000000
+    "create_date": "2024-01-01 00:00:00",
+    "update_time": 1700000000,
+    "update_date": "2024-01-01 00:00:00"
   },
-  "message": "success"
+  "message": true
 }
 ```
 
@@ -98,10 +111,26 @@ curl -X PUT "http://localhost:9380/v1/memories/mem_xxx" \
   "data": {
     "id": "mem_xxx",
     "name": "Updated Memory Name",
+    "avatar": null,
+    "tenant_id": "tenant_xxx",
+    "owner_name": null,
+    "memory_type": ["raw", "semantic"],
+    "storage_type": "table",
+    "embd_id": "embd_123",
+    "llm_id": "llm_123",
+    "permissions": "me",
+    "description": null,
+    "memory_size": 5242880,
+    "forgetting_policy": "FIFO",
     "temperature": 0.7,
-    "memory_type": ["raw", "semantic"]
+    "system_prompt": "...",
+    "user_prompt": null,
+    "create_time": 1700000000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_time": 1700000001,
+    "update_date": "2024-01-01 00:00:01"
   },
-  "message": "success"
+  "message": true
 }
 ```
 
@@ -124,8 +153,8 @@ curl -X DELETE "http://localhost:9380/v1/memories/mem_xxx" \
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "data": null,
+  "message": true
 }
 ```
 
@@ -164,12 +193,20 @@ curl -X GET "http://localhost:9380/v1/memories?page=1&page_size=10" \
       {
         "id": "mem_xxx",
         "name": "My Memory",
-        "memory_type": ["raw"]
+        "avatar": null,
+        "tenant_id": "tenant_xxx",
+        "owner_name": "User Name",
+        "memory_type": ["raw"],
+        "storage_type": "table",
+        "permissions": "me",
+        "description": null,
+        "create_time": 1700000000,
+        "create_date": "2024-01-01 00:00:00"
       }
     ],
     "total_count": 1
   },
-  "message": "success"
+  "message": true
 }
 ```
 
@@ -195,10 +232,26 @@ curl -X GET "http://localhost:9380/v1/memories/mem_xxx/config" \
   "data": {
     "id": "mem_xxx",
     "name": "My Memory",
+    "avatar": null,
+    "tenant_id": "tenant_xxx",
     "owner_name": "User Name",
-    "memory_type": ["raw"]
+    "memory_type": ["raw"],
+    "storage_type": "table",
+    "embd_id": "embd_123",
+    "llm_id": "llm_123",
+    "permissions": "me",
+    "description": null,
+    "memory_size": 5242880,
+    "forgetting_policy": "FIFO",
+    "temperature": 0.5,
+    "system_prompt": "...",
+    "user_prompt": null,
+    "create_time": 1700000000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_time": 1700000000,
+    "update_date": "2024-01-01 00:00:00"
   },
-  "message": "success"
+  "message": true
 }
 ```
 
@@ -232,12 +285,20 @@ curl -X GET "http://localhost:9380/v1/memories/mem_xxx?page=1" \
   "code": 0,
   "data": {
     "messages": {
-        "message_list": [],
-        "total": 0
+      "message_list": [
+        {
+          "message_id": 1,
+          "agent_id": "agent_xxx",
+          "agent_name": "Agent Name",
+          "content": "...",
+          "task": {}
+        }
+      ],
+      "total": 1
     },
-    "storage_type": "graph"
+    "storage_type": "table"
   },
-  "message": "success"
+  "message": true
 }
 ```
 

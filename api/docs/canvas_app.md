@@ -29,9 +29,16 @@ curl -X GET "http://localhost:9380/v1/canvas/templates" \
   "data": [
     {
       "id": "template_1",
-      "title": "Translation Agent",
-      "description": "A template for translation tasks.",
-      "dsl": "..."
+      "avatar": null,
+      "title": {"en": "Translation Agent", "zh": "翻译代理"},
+      "description": {"en": "A template for translation tasks.", "zh": "用于翻译任务的模板。"},
+      "canvas_type": "chatbot",
+      "canvas_category": "agent_canvas",
+      "dsl": {},
+      "create_time": 1704067200000,
+      "create_date": "2024-01-01 00:00:00",
+      "update_time": 1704067200000,
+      "update_date": "2024-01-01 00:00:00"
     }
   ],
   "message": "success"
@@ -99,7 +106,7 @@ curl -X POST "http://localhost:9380/v1/canvas/set" \
      -H "Content-Type: application/json" \
      -d '{
            "title": "My New Agent",
-           "dsl": {...}
+           "dsl": {}
          }'
 ```
 
@@ -108,10 +115,10 @@ curl -X POST "http://localhost:9380/v1/canvas/set" \
 {
   "code": 0,
   "data": {
-    "id": "generated_canvas_id",
+    "id": "a1b2c3d4e5f6789012345678",
     "title": "My New Agent",
-    "dsl": {...},
-    "user_id": "user_1"
+    "dsl": {},
+    "user_id": "user_123456"
   },
   "message": "success"
 }
@@ -144,9 +151,19 @@ curl -X GET "http://localhost:9380/v1/canvas/get/canvas_123" \
   "code": 0,
   "data": {
     "id": "canvas_123",
+    "avatar": null,
     "title": "My Agent",
-    "dsl": {...},
-    "create_time": "..."
+    "dsl": {},
+    "description": "A sample agent",
+    "permission": "me",
+    "update_time": 1704067200000,
+    "user_id": "user_123456",
+    "create_time": 1704067200000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_date": "2024-01-01 00:00:00",
+    "canvas_category": "agent_canvas",
+    "nickname": "John Doe",
+    "tenant_avatar": null
   },
   "message": "success"
 }
@@ -179,8 +196,18 @@ curl -X GET "http://localhost:9380/v1/canvas/getsse/canvas_123" \
   "code": 0,
   "data": {
     "id": "canvas_123",
+    "avatar": null,
+    "user_id": "user_123456",
     "title": "My Agent",
-    "dsl": {...}
+    "permission": "me",
+    "description": "A sample agent",
+    "canvas_type": "chatbot",
+    "canvas_category": "agent_canvas",
+    "dsl": {},
+    "create_time": 1704067200000,
+    "create_date": "2024-01-01 00:00:00",
+    "update_time": 1704067200000,
+    "update_date": "2024-01-01 00:00:00"
   },
   "message": "success"
 }
@@ -204,6 +231,7 @@ curl -X GET "http://localhost:9380/v1/canvas/getsse/canvas_123" \
 | `query` | string | 否 | 用户输入的问题 |
 | `files` | list | 否 | 上传的文件列表 |
 | `inputs` | object | 否 | 其他输入参数 |
+| `user_id` | string | 否 | 用户 ID |
 
 ### 请求示例
 ```bash
@@ -217,10 +245,25 @@ curl -X POST "http://localhost:9380/v1/canvas/completion" \
 ```
 
 ### 响应示例 (SSE Stream)
-```
-data: {"content": "Thinking...", "node_id": "step_1"}
 
-data: {"content": "Hello! How can I help you?", "node_id": "step_2"}
+**Agent 模式**:
+```
+data: {"event": "message", "data": {"content": "Thinking...", "node_id": "step_1"}}
+
+data: {"event": "message", "data": {"content": "Hello! How can I help you?", "node_id": "step_2"}}
+
+data: {"event": "message_end", "data": {"reference": {}}}
+```
+
+**DataFlow 模式**:
+```json
+{
+  "code": 0,
+  "data": {
+    "message_id": "task_uuid_12345678"
+  },
+  "message": "success"
+}
 ```
 
 ---
@@ -237,7 +280,7 @@ data: {"content": "Hello! How can I help you?", "node_id": "step_2"}
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `id` | string | 是 | Canvas ID |
+| `id` | string | 是 | Pipeline Operation Log ID |
 | `dsl` | object | 是 | 画布 DSL |
 | `component_id` | string | 是 | 需要重跑的组件 ID |
 
@@ -247,9 +290,9 @@ curl -X POST "http://localhost:9380/v1/canvas/rerun" \
      -H "Authorization: Bearer <YOUR_TOKEN>" \
      -H "Content-Type: application/json" \
      -d '{
-           "id": "canvas_123",
+           "id": "log_123",
            "component_id": "component_abc",
-           "dsl": {...}
+           "dsl": {}
          }'
 ```
 
@@ -322,7 +365,13 @@ curl -X POST "http://localhost:9380/v1/canvas/reset" \
 ```json
 {
   "code": 0,
-  "data": {...}, // 重置后的 DSL
+  "data": {
+    "components": {},
+    "history": [],
+    "messages": [],
+    "path": [],
+    "answer": []
+  },
   "message": "success"
 }
 ```
@@ -357,8 +406,14 @@ curl -X POST "http://localhost:9380/v1/canvas/upload/canvas_123" \
 {
   "code": 0,
   "data": {
-    "file_id": "file_123",
-    "name": "file.pdf"
+    "id": "a1b2c3d4-uuid-location",
+    "name": "file.pdf",
+    "size": 102400,
+    "extension": "pdf",
+    "mime_type": "application/pdf",
+    "created_by": "user_123456",
+    "created_at": 1704067200.123,
+    "preview_url": null
   },
   "message": "success"
 }
@@ -390,11 +445,20 @@ curl -X GET "http://localhost:9380/v1/canvas/input_form?id=canvas_123&component_
 ```json
 {
   "code": 0,
-  "data": {
-    "form": [
-      {"name": "field1", "type": "text"}
-    ]
-  },
+  "data": [
+    {
+      "key": "query",
+      "name": "User Query",
+      "type": "string",
+      "optional": false
+    },
+    {
+      "key": "temperature",
+      "name": "Temperature",
+      "type": "number",
+      "optional": true
+    }
+  ],
   "message": "success"
 }
 ```
@@ -415,7 +479,7 @@ curl -X GET "http://localhost:9380/v1/canvas/input_form?id=canvas_123&component_
 | :--- | :--- | :--- | :--- |
 | `id` | string | 是 | Canvas ID |
 | `component_id` | string | 是 | 组件 ID |
-| `params` | object | 是 | 调试参数 |
+| `params` | object | 是 | 调试参数 (key: {value: ...}) |
 
 ### 请求示例
 ```bash
@@ -425,7 +489,9 @@ curl -X POST "http://localhost:9380/v1/canvas/debug" \
      -d '{
            "id": "canvas_123",
            "component_id": "llm_component",
-           "params": {"prompt": "Hello"}
+           "params": {
+             "prompt": {"value": "Hello"}
+           }
          }'
 ```
 
@@ -434,8 +500,12 @@ curl -X POST "http://localhost:9380/v1/canvas/debug" \
 {
   "code": 0,
   "data": {
-    "content": "Result from LLM",
-    "usage": {...}
+    "content": "This is the result from the LLM component.",
+    "usage": {
+      "prompt_tokens": 10,
+      "completion_tokens": 50,
+      "total_tokens": 60
+    }
   },
   "message": "success"
 }
@@ -445,7 +515,7 @@ curl -X POST "http://localhost:9380/v1/canvas/debug" \
 
 ## 13. 测试数据库连接 (Test DB Connect)
 
-测试各种数据库连接 (MySQL, Postgres, MSSQL, Trino, etc.)。
+测试各种数据库连接 (MySQL, Postgres, MSSQL, Trino, IBM DB2 等)。
 
 - **URL**: `/test_db_connect`
 - **Method**: `POST`
@@ -455,7 +525,7 @@ curl -X POST "http://localhost:9380/v1/canvas/debug" \
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `db_type` | string | 是 | 数据库类型 (mysql, postgres, mssql, trino 等) |
+| `db_type` | string | 是 | 数据库类型 (mysql, mariadb, postgres, mssql, trino, IBM DB2) |
 | `database` | string | 是 | 数据库名 |
 | `username` | string | 是 | 用户名 |
 | `host` | string | 是 | 主机地址 |
@@ -512,8 +582,24 @@ curl -X GET "http://localhost:9380/v1/canvas/getlistversion/canvas_123" \
 {
   "code": 0,
   "data": [
-    {"id": "v1", "title": "ver_1", "update_time": ...},
-    {"id": "v2", "title": "ver_2", "update_time": ...}
+    {
+      "id": "version_1",
+      "title": "My Agent_2024_01_15_10_30_00",
+      "user_canvas_id": "canvas_123",
+      "create_time": 1705312200000,
+      "create_date": "2024-01-15 10:30:00",
+      "update_time": 1705312200000,
+      "update_date": "2024-01-15 10:30:00"
+    },
+    {
+      "id": "version_2",
+      "title": "My Agent_2024_01_14_09_00_00",
+      "user_canvas_id": "canvas_123",
+      "create_time": 1705220400000,
+      "create_date": "2024-01-14 09:00:00",
+      "update_time": 1705220400000,
+      "update_date": "2024-01-14 09:00:00"
+    }
   ],
   "message": "success"
 }
@@ -546,8 +632,20 @@ curl -X GET "http://localhost:9380/v1/canvas/getversion/ver_123" \
   "code": 0,
   "data": {
     "id": "ver_123",
-    "dsl": {...},
-    "create_time": ...
+    "user_canvas_id": "canvas_123",
+    "title": "My Agent_2024_01_15_10_30_00",
+    "description": null,
+    "dsl": {
+      "components": {},
+      "history": [],
+      "messages": [],
+      "path": [],
+      "answer": []
+    },
+    "create_time": 1705312200000,
+    "create_date": "2024-01-15 10:30:00",
+    "update_time": 1705312200000,
+    "update_date": "2024-01-15 10:30:00"
   },
   "message": "success"
 }
@@ -571,7 +669,7 @@ curl -X GET "http://localhost:9380/v1/canvas/getversion/ver_123" \
 | `page_size` | int | 否 | 每页数量 (默认 0 表示全部) |
 | `orderby` | string | 否 | 排序字段 (默认 create_time) |
 | `desc` | boolean | 否 | 是否倒序 (默认 true) |
-| `canvas_category` | string | 否 | 类别筛选 |
+| `canvas_category` | string | 否 | 类别筛选 (agent_canvas / dataflow_canvas) |
 | `owner_ids` | string | 否 | 逗号分隔的 User ID 列表 |
 
 ### 请求示例
@@ -585,8 +683,22 @@ curl -X GET "http://localhost:9380/v1/canvas/list?page=1&page_size=10" \
 {
   "code": 0,
   "data": {
-    "canvas": [...],
-    "total": 100
+    "canvas": [
+      {
+        "id": "canvas_123",
+        "avatar": null,
+        "title": "My Agent",
+        "dsl": {},
+        "description": "A sample agent",
+        "permission": "me",
+        "tenant_id": "user_123456",
+        "nickname": "John Doe",
+        "tenant_avatar": null,
+        "update_time": 1704067200000,
+        "canvas_category": "agent_canvas"
+      }
+    ],
+    "total": 1
   },
   "message": "success"
 }
@@ -608,9 +720,9 @@ curl -X GET "http://localhost:9380/v1/canvas/list?page=1&page_size=10" \
 | :--- | :--- | :--- | :--- |
 | `id` | string | 是 | Canvas ID |
 | `title` | string | 是 | 标题 |
-| `permission` | string | 是 | 权限设置 |
+| `permission` | string | 是 | 权限设置 (me / team) |
 | `description` | string | 否 | 描述 |
-| `avatar` | string | 否 | 头像 |
+| `avatar` | string | 否 | 头像 (base64 字符串) |
 
 ### 请求示例
 ```bash
@@ -620,7 +732,7 @@ curl -X POST "http://localhost:9380/v1/canvas/setting" \
      -d '{
            "id": "canvas_123",
            "title": "New Title",
-           "permission": "public"
+           "permission": "team"
          }'
 ```
 
@@ -628,7 +740,7 @@ curl -X POST "http://localhost:9380/v1/canvas/setting" \
 ```json
 {
   "code": 0,
-  "data": 1, // 更新行数
+  "data": 1,
   "message": "success"
 }
 ```
@@ -659,7 +771,31 @@ curl -X GET "http://localhost:9380/v1/canvas/trace?canvas_id=c1&message_id=m1" \
 ```json
 {
   "code": 0,
-  "data": { "..." }, // 详细日志结构
+  "data": {
+    "component_1": {
+      "start_time": 1704067200.123,
+      "end_time": 1704067201.456,
+      "inputs": {},
+      "outputs": {},
+      "status": "success"
+    },
+    "component_2": {
+      "start_time": 1704067201.456,
+      "end_time": 1704067202.789,
+      "inputs": {},
+      "outputs": {},
+      "status": "success"
+    }
+  },
+  "message": "success"
+}
+```
+
+如果没有找到日志:
+```json
+{
+  "code": 0,
+  "data": {},
   "message": "success"
 }
 ```
@@ -681,6 +817,12 @@ curl -X GET "http://localhost:9380/v1/canvas/trace?canvas_id=c1&message_id=m1" \
 | `page` | int | 否 | 页码 (默认 1) |
 | `page_size` | int | 否 | 每页数量 (默认 30) |
 | `user_id` | string | 否 | 用户 ID 筛选 |
+| `keywords` | string | 否 | 搜索关键词 |
+| `from_date` | string | 否 | 起始日期 |
+| `to_date` | string | 否 | 结束日期 |
+| `orderby` | string | 否 | 排序字段 (默认 update_time) |
+| `desc` | boolean | 否 | 是否倒序 (默认 true) |
+| `dsl` | boolean | 否 | 是否包含 DSL (默认 true) |
 
 ### 请求示例
 ```bash
@@ -694,7 +836,29 @@ curl -X GET "http://localhost:9380/v1/canvas/canvas_123/sessions" \
   "code": 0,
   "data": {
     "total": 50,
-    "sessions": [...]
+    "sessions": [
+      {
+        "id": "session_abc123",
+        "dialog_id": "canvas_123",
+        "user_id": "external_user_1",
+        "message": [
+          {"role": "user", "content": "Hello", "id": "msg_1"},
+          {"role": "assistant", "content": "Hi! How can I help?", "id": "msg_1", "created_at": 1704067200.123}
+        ],
+        "reference": [],
+        "tokens": 150,
+        "source": "agent",
+        "dsl": {},
+        "duration": 2.5,
+        "round": 1,
+        "thumb_up": 0,
+        "errors": null,
+        "create_time": 1704067200000,
+        "create_date": "2024-01-01 00:00:00",
+        "update_time": 1704067200000,
+        "update_date": "2024-01-01 00:00:00"
+      }
+    ]
   },
   "message": "success"
 }
@@ -723,8 +887,10 @@ curl -X GET "http://localhost:9380/v1/canvas/prompts" \
 {
   "code": 0,
   "data": {
-    "task_analysis": "...",
-    "plan_generation": "..."
+    "task_analysis": "You are an intelligent assistant...\n\nPlease analyze the following task...",
+    "plan_generation": "Based on the analysis, generate a step-by-step plan...",
+    "reflection": "Review the previous response and identify...",
+    "citation_guidelines": "When citing sources, use the following format..."
   },
   "message": "success"
 }
@@ -743,15 +909,15 @@ curl -X GET "http://localhost:9380/v1/canvas/prompts" \
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `id` | string | 是 | 文件 ID |
+| `id` | string | 是 | 文件 ID (location) |
 | `created_by` | string | 是 | 创建者 ID |
 
 ### 请求示例
 ```bash
-curl -X GET "http://localhost:9380/v1/canvas/download?id=file_1&created_by=user_1" \
-     -H "Authorization: Bearer <YOUR_TOKEN>"
+curl -X GET "http://localhost:9380/v1/canvas/download?id=file_location_uuid&created_by=user_123" \
+     -H "Authorization: Bearer <YOUR_TOKEN>" \
+     -o downloaded_file.pdf
 ```
 
 ### 响应示例
 (二进制文件流)
-

@@ -33,13 +33,31 @@ curl -X POST "http://localhost:9380/v1/search/create" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
-    "search_id": "search_123456"
-  },
-  "message": "success"
+    "search_id": "a1b2c3d4e5f6789012345678"
+  }
+}
+```
+
+**失败响应 (名称为空):**
+```json
+{
+  "code": 102,
+  "message": "Search name can't be empty."
+}
+```
+
+**失败响应 (名称过长):**
+```json
+{
+  "code": 102,
+  "message": "Search name length is 300 which is large than 255."
 }
 ```
 
@@ -81,26 +99,68 @@ curl -X POST "http://localhost:9380/v1/search/update" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
-    "id": "search_123456",
+    "id": "a1b2c3d4e5f6789012345678",
+    "avatar": null,
+    "tenant_id": "user_abc123",
     "name": "Updated Search App",
-    "tenant_id": "tenant_1",
+    "description": "A search app for internal docs",
+    "created_by": "user_abc123",
     "search_config": {
       "kb_ids": ["kb_1", "kb_2"],
+      "doc_ids": [],
       "similarity_threshold": 0.5,
       "vector_similarity_weight": 0.3,
+      "use_kg": false,
+      "rerank_id": "",
       "top_k": 1024,
-      "use_kg": false
+      "summary": false,
+      "chat_id": "",
+      "llm_setting": {},
+      "chat_settingcross_languages": [],
+      "highlight": false,
+      "keyword": false,
+      "web_search": false,
+      "related_search": false,
+      "query_mindmap": false
     },
     "status": "1",
-    "created_by": "user_1",
-    "create_time": 1700000000,
-    "update_time": 1700000000
-  },
-  "message": "success"
+    "create_time": 1700000000000,
+    "create_date": "2023-11-14 22:13:20",
+    "update_time": 1700000000000,
+    "update_date": "2023-11-14 22:13:20"
+  }
+}
+```
+
+**失败响应 (无权限):**
+```json
+{
+  "code": 109,
+  "message": "No authorization.",
+  "data": false
+}
+```
+
+**失败响应 (找不到搜索应用):**
+```json
+{
+  "code": 102,
+  "message": "Cannot find search a1b2c3d4e5f6789012345678"
+}
+```
+
+**失败响应 (名称重复):**
+```json
+{
+  "code": 102,
+  "message": "Duplicated search name."
 }
 ```
 
@@ -126,22 +186,58 @@ curl -X GET "http://localhost:9380/v1/search/detail?search_id=search_123456" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
-    "id": "search_123456",
+    "id": "a1b2c3d4e5f6789012345678",
+    "avatar": null,
+    "tenant_id": "user_abc123",
     "name": "My Search App",
-    "tenant_id": "tenant_1",
+    "description": "A search app for internal docs",
+    "created_by": "user_abc123",
     "search_config": {
       "kb_ids": ["kb_1"],
-      "similarity_threshold": 0.2
+      "doc_ids": [],
+      "similarity_threshold": 0.2,
+      "vector_similarity_weight": 0.3,
+      "use_kg": false,
+      "rerank_id": "",
+      "top_k": 1024,
+      "summary": false,
+      "chat_id": "",
+      "llm_setting": {},
+      "chat_settingcross_languages": [],
+      "highlight": false,
+      "keyword": false,
+      "web_search": false,
+      "related_search": false,
+      "query_mindmap": false
     },
-    "status": "1",
-    "created_by": "user_1",
-    "create_time": 1700000000
-  },
-  "message": "success"
+    "update_time": 1700000000000,
+    "nickname": "Admin",
+    "tenant_avatar": null
+  }
+}
+```
+
+**失败响应 (无权限):**
+```json
+{
+  "code": 103,
+  "message": "Has no permission for this operation.",
+  "data": false
+}
+```
+
+**失败响应 (找不到搜索应用):**
+```json
+{
+  "code": 102,
+  "message": "Can't find this Search App!"
 }
 ```
 
@@ -182,21 +278,30 @@ curl -X POST "http://localhost:9380/v1/search/list?page=1&page_size=10" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
+  "message": "success",
   "data": {
     "search_apps": [
       {
-        "id": "search_123456",
+        "id": "a1b2c3d4e5f6789012345678",
+        "avatar": null,
+        "tenant_id": "user_abc123",
         "name": "My Search App",
-        "tenant_id": "tenant_1",
-        "create_time": 1700000000
+        "description": "A search app for internal docs",
+        "created_by": "user_abc123",
+        "status": "1",
+        "update_time": 1700000000000,
+        "create_time": 1700000000000,
+        "nickname": "Admin",
+        "tenant_avatar": null
       }
     ],
     "total": 1
-  },
-  "message": "success"
+  }
 }
 ```
 
@@ -227,11 +332,30 @@ curl -X POST "http://localhost:9380/v1/search/rm" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
-  "data": true,
-  "message": "success"
+  "message": "success",
+  "data": true
+}
+```
+
+**失败响应 (无权限):**
+```json
+{
+  "code": 109,
+  "message": "No authorization.",
+  "data": false
+}
+```
+
+**失败响应 (删除失败):**
+```json
+{
+  "code": 102,
+  "message": "Failed to delete search App a1b2c3d4e5f6789012345678"
 }
 ```
 

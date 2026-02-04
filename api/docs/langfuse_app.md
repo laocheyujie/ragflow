@@ -35,16 +35,34 @@ curl -X POST "http://localhost:9380/v1/langfuse/api_key" \
 ```
 
 ### 响应示例
+
+**成功 (200)**
 ```json
 {
   "code": 0,
   "data": {
-    "tenant_id": "tenant_123",
-    "secret_key": "sk-lf-...",
+    "host": "https://cloud.langfuse.com",
     "public_key": "pk-lf-...",
-    "host": "https://cloud.langfuse.com"
+    "secret_key": "sk-lf-...",
+    "tenant_id": "69736047aca811efb21c0242ac120006"
   },
   "message": "success"
+}
+```
+
+**失败 - 参数缺失 (200)**
+```json
+{
+  "code": 102,
+  "message": "Missing required fields"
+}
+```
+
+**失败 - 无效的 Langfuse Keys (200)**
+```json
+{
+  "code": 102,
+  "message": "Invalid Langfuse keys"
 }
 ```
 
@@ -68,18 +86,37 @@ curl -X GET "http://localhost:9380/v1/langfuse/api_key" \
 ```
 
 ### 响应示例
+
+**成功 (200)**
 ```json
 {
   "code": 0,
   "data": {
-    "tenant_id": "tenant_123",
-    "secret_key": "sk-lf-...",
-    "public_key": "pk-lf-...",
     "host": "https://cloud.langfuse.com",
-    "project_id": "project_abc",
-    "project_name": "My Project"
+    "project_id": "clxxxxxxxxxxxxxxxxxx",
+    "project_name": "My Project",
+    "public_key": "pk-lf-...",
+    "secret_key": "sk-lf-...",
+    "tenant_id": "69736047aca811efb21c0242ac120006"
   },
   "message": "success"
+}
+```
+
+**未找到记录 (200)**
+```json
+{
+  "code": 0,
+  "data": null,
+  "message": "Have not record any Langfuse keys."
+}
+```
+
+**失败 - 无效的 Langfuse Keys (200)**
+```json
+{
+  "code": 102,
+  "message": "Invalid Langfuse keys loaded"
 }
 ```
 
@@ -103,11 +140,22 @@ curl -X DELETE "http://localhost:9380/v1/langfuse/api_key" \
 ```
 
 ### 响应示例
+
+**成功 (200)**
 ```json
 {
   "code": 0,
   "data": true,
   "message": "success"
+}
+```
+
+**未找到记录 (200)**
+```json
+{
+  "code": 0,
+  "data": null,
+  "message": "Have not record any Langfuse keys."
 }
 ```
 

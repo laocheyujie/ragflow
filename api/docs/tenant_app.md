@@ -26,21 +26,38 @@ curl -X GET "http://localhost:9380/v1/tenant/tenant_1/user/list" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
   "data": [
     {
-      "id": "user_1",
+      "id": "5c99a15c4e6011efb0c80242ac120006",
+      "user_id": "a1b2c3d4e5f6",
+      "status": "1",
+      "role": "normal",
       "nickname": "Alice",
       "email": "alice@example.com",
-      "role": "owner",
-      "status": "1",
+      "avatar": "base64_string...",
+      "is_authenticated": "1",
+      "is_active": "1",
+      "is_anonymous": "0",
       "update_date": "2024-01-01 12:00:00",
+      "is_superuser": false,
       "delta_seconds": 120
     }
   ],
   "message": "success"
+}
+```
+
+**失败响应 (无权限):**
+```json
+{
+  "code": 109,
+  "data": false,
+  "message": "No authorization."
 }
 ```
 
@@ -77,16 +94,54 @@ curl -X POST "http://localhost:9380/v1/tenant/tenant_1/user" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
   "data": {
-    "id": "user_2",
+    "id": "b2c3d4e5f6a7",
     "avatar": "base64_string...",
     "email": "bob@example.com",
     "nickname": "Bob"
   },
   "message": "success"
+}
+```
+
+**失败响应 (无权限):**
+```json
+{
+  "code": 109,
+  "data": false,
+  "message": "No authorization."
+}
+```
+
+**失败响应 (用户不存在):**
+```json
+{
+  "code": 102,
+  "data": false,
+  "message": "User not found."
+}
+```
+
+**失败响应 (用户已在团队中):**
+```json
+{
+  "code": 102,
+  "data": false,
+  "message": "bob@example.com is already in the team."
+}
+```
+
+**失败响应 (邀请邮件发送失败):**
+```json
+{
+  "code": 100,
+  "data": false,
+  "message": "Failed to send invite email."
 }
 ```
 
@@ -113,11 +168,22 @@ curl -X DELETE "http://localhost:9380/v1/tenant/tenant_1/user/user_2" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
   "data": true,
   "message": "success"
+}
+```
+
+**失败响应 (无权限):**
+```json
+{
+  "code": 109,
+  "data": false,
+  "message": "No authorization."
 }
 ```
 
@@ -137,14 +203,18 @@ curl -X GET "http://localhost:9380/v1/tenant/list" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
   "data": [
     {
-      "tenant_id": "tenant_1",
-      "name": "My Team",
-      "role": "owner",
+      "tenant_id": "a1b2c3d4e5f6",
+      "role": "normal",
+      "nickname": "Team Owner",
+      "email": "owner@example.com",
+      "avatar": "base64_string...",
       "update_date": "2024-01-01 12:00:00",
       "delta_seconds": 3600
     }
@@ -175,6 +245,8 @@ curl -X PUT "http://localhost:9380/v1/tenant/agree/tenant_1" \
 ```
 
 ### 响应示例
+
+**成功响应:**
 ```json
 {
   "code": 0,
@@ -182,4 +254,3 @@ curl -X PUT "http://localhost:9380/v1/tenant/agree/tenant_1" \
   "message": "success"
 }
 ```
-
