@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Exit immediately if a command exits with a non-zero status
+# 在任何命令返回非零状态时立即退出脚本
 set -e
 
 # Function to load environment variables from .env file

@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+# OCR: 文本框检测 + 文字识别
+
 import logging
 import copy
 import time
@@ -125,6 +127,7 @@ def load_model(model_dir, nm, device_id: int | None = None):
     return loaded_model
 
 
+# 文字识别
 class TextRecognizer:
     def __init__(self, model_dir, device_id: int | None = None):
         self.rec_image_shape = [int(v) for v in "3, 48, 320".split(",")]
@@ -396,6 +399,7 @@ class TextRecognizer:
         return rec_res, time.time() - st
 
 
+# 文本框检测
 class TextDetector:
     def __init__(self, model_dir, device_id: int | None = None):
         pre_process_list = [{
@@ -509,6 +513,7 @@ class TextDetector:
         return dt_boxes, time.time() - st
 
 
+# 整合检测和识别功能，对外提供调用
 class OCR:
     def __init__(self, model_dir=None):
         """
@@ -554,9 +559,11 @@ class OCR:
                     self.text_detector = [TextDetector(model_dir)]
                     self.text_recognizer = [TextRecognizer(model_dir)]
 
+        # 置信度最低阈值，用于丢弃置信度低的结果
         self.drop_score = 0.5
         self.crop_image_res_index = 0
 
+    # 对每个文本框，使用 get_rotate_crop_image 方法进行旋转和裁剪
     def get_rotate_crop_image(self, img, points):
         '''
         img_height, img_width = img.shape[0:2]
@@ -636,6 +643,7 @@ class OCR:
                     break
         return _boxes
 
+    # 进行文本框检测，获取文本框坐标
     def detect(self, img, device_id: int | None = None):
         if device_id is None:
             device_id = 0
@@ -657,6 +665,7 @@ class OCR:
         return zip(self.sorted_boxes(dt_boxes), [
                    ("", 0) for _ in range(len(dt_boxes))])
 
+    # 对裁剪后的图像进行文本识别
     def recognize(self, ori_im, box, device_id: int | None = None):
         if device_id is None:
             device_id = 0
@@ -702,22 +711,23 @@ class OCR:
 
         img_crop_list = []
 
+        # NOTE: OCR 2. 对文本框进行排序
         dt_boxes = self.sorted_boxes(dt_boxes)
 
         for bno in range(len(dt_boxes)):
             tmp_box = copy.deepcopy(dt_boxes[bno])
-            # NOTE: OCR 2. 对每个文本框，使用 get_rotate_crop_image 方法进行旋转和裁剪
+            # NOTE: OCR 3. 对每个文本框，使用 get_rotate_crop_image 方法进行旋转和裁剪
             img_crop = self.get_rotate_crop_image(ori_im, tmp_box)
             img_crop_list.append(img_crop)
 
-        # NOTE: OCR 3. 使用 TextRecognizer 对裁剪后的图像进行文本识别
+        # NOTE: OCR 4. 使用 TextRecognizer 对裁剪后的图像进行文本识别
         rec_res, elapse = self.text_recognizer[device_id](img_crop_list)
 
         time_dict['rec'] = elapse
 
         filter_boxes, filter_rec_res = [], []
         for box, rec_result in zip(dt_boxes, rec_res):
-            # NOTE: OCR 4. 对每个文本框，过滤掉置信度低于阈值的识别结果
+            # NOTE: OCR 5. 对每个文本框，过滤掉置信度低于阈值的识别结果
             text, score = rec_result
             if score >= self.drop_score:
                 filter_boxes.append(box)
@@ -727,5 +737,5 @@ class OCR:
 
         # for bno in range(len(img_crop_list)):
         #    print(f"{bno}, {rec_res[bno]}")
-        # NOTE: OCR 5. 返回最终的文本框坐标和识别结果
+        # NOTE: OCR 6. 返回最终的文本框坐标和识别结果
         return list(zip([a.tolist() for a in filter_boxes], filter_rec_res))

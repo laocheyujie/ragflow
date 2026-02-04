@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+# 版面分析
+
 import os
 import re
 from collections import Counter
@@ -29,6 +31,7 @@ from deepdoc.vision.operators import nms
 
 
 class LayoutRecognizer(Recognizer):
+    # 用于对文档图像进行板式分析，识别不同类型的区域，例如表格、标题、段落等
     labels = [
         "_background_",
         "Text",
@@ -62,13 +65,22 @@ class LayoutRecognizer(Recognizer):
             self.client = DLAClient(os.environ["TENSORRT_DLA_SVR"])
 
     def __call__(self, image_list, ocr_res, scale_factor=3, thr=0.2, batch_size=16, drop=True):
-        # NOTE: LayoutRecognizer 1. 接收以下参数：
-        # image_list: 图像列表
-        # ocr_res: OCR 识别的文本框
-        # scale_factor: 缩放因子，默认值为 3
-        # thr: 阈值，默认值为 0.2
-        # batch_size: 批处理大小，默认值为 16
-        # drop: 是否删除，默认值为 True
+        '''
+        image_list: 图像列表
+        ocr_res: OCR 识别的文本和文本框
+        scale_factor: 缩放因子，默认值为 3
+        thr: 阈值，默认值为 0.2
+        batch_size: 批处理大小，默认值为 16
+        drop: 是否删除，默认值为 True，即是否删除垃圾类型的文本，注意，这里保留了header在上0.1内，footer在下0.9内的文本
+        
+        step:
+        1. 调用父类的call方法，将图片交给版面分析模型PP-Structure识别出layouts，并清理重叠的layout（layouts_cleanup）
+        2. 为文本框box分配layout，根据layout type，从layout里找出对应type的layout，如果和box有重叠大于阈值，就为box分配layout，不满足条件的box会被丢弃
+        3. 对于没有文本框的figure、equation 添加到boxes中，并更新ocr_res
+        4. 对于过程中收集的垃圾 layout 类型的文本，删除掉
+        5. 返回更新后的ocr_res，以及page_layout信息
+        '''
+        # 过滤垃圾信息
         def __is_garbage(b):
             patt = [r"^•+$", "^[0-9]{1,2} / ?[0-9]{1,2}$",
                     r"^[0-9]{1,2} of [0-9]{1,2}$", "^http://[^ ]{12,}",
@@ -79,57 +91,70 @@ class LayoutRecognizer(Recognizer):
         if self.client:
             layouts = self.client.predict(image_list)
         else:
-            # NOTE: LayoutRecognizer 2. 调用父类的 call 方法，将图片交给 PP Structure 模型识别出 layouts
+            # NOTE: 调用父类的 call 方法，将图片交给 PP Structure 模型识别出 layouts
             layouts = super().__call__(image_list, thr, batch_size)
         # save_results(image_list, layouts, self.labels, output_dir='output/', threshold=0.7)
         assert len(image_list) == len(ocr_res)
         # Tag layout type
         boxes = []
         assert len(image_list) == len(layouts)
+        # 用于收集垃圾内容
         garbages = {}
         page_layout = []
         for pn, lts in enumerate(layouts):
+            # OCR 识别的 box 文本框 
             bxs = ocr_res[pn]
+            # layout 转换为 box 形式
+            # x0 方框左侧坐标，x1 方框右侧坐标，top 方框上侧坐标，bottom 方框下侧坐标
             lts = [{"type": b["type"],
                     "score": float(b["score"]),
                     "x0": b["bbox"][0] / scale_factor, "x1": b["bbox"][2] / scale_factor,
                     "top": b["bbox"][1] / scale_factor, "bottom": b["bbox"][-1] / scale_factor,
                     "page_number": pn,
                     } for b in lts if float(b["score"]) >= 0.4 or b["type"] not in self.garbage_layouts]
+            # 按照 (top，x0) 排序 
             lts = self.sort_Y_firstly(lts, np.mean(
                 [lt["bottom"] - lt["top"] for lt in lts]) / 2)
-            # NOTE: LayoutRecognizer 3. 清理重叠的 layout (layouts_cleanup)
+            # NOTE: 3. 清理重叠的 layout (layouts_cleanup)
             lts = self.layouts_cleanup(bxs, lts)
+            # 保留置信度高或者不在垃圾类型里的 layout 结果
             page_layout.append(lts)
 
             # Tag layout type, layouts are ready
-            # NOTE: LayoutRecognizer 4. 为文本框 box 分配 layout，根据 layout type，从 layout 里找出对应 type 的 layout
+            # NOTE: 4. 为文本框 box 分配 layout，根据 layout type，从 layout 里找出对应 type 的 layout
             def findLayout(ty):
                 nonlocal bxs, lts, self
+                # 找对应 type 的 layout 
                 lts_ = [lt for lt in lts if lt["type"] == ty]
                 i = 0
+                # 为 ocr detect 的 box 标记 layout_type
                 while i < len(bxs):
+                    # 已标记的跳过
                     if bxs[i].get("layout_type"):
                         i += 1
                         continue
+                    # 圾信息，删除掉
                     if __is_garbage(bxs[i]):
                         bxs.pop(i)
                         continue
 
-                    # NOTE: LayoutRecognizer 5. 如果和 box 有重叠大于阈值，就为 box 分配 layout
+                    # NOTE: 5. 如果和 box 有重叠大于阈值，就为 box 分配 layout
                     ii = self.find_overlapped_with_threshold(bxs[i], lts_,
                                                               thr=0.4)
+                    # ocr 内容不属于任何一个 layout 类型
                     if ii is None:  # belong to nothing
                         bxs[i]["layout_type"] = ""
                         i += 1
                         continue
                     lts_[ii]["visited"] = True
+                    # 保留特征，为 header 或者 footer，且在内容区域的边界内 0.1, 0.9
                     keep_feats = [
                         lts_[
                             ii]["type"] == "footer" and bxs[i]["bottom"] < image_list[pn].size[1] * 0.9 / scale_factor,
                         lts_[
                             ii]["type"] == "header" and bxs[i]["top"] > image_list[pn].size[1] * 0.1 / scale_factor,
                     ]
+                    # 满足丢弃条件，删除 box，垃圾文本放入 garbages 
                     if drop and lts_[
                             ii]["type"] in self.garbage_layouts and not any(keep_feats):
                         if lts_[ii]["type"] not in garbages:
@@ -138,19 +163,22 @@ class LayoutRecognizer(Recognizer):
                         bxs.pop(i)
                         continue
 
+                    # 符合要求的box，分配layout 
                     bxs[i]["layoutno"] = f"{ty}-{ii}"
                     bxs[i]["layout_type"] = lts_[ii]["type"] if lts_[
                         ii]["type"] != "equation" else "figure"
                     i += 1
 
+            # 遍历layout类型，为文本框分配layout，之所以分开，是因为一个文本框可能和多个layout重叠，这里是减少冲突
             for lt in ["footer", "header", "reference", "figure caption",
                        "table caption", "title", "table", "text", "figure", "equation"]:
                 findLayout(lt)
 
             # add box to figure layouts which has not text box
-            # NOTE: LayoutRecognizer 6. 对于没有文本框的 figure, equation 添加到 boxes 中，并更新 ocr_res
+            # NOTE: 6. 对于没有文本框的 figure, equation 添加到 boxes 中，并更新 ocr_res
             for i, lt in enumerate(
                     [lt for lt in lts if lt["type"] in ["figure", "equation"]]):
+                # 如果是带文字的图片，ocr 是有文本的，前面的步骤就分配了
                 if lt.get("visited"):
                     continue
                 lt = deepcopy(lt)
@@ -158,14 +186,18 @@ class LayoutRecognizer(Recognizer):
                 lt["text"] = ""
                 lt["layout_type"] = "figure"
                 lt["layoutno"] = f"figure-{i}"
+                # box 添加纯图片的layout
                 bxs.append(lt)
 
             boxes.extend(bxs)
 
+        # 更新 ocr 结果
         ocr_res = boxes
 
         garbag_set = set()
+        # 遍历存在的每个类别
         for k in garbages.keys():
+            # 同级该类别下，出现次数大于 1 的文本，加入垃圾文本
             garbages[k] = Counter(garbages[k])
             for g, c in garbages[k].items():
                 if c > 1:
