@@ -121,7 +121,7 @@ curl -X GET "http://localhost:9380/v1/connector/connector_123" \
     "id": "connector_123",
     "name": "My Drive Connector",
     "source": "google_drive",
-    "config": { ... }
+    "config": { "..." }
   },
   "message": "success"
 }

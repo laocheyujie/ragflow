@@ -521,9 +521,11 @@ curl -X GET "http://localhost:9380/v1/kb/basic_info?kb_id=kb_123456" \
 {
   "code": 0,
   "data": {
-    "id": "kb_123456",
-    "name": "My KB",
-    "doc_num": 5
+    "processing": 1,
+    "finished": 0,
+    "failed": 0,
+    "cancelled": 0,
+    "downloaded": 0,
   },
   "message": "success"
 }

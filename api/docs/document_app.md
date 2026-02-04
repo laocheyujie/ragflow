@@ -803,7 +803,7 @@ curl -X POST "http://localhost:9380/v1/document/upload_info?url=https://example.
 ```json
 {
   "code": 0,
-  "data": { ... },
+  "data": { "..." },
   "message": "success"
 }
 ```

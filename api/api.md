@@ -1,3 +1,2752 @@
+# Agent Management API 文档
+
+**Base URL**: `http://localhost:9380/v1/api`
+
+**Authentication**:
+所有接口均需要认证。请在 Header 中携带 API Key：
+`Authorization: Bearer <YOUR_API_KEY>`
+
+## 1. 获取 Agent 列表 (List Agents)
+
+获取当前用户的 Agent 列表。
+
+- **URL**: `/agents`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `page` | int | 否 | 页码 (默认 1) |
+| `page_size` | int | 否 | 每页数量 (默认 30) |
+| `orderby` | string | 否 | 排序字段 (默认 "update_time") |
+| `desc` | boolean | 否 | 是否降序 (默认 true) |
+| `id` | string | 否 | 按 Agent ID 筛选 |
+| `title` | string | 否 | 按 Agent 标题筛选 |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/agents?page=1&page_size=10" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "agent_id_1",
+      "title": "Agent Title",
+      "dsl": { ... },
+      "create_time": 1700000000,
+      "update_time": 1700000000
+    }
+  ],
+  "message": "success"
+}
+```
+
+---
+
+## 2. 创建 Agent (Create Agent)
+
+创建一个新的 Agent。
+
+- **URL**: `/agents`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `title` | string | 是 | Agent 标题 |
+| `dsl` | object | 是 | Agent 的 DSL 定义 (JSON 对象或 JSON 字符串) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/agents" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "title": "My New Agent",
+           "dsl": {
+             "components": { ... },
+             "connections": [ ... ]
+           }
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+---
+
+## 3. 更新 Agent (Update Agent)
+
+更新指定 Agent 的信息。
+
+- **URL**: `/agents/<agent_id>`
+- **Method**: `PUT`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `title` | string | 否 | 新的 Agent 标题 |
+| `dsl` | object | 否 | 新的 DSL 定义 |
+
+### 请求示例
+```bash
+curl -X PUT "http://localhost:9380/v1/api/agents/agent_id_1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "title": "Updated Agent Title"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+---
+
+## 4. 删除 Agent (Delete Agent)
+
+删除指定的 Agent。
+
+- **URL**: `/agents/<agent_id>`
+- **Method**: `DELETE`
+
+### 请求参数
+
+无 (Agent ID 在 URL 中)
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/agents/agent_id_1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+---
+
+## 5. Webhook 触发 (Webhook Trigger)
+
+通过 Webhook 触发 Agent 运行。支持的 HTTP 方法取决于 Agent DSL 中的 Webhook 配置。
+
+- **URL**: `/webhook/<agent_id>`
+- **Method**: `POST`, `GET`, `PUT`, `PATCH`, `DELETE`, `HEAD`
+
+### 请求参数
+
+请求参数 (Query, Headers, Body) 将根据 Agent DSL 中 Webhook 组件的配置进行解析和传递。
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/webhook/agent_id_1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "input": "some input"
+         }'
+```
+
+### 响应示例
+响应内容取决于 Agent DSL 中的配置。如果是流式响应 (SSE)，则返回数据流；如果是立即返回，则返回配置的 JSON 响应。
+
+```json
+{
+  "message": "Agent execution result...",
+  "success": true,
+  "code": 200
+}
+```
+
+---
+
+## 6. Webhook 追踪 (Webhook Trace)
+
+获取 Agent Webhook 运行的追踪日志。
+
+- **URL**: `/webhook_trace/<agent_id>`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `since_ts` | float | 否 | 起始时间戳，用于增量获取日志 |
+| `webhook_id` | string | 否 | 特定的 Webhook 执行 ID |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/webhook_trace/agent_id_1?since_ts=1700000000" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "webhook_id": "encoded_id_xxx",
+    "events": [
+      {
+        "ts": 1700000001.5,
+        "event": "node_start",
+        "data": { ... }
+      },
+      {
+        "ts": 1700000002.0,
+        "event": "finished",
+        "success": true
+      }
+    ],
+    "next_since_ts": 1700000002.0,
+    "finished": true
+  },
+  "message": "success"
+}
+```
+
+---
+
+# Chat API 文档
+
+**Base URL**: `http://localhost:9380/v1/api`
+
+**Authentication**:
+所有接口均需要认证。请在 Header 中携带 API Key：
+`Authorization: Bearer <YOUR_API_KEY>`
+
+## 1. 创建对话 (Create Chat)
+
+创建一个新的对话对话 (Chat/Chat)。
+
+- **URL**: `/chats`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 是 | 对话名称 |
+| `avatar` | string | 否 | 头像 (Base64 或 URL) |
+| `dataset_ids` | list[string] | 否 | 关联的知识库 ID 列表 |
+| `llm` | object | 否 | LLM 配置 (包含 model_name 等) |
+| `prompt` | object | 否 | 提示词与检索配置 (包含 prompt, variables, top_n 等) |
+| `description` | string | 否 | 描述信息 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/chats" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "My Chat",
+           "avatar": "",
+           "dataset_ids": ["kb_123"],
+           "llm": {
+               "model_name": "gpt-3.5-turbo"
+           },
+           "prompt": {
+               "prompt": "You are a helpful Chat...",
+               "variables": [{"key": "knowledge", "optional": false}],
+               "opener": "Hi!",
+               "show_quote": true,
+               "top_n": 6
+           }
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "chat_xxx",
+    "name": "My Chat",
+    "avatar": "",
+    "tenant_id": "tenant_1",
+    "dataset_ids": ["kb_123"],
+    "llm": {
+        "model_name": "gpt-3.5-turbo"
+    },
+    "prompt": {
+        "prompt": "You are a helpful Chat...",
+        "variables": [{"key": "knowledge", "optional": false}],
+        "opener": "Hi!",
+        "show_quote": true,
+        "top_n": 6,
+        "similarity_threshold": 0.2,
+        "keywords_similarity_weight": 0.7,
+        "rerank_model": ""
+    },
+    "create_time": 1700000000,
+    "update_time": 1700000000
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 2. 更新对话 (Update Chat)
+
+更新现有的对话对话配置。
+
+- **URL**: `/chats/<chat_id>`
+- **Method**: `PUT`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 否 | 对话名称 |
+| `avatar` | string | 否 | 头像 |
+| `dataset_ids` | list[string] | 否 | 知识库 ID 列表 |
+| `llm` | object | 否 | LLM 配置 |
+| `prompt` | object | 否 | 提示词与检索配置 |
+
+### 请求示例
+```bash
+curl -X PUT "http://localhost:9380/v1/api/chats/chat_xxx" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "Updated Name",
+           "prompt": {
+               "opener": "Hello!"
+           }
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": null,
+  "message": "success"
+}
+```
+
+---
+
+## 3. 删除对话 (Delete Chats)
+
+删除一个或多个对话。
+
+- **URL**: `/chats`
+- **Method**: `DELETE`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `ids` | list[string] | 否 | 要删除的对话 ID 列表 (若为空则删除所有) |
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/chats" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "ids": ["chat_xxx"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": null,
+  "message": "success"
+}
+```
+
+---
+
+## 4. 获取对话列表 (List Chats)
+
+列出所有对话。
+
+- **URL**: `/chats`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `page` | int | 否 | 页码 (默认 1) |
+| `page_size` | int | 否 | 每页数量 (默认 30) |
+| `orderby` | string | 否 | 排序字段 (默认 create_time) |
+| `desc` | boolean | 否 | 是否降序 (默认 true) |
+| `id` | string | 否 | 按 ID 筛选 |
+| `name` | string | 否 | 按名称筛选 |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/chats?page=1&page_size=10" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "chat_xxx",
+      "name": "My Chat",
+      "dataset_ids": [],
+      "llm": {
+          "model_name": "gpt-3.5-turbo"
+      },
+      "prompt": {
+          "prompt": "You are a helpful Chat...",
+          "opener": "Hi!",
+          "variables": [{"key": "knowledge", "optional": false}]
+      },
+      "create_time": 1700000000
+    }
+  ],
+  "message": "success"
+}
+```
+
+---
+
+# Dataset Management API 文档
+
+**Base URL**: `http://localhost:9380/v1/api`
+
+**Authentication**:
+所有接口均需要认证。请在 Header 中携带 API Key：
+`Authorization: Bearer <YOUR_API_KEY>`
+
+## 1. 创建数据集 (Create Dataset)
+
+创建一个新的数据集 (Knowledge Base)。
+
+- **URL**: `/datasets`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 是 | 数据集名称 |
+| `avatar` | string | 否 | 数据集头像 (Base64 编码) |
+| `description` | string | 否 | 数据集描述 |
+| `embedding_model` | string | 否 | 嵌入模型名称 (若省略则使用 Tenant 默认模型) |
+| `permission` | string | 否 | 可见性 ('me' 或 'team') |
+| `chunk_method` | string | 否 | 切片方法 (默认为 "naive")。可选值: "naive", "book", "email", "laws", "manual", "one", "paper", "picture", "presentation", "qa", "table", "tag" |
+| `parser_config` | object | 否 | 解析器配置 (若省略则使用服务端默认配置) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/datasets" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "My Knowledge Base",
+           "permission": "me",
+           "chunk_method": "naive"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "kb_123456",
+    "name": "My Knowledge Base",
+    "avatar": "",
+    "description": "",
+    "permission": "me",
+    "embd_id": "BAAI/bge-large-zh-v1.5",
+    "parser_id": "naive",
+    "parser_config": { ... },
+    "create_time": 1700000000,
+    "create_date": "2024-01-01 12:00:00"
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 2. 删除数据集 (Delete Datasets)
+
+删除一个或多个数据集。
+
+- **URL**: `/datasets`
+- **Method**: `DELETE`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `ids` | list[string] | 是 | 要删除的数据集 ID 列表。若为 `null` 则删除所有数据集；若为空数组则不删除任何数据集。 |
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/datasets" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "ids": ["kb_1", "kb_2"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "success_count": 2,
+    "errors": []
+  },
+  "message": "Successfully deleted 2 datasets, 0 failed. Details: ..."
+}
+```
+
+---
+
+## 3. 更新数据集 (Update Dataset)
+
+更新指定数据集的信息。
+
+- **URL**: `/datasets/<dataset_id>`
+- **Method**: `PUT`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 否 | 新的数据集名称 |
+| `avatar` | string | 否 | 新的头像 (Base64 编码) |
+| `description` | string | 否 | 新的描述 |
+| `embedding_model` | string | 否 | 新的嵌入模型名称 |
+| `permission` | string | 否 | 新的权限设置 ('me' 或 'team') |
+| `chunk_method` | string | 否 | 新的切片方法 |
+| `pagerank` | integer | 否 | PageRank 值 (仅当 doc_engine 为 elasticsearch 时有效) |
+| `parser_config` | object | 否 | 新的解析器配置 |
+
+### 请求示例
+```bash
+curl -X PUT "http://localhost:9380/v1/api/datasets/kb_123" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "description": "Updated description"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "kb_123",
+    "name": "My Knowledge Base",
+    "description": "Updated description",
+    ...
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 4. 获取数据集列表 (List Datasets)
+
+获取当前用户或 Tenant 的数据集列表。
+
+- **URL**: `/datasets`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `id` | string | 否 | 按数据集 ID 筛选 |
+| `name` | string | 否 | 按数据集名称筛选 |
+| `page` | int | 否 | 页码 (默认 1) |
+| `page_size` | int | 否 | 每页数量 (默认 30) |
+| `orderby` | string | 否 | 排序字段 (默认 "create_time") |
+| `desc` | boolean | 否 | 是否降序 (默认 true) |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets?page=1&page_size=10" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "kb_1",
+      "name": "Dataset 1",
+      "create_time": 1700000000
+    },
+    ...
+  ],
+  "total": 100,
+  "message": "success"
+}
+```
+
+---
+
+## 5. 获取知识图谱 (Get Knowledge Graph)
+
+获取数据集的知识图谱数据 (节点和边)。
+
+- **URL**: `/datasets/<dataset_id>/knowledge_graph`
+- **Method**: `GET`
+
+### 请求参数
+
+无
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets/kb_123/knowledge_graph" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "graph": {
+      "nodes": [...],
+      "edges": [...]
+    },
+    "mind_map": { ... }
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 6. 删除知识图谱 (Delete Knowledge Graph)
+
+删除数据集的知识图谱数据。
+
+- **URL**: `/datasets/<dataset_id>/knowledge_graph`
+- **Method**: `DELETE`
+
+### 请求参数
+
+无
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/datasets/kb_123/knowledge_graph" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+---
+
+## 7. 运行 GraphRAG (Run GraphRAG)
+
+对数据集运行 GraphRAG 任务 (需确保文档已解析)。
+
+- **URL**: `/datasets/<dataset_id>/run_graphrag`
+- **Method**: `POST`
+
+### 请求参数
+
+无
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/datasets/kb_123/run_graphrag" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "graphrag_task_id": "task_abc123"
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 8. 追踪 GraphRAG 状态 (Trace GraphRAG)
+
+获取 GraphRAG 任务的执行状态。
+
+- **URL**: `/datasets/<dataset_id>/trace_graphrag`
+- **Method**: `GET`
+
+### 请求参数
+
+无
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets/kb_123/trace_graphrag" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "task_abc123",
+    "progress": 0.5,
+    "status": "running"
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 9. 运行 RAPTOR (Run RAPTOR)
+
+对数据集运行 RAPTOR 任务 (递归摘要)。
+
+- **URL**: `/datasets/<dataset_id>/run_raptor`
+- **Method**: `POST`
+
+### 请求参数
+
+无
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/datasets/kb_123/run_raptor" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "raptor_task_id": "task_xyz789"
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 10. 追踪 RAPTOR 状态 (Trace RAPTOR)
+
+获取 RAPTOR 任务的执行状态。
+
+- **URL**: `/datasets/<dataset_id>/trace_raptor`
+- **Method**: `GET`
+
+### 请求参数
+
+无
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets/kb_123/trace_raptor" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "task_xyz789",
+    "progress": 1.0,
+    "status": "success"
+  },
+  "message": "success"
+}
+```
+
+---
+
+# Dify Retrieval API 文档
+
+**Base URL**: `http://localhost:9380/v1/api`
+
+**Authentication**:
+所有接口均需要认证。请在 Header 中携带 API Key：
+`Authorization: Bearer <YOUR_API_KEY>`
+
+## 1. 检索 (Retrieval)
+
+Dify 兼容的检索接口，支持从指定的知识库中检索相关内容。
+
+- **URL**: `/dify/retrieval`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `knowledge_id` | string | 是 | Knowledge base ID (知识库 ID) |
+| `query` | string | 是 | Query text (检索关键词) |
+| `use_kg` | boolean | 否 | Whether to use knowledge graph (是否使用知识图谱，默认 false) |
+| `retrieval_setting` | object | 否 | Retrieval configuration (检索设置) |
+| `retrieval_setting.score_threshold` | number | 否 | Similarity threshold (相似度阈值，默认 0.0) |
+| `retrieval_setting.top_k` | integer | 否 | Number of results to return (返回结果数量，默认 1024) |
+| `metadata_condition` | object | 否 | Metadata filter condition (元数据过滤条件) |
+| `metadata_condition.logic` | string | 否 | Logic connection (逻辑关系 'and' 或 'or') |
+| `metadata_condition.conditions` | array | 否 | List of conditions (条件列表) |
+| `metadata_condition.conditions[].name` | string | 否 | Field name (字段名) |
+| `metadata_condition.conditions[].comparison_operator` | string | 否 | Operator (操作符，如 =, <, > 等) |
+| `metadata_condition.conditions[].value` | string | 否 | Field value (字段值) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/dify/retrieval" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "knowledge_id": "kb_123456",
+           "query": "什么是 RAGFlow？",
+           "retrieval_setting": {
+             "score_threshold": 0.5,
+             "top_k": 5
+           },
+           "metadata_condition": {
+             "logic": "and",
+             "conditions": [
+               {
+                 "name": "author",
+                 "comparison_operator": "=",
+                 "value": "admin"
+               }
+             ]
+           }
+         }'
+```
+
+### 响应示例
+```json
+{
+  "records": [
+    {
+      "content": "RAGFlow is an open-source RAG engine...",
+      "score": 0.89,
+      "title": "RAGFlow Introduction",
+      "metadata": {
+        "doc_id": "doc_1",
+        "author": "admin",
+        "source": "manual"
+      }
+    }
+  ]
+}
+```
+
+---
+
+# Document Management API 文档
+
+**Base URL**: `http://localhost:9380/v1/api`
+
+**Authentication**:
+所有接口均需要认证。请在 Header 中携带 API Key：
+`Authorization: Bearer <YOUR_API_KEY>`
+
+## 1. 上传文件 (Upload Documents)
+
+上传文档到指定数据集。
+
+- **URL**: `/datasets/<dataset_id>/documents`
+- **Method**: `POST`
+- **Content-Type**: `multipart/form-data`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+
+### 请求参数 (Body/Form)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `file` | file | 是 | 要上传的文档文件 (支持多个文件) |
+| `parent_path` | string | 否 | 父文件夹路径，使用 '/' 分隔 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/documents" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -F "file=@/path/to/document.pdf" \
+     -F "parent_path=/"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "doc_1",
+      "name": "document.pdf",
+      "chunk_count": 0,
+      "token_count": 0,
+      "dataset_id": "dataset_123",
+      "chunk_method": "naive",
+      "run": "UNSTART"
+    }
+  ],
+  "message": "success"
+}
+```
+
+---
+
+## 2. 更新文档 (Update Document)
+
+更新数据集中文档的元信息或配置。
+
+- **URL**: `/datasets/<dataset_id>/documents/<document_id>`
+- **Method**: `PUT`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+| `document_id` | string | 是 | 文档 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 否 | 新的文档名称 (需包含扩展名) |
+| `chunk_method` | string | 否 | 解析方法 (如: naive, manual, qa, table, etc.) |
+| `parser_config` | object | 否 | 解析器配置 |
+| `enabled` | boolean | 否 | 启用/禁用文档 |
+| `meta_fields` | object | 否 | 元数据字段 (JSON Object) |
+
+### 请求示例
+```bash
+curl -X PUT "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "new_name.pdf",
+           "enabled": true
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+      "id": "doc_1",
+      "name": "new_name.pdf",
+      "run": "DONE",
+      "status": "1"
+      // ... 其他文档字段
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 3. 下载文档 (Download Document)
+
+下载数据集中的文档文件。
+
+- **URL**: `/datasets/<dataset_id>/documents/<document_id>`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+| `document_id` | string | 是 | 文档 ID |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" --output document.pdf
+```
+
+### 响应示例
+(文件流)
+
+---
+
+## 4. 获取文档列表 (List Documents)
+
+列出数据集中的文档。
+
+- **URL**: `/datasets/<dataset_id>/documents`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `page` | integer | 否 | 页码 (默认: 1) |
+| `page_size` | integer | 否 | 每页数量 (默认: 30) |
+| `id` | string | 否 | 按文档 ID 过滤 |
+| `name` | string | 否 | 按文档名称过滤 |
+| `keywords` | string | 否 | 搜索关键字 |
+| `orderby` | string | 否 | 排序字段 (默认: create_time) |
+| `desc` | boolean | 否 | 是否降序 (默认: true) |
+| `suffix` | array[string] | 否 | 按文件后缀过滤 (e.g., pdf, docx) |
+| `run` | array[string] | 否 | 按运行状态过滤 (UNSTART, RUNNING, CANCEL, DONE, FAIL) |
+| `create_time_from` | integer | 否 | 创建时间起始 (Unix timestamp) |
+| `create_time_to` | integer | 否 | 创建时间结束 (Unix timestamp) |
+| `metadata_condition` | json string | 否 | 元数据过滤条件 |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/documents?page=1&page_size=10&keywords=report" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "total": 100,
+    "docs": [
+      {
+        "id": "doc_1",
+        "name": "report.pdf",
+        "chunk_count": 50,
+        "token_count": 5000,
+        "run": "DONE",
+        "create_time": "2024-01-01 12:00:00"
+      }
+    ]
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 5. 元数据摘要 (Metadata Summary)
+
+获取数据集的元数据摘要信息。
+
+- **URL**: `/datasets/<dataset_id>/metadata/summary`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/metadata/summary" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "summary": {
+       // 元数据统计信息
+    }
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 6. 元数据批量更新 (Metadata Batch Update)
+
+批量更新或删除文档的元数据。
+
+- **URL**: `/datasets/<dataset_id>/metadata/update`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `selector` | object | 否 | 选择器，包含 `metadata_condition` (filter) 或 `document_ids` |
+| `updates` | list[object] | 否 | 更新操作列表，每项含 `key`, `value` |
+| `deletes` | list[object] | 否 | 删除操作列表，每项含 `key` |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/metadata/update" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "selector": {
+             "document_ids": ["doc_1", "doc_2"]
+           },
+           "updates": [
+             {"key": "author", "value": "Alice"}
+           ]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "updated": 2,
+    "matched_docs": 2
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 7. 删除文档 (Delete Documents)
+
+删除数据集中的一个或多个文档。
+
+- **URL**: `/datasets/<dataset_id>/documents`
+- **Method**: `DELETE`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `ids` | list[string] | 否 | 要删除的文档 ID 列表 (若为空则删除该知识库下所有文档) |
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/datasets/dataset_123/documents" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "ids": ["doc_1", "doc_2"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "message": "success"
+}
+```
+
+---
+
+## 8. 解析文档 (Parse Documents)
+
+开始解析文档（生成 Chunk）。
+
+- **URL**: `/datasets/<dataset_id>/chunks`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `document_ids` | list[string] | 是 | 要解析的文档 ID 列表 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/chunks" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "document_ids": ["doc_1"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "message": "success"
+}
+```
+
+---
+
+## 9. 停止解析 (Stop Parsing)
+
+停止文档的解析任务。
+
+- **URL**: `/datasets/<dataset_id>/chunks`
+- **Method**: `DELETE`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `document_ids` | list[string] | 是 | 要停止解析的文档 ID 列表 |
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/datasets/dataset_123/chunks" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "document_ids": ["doc_1"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "message": "success"
+}
+```
+
+---
+
+## 10. 获取 Chunk 列表 (List Chunks)
+
+获取文档的 Chunk 列表或搜索 Chunk。
+
+- **URL**: `/datasets/<dataset_id>/documents/<document_id>/chunks`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+| `document_id` | string | 是 | 文档 ID |
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `page` | integer | 否 | 页码 (默认: 1) |
+| `page_size` | integer | 否 | 每页数量 (默认: 30) |
+| `id` | string | 否 | 按 Chunk ID 精确查找 |
+| `keywords` | string | 否 | 搜索关键字 |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/chunks?page=1&keywords=test" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "total": 10,
+    "chunks": [
+      {
+        "id": "chunk_1",
+        "content": "This is a chunk content.",
+        "document_id": "doc_1",
+        "important_keywords": ["keyword1"],
+        "dataset_id": "dataset_123"
+      }
+    ],
+    "doc": {
+        "id": "doc_1",
+        "name": "doc.pdf"
+    }
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 11. 添加 Chunk (Add Chunk)
+
+手动添加 Chunk 到文档。
+
+- **URL**: `/datasets/<dataset_id>/documents/<document_id>/chunks`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+| `document_id` | string | 是 | 文档 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `content` | string | 是 | Chunk 内容 |
+| `important_keywords` | list[string] | 否 | 关键词列表 |
+| `questions` | list[string] | 否 | 相关问题列表 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/chunks" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "content": "New chunk content",
+           "important_keywords": ["new", "chunk"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "chunk": {
+      "id": "generated_chunk_id",
+      "content": "New chunk content",
+      // ...
+    }
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 12. 删除 Chunk (Remove Chunks)
+
+删除文档中的一个或多个 Chunk。
+
+- **URL**: `/datasets/<dataset_id>/documents/<document_id>/chunks`
+- **Method**: `DELETE`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+| `document_id` | string | 是 | 文档 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `chunk_ids` | list[string] | 否 | 要删除的 Chunk ID 列表 (若空则根据 API 逻辑可能删除全部或报错，具体视实现而定，建议明确指定) |
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/chunks" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "chunk_ids": ["chunk_1"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "message": "deleted 1 chunks"
+}
+```
+
+---
+
+## 13. 更新 Chunk (Update Chunk)
+
+更新 Chunk 的内容或属性。
+
+- **URL**: `/datasets/<dataset_id>/documents/<document_id>/chunks/<chunk_id>`
+- **Method**: `PUT`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_id` | string | 是 | 数据集 ID |
+| `document_id` | string | 是 | 文档 ID |
+| `chunk_id` | string | 是 | Chunk ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `content` | string | 否 | 新的 Chunk 内容 |
+| `important_keywords` | list[string] | 否 | 关键词列表 |
+| `questions` | list[string] | 否 | 相关问题列表 |
+| `available` | boolean | 否 | 是否启用 (1/0 or true/false) |
+| `positions` | list[string] | 否 | 位置信息 |
+
+### 请求示例
+```bash
+curl -X PUT "http://localhost:9380/v1/api/datasets/dataset_123/documents/doc_1/chunks/chunk_1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "content": "Updated content"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "message": "success"
+}
+```
+
+---
+
+## 14. 检索测试 (Retrieval Test)
+
+执行检索测试。
+
+- **URL**: `/retrieval`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dataset_ids` | list[string] | 是 | 搜索的数据集 ID 列表 |
+| `question` | string | 是 | 查询问题 |
+| `document_ids` | list[string] | 否 | 限定文档 ID 列表 |
+| `similarity_threshold` | number | 否 | 相似度阈值 (默认: 0.2) |
+| `vector_similarity_weight` | number | 否 | 向量相似度权重 (默认: 0.3) |
+| `top_k` | integer | 否 | 返回数量 (默认: 1024) |
+| `highlight` | boolean | 否 | 是否高亮匹配内容 |
+| `rerank_id` | string | 否 | 重排模型 ID |
+| `keyword` | boolean | 否 | 是否进行关键词增强 |
+| `cross_languages` | list[string] | 否 | 跨语言搜索配置 |
+| `use_kg` | boolean | 否 | 是否使用知识图谱 |
+| `metadata_condition` | object | 否 | 元数据过滤条件 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/retrieval" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "dataset_ids": ["dataset_123"],
+           "question": "what is ragflow?",
+           "top_k": 5
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "chunks": [
+      {
+        "id": "chunk_1",
+        "content": "RAGFlow is ...",
+        "similarity": 0.95,
+        "document_id": "doc_1",
+        "dataset_id": "dataset_123"
+      }
+    ]
+  },
+  "message": "success"
+}
+```
+
+---
+
+# File Management API 文档
+
+**Base URL**: `http://localhost:9380/v1/api`
+
+**Authentication**:
+所有接口均需要认证。请在 Header 中携带 API Key：
+`Authorization: Bearer <YOUR_API_KEY>`
+
+## 1. 上传文件 (Upload File)
+
+上传文件到系统。
+
+- **URL**: `/file/upload`
+- **Method**: `POST`
+- **Content-Type**: `multipart/form-data`
+
+### 请求参数 (FormData)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `file` | file | 是 | 要上传的文件 |
+| `parent_id` | string | 否 | 父文件夹 ID (若不传则上传到根目录) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/file/upload" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -F "file=@/path/to/document.pdf" \
+     -F "parent_id=folder_123"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "file_uuid",
+      "name": "document.pdf",
+      "size": 1024,
+      "type": "pdf",
+      "location": "document.pdf",
+      "created_by": "tenant_id",
+      "create_time": "2024-01-01 12:00:00"
+    }
+  ],
+  "message": "success"
+}
+```
+
+---
+
+## 2. 创建文件/文件夹 (Create File/Folder)
+
+创建一个新的文件夹或虚拟文件。
+
+- **URL**: `/file/create`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 是 | 文件/文件夹名称 |
+| `type` | string | 否 | 类型: `FOLDER` 或 `VIRTUAL` (默认 `VIRTUAL`) |
+| `parent_id` | string | 否 | 父文件夹 ID (默认根目录) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/file/create" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "New Folder",
+           "type": "FOLDER",
+           "parent_id": "root_id"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "folder_uuid",
+    "parent_id": "root_id",
+    "name": "New Folder",
+    "type": "FOLDER",
+    "size": 0,
+    "location": ""
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 3. 获取文件列表 (List Files)
+
+列出指定文件夹下的文件。
+
+- **URL**: `/file/list`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `parent_id` | string | 否 | 文件夹 ID (默认根目录) |
+| `keywords` | string | 否 | 搜索关键字 |
+| `page` | integer | 否 | 页码 (默认 1) |
+| `page_size` | integer | 否 | 每页数量 (默认 15) |
+| `orderby` | string | 否 | 排序字段 (默认 `create_time`) |
+| `desc` | boolean | 否 | 是否降序 (默认 `true`) |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/file/list?page=1&page_size=10" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "total": 50,
+    "files": [
+      {
+        "id": "file_1",
+        "name": "doc.pdf",
+        "type": "pdf",
+        "size": 2048,
+        "create_time": "2024-01-01 10:00:00"
+      }
+    ],
+    "parent_folder": {
+      "id": "folder_id",
+      "name": "root"
+    }
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 4. 获取根目录 (Get Root Folder)
+
+获取用户的根文件夹信息。
+
+- **URL**: `/file/root_folder`
+- **Method**: `GET`
+
+### 请求参数
+无
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/file/root_folder" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "root_folder": {
+      "id": "root_id",
+      "name": "root",
+      "type": "FOLDER"
+    }
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 5. 获取父文件夹 (Get Parent Folder)
+
+获取指定文件的父文件夹信息。
+
+- **URL**: `/file/parent_folder`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `file_id` | string | 是 | 目标文件 ID |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/file/parent_folder?file_id=file_xxx" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "parent_folder": {
+      "id": "parent_id",
+      "name": "Parent Name"
+    }
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 6. 获取所有父文件夹 (Get All Parent Folders)
+
+获取文件的所有上级目录（路径）。
+
+- **URL**: `/file/all_parent_folder`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `file_id` | string | 是 | 目标文件 ID |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/file/all_parent_folder?file_id=file_xxx" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "parent_folders": [
+      {
+        "id": "root_id",
+        "name": "root"
+      },
+      {
+        "id": "folder_level_1",
+        "name": "Project A"
+      }
+    ]
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 7. 删除文件 (Remove Files)
+
+删除一个或多个文件/文件夹。如果删除文件夹，其中的文件也会被删除。
+
+- **URL**: `/file/rm`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `file_ids` | list[string] | 是 | 要删除的文件 ID 列表 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/file/rm" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "file_ids": ["file_1", "file_2"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+---
+
+## 8. 重命名文件 (Rename File)
+
+重命名文件。
+
+- **URL**: `/file/rename`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `file_id` | string | 是 | 目标文件 ID |
+| `name` | string | 是 | 新名称 (扩展名需保持一致) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/file/rename" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "file_id": "file_xxx",
+           "name": "new_name.pdf"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+---
+
+## 9. 下载文件 (Download File)
+
+下载文件内容。
+
+- **URL**: `/file/get/<file_id>`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `file_id` | string | 是 | 文件 ID |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/file/get/file_uuid_xxx" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     --output my_file.pdf
+```
+
+### 响应示例
+(返回二进制文件流)
+
+---
+
+## 10. 下载附件 (Download Attachment)
+
+下载系统生成的附件。
+
+- **URL**: `/file/download/<attachment_id>`
+- **Method**: `GET`
+
+### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `attachment_id` | string | 是 | 附件 ID (URL Path) |
+| `ext` | string | 否 | 扩展名/格式 (Query, 默认 `markdown`) |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/file/download/att_uuid?ext=pdf" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+(返回二进制文件流)
+
+---
+
+## 11. 移动文件 (Move Files)
+
+移动一个或多个文件到另一个文件夹。
+
+- **URL**: `/file/mv`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `src_file_ids` | list[string] | 是 | 源文件 ID 列表 |
+| `dest_file_id` | string | 是 | 目标文件夹 ID |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/file/mv" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "src_file_ids": ["file_1", "file_2"],
+           "dest_file_id": "folder_target"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": true,
+  "message": "success"
+}
+```
+
+---
+
+## 12. 转换文件 (Convert File)
+
+将文件解析并添加到知识库。
+
+- **URL**: `/file/convert`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `kb_ids` | list[string] | 是 | 目标知识库 ID 列表 |
+| `file_ids` | list[string] | 是 | 要转换的文件 ID 列表 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/file/convert" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "kb_ids": ["kb_1"],
+           "file_ids": ["file_1"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "file2doc_id",
+      "file_id": "file_1",
+      "document_id": "doc_1"
+    }
+  ],
+  "message": "success"
+}
+```
+
+---
+
+# Session & Chat API 文档
+
+**Base URL**: `http://localhost:9380/v1/api`
+
+**Authentication**:
+所有接口均需要认证。请在 Header 中携带 API Key：
+`Authorization: Bearer <YOUR_API_KEY>`
+
+## 1. 创建会话 (Create Session)
+
+为指定的助手 (Assistant/Chat) 创建一个新的会话。
+
+- **URL**: `/chats/<chat_id>/sessions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `chat_id` | string | 是 | 助手 ID (Dialog ID) |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 否 | 会话名称 (默认: "New session") |
+| `user_id` | string | 否 | 用户标识 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/chats/chat_123/sessions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "My Chat Session",
+           "user_id": "user_abc"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "session_1",
+    "chat_id": "chat_123",
+    "name": "My Chat Session",
+    "create_time": "2024-01-01 12:00:00",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Hello! How can I help you?"
+      }
+    ]
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 2. 创建 Agent 会话 (Create Agent Session)
+
+为指定的 Agent 创建一个新的会话。
+
+- **URL**: `/agents/<agent_id>/sessions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `agent_id` | string | 是 | Agent ID |
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `user_id` | string | 否 | 用户标识 (默认为 tenant_id) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/agents/agent_123/sessions?user_id=user_abc" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "session_agent_1",
+    "agent_id": "agent_123",
+    "user_id": "user_abc",
+    "messages": [{"role": "assistant", "content": "..."}],
+    "source": "agent",
+    "dsl": {...}
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 3. 更新会话 (Update Session)
+
+更新会话信息（如重命名）。
+
+- **URL**: `/chats/<chat_id>/sessions/<session_id>`
+- **Method**: `PUT`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `chat_id` | string | 是 | 助手 ID |
+| `session_id` | string | 是 | 会话 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `name` | string | 否 | 新的会话名称 (不能为空) |
+
+### 请求示例
+```bash
+curl -X PUT "http://localhost:9380/v1/api/chats/chat_123/sessions/session_1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "name": "Renamed Session"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": null,
+  "message": "success"
+}
+```
+
+---
+
+## 4. 对话补全 (Chat Completion)
+
+与助手进行对话。
+
+- **URL**: `/chats/<chat_id>/completions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `chat_id` | string | 是 | 助手 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 否 | 用户提问内容 (若 session_id 未提供则为空字符串) |
+| `session_id` | string | 否 | 会话 ID (若提供则基于历史上下文) |
+| `stream` | boolean | 否 | 是否流式返回 (默认: true) |
+| `metadata_condition` | object | 否 | 元数据过滤条件 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/chats/chat_123/completions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "What is RAG?",
+           "session_id": "session_1",
+           "stream": true
+         }'
+```
+
+### 响应示例 (Stream)
+```text
+data:{"code": 0, "message": "", "data": {"answer": "RAG stands for...", "reference": [...]}}
+
+data:{"code": 0, "message": "", "data": true}
+```
+
+### 响应示例 (Non-Stream)
+```json
+{
+  "code": 0,
+  "data": {
+      "answer": "RAG stands for...",
+      "reference": [...]
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 5. OpenAI 兼容对话 (Chat Completion OpenAI Compatible)
+
+OpenAI 兼容的对话接口。
+
+- **URL**: `/chats_openai/<chat_id>/chat/completions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `chat_id` | string | 是 | 助手 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `messages` | list[object] | 是 | 消息列表 (包含 role 和 content) |
+| `model` | string | 是 | 模型名称 (占位符，实际由后端配置决定) |
+| `stream` | boolean | 否 | 是否流式返回 (默认: true) |
+| `extra_body` | object | 否 | 额外参数 (如 `reference`: boolean, `metadata_condition`: object) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/chats_openai/chat_123/chat/completions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "model": "gpt-3.5-turbo",
+           "messages": [
+             {"role": "user", "content": "Hello"}
+           ],
+           "stream": true
+         }'
+```
+
+### 响应示例
+(符合 OpenAI Chat Completion Chunk 格式)
+
+---
+
+## 6. OpenAI 兼容 Agent 对话 (Agent Completion OpenAI Compatible)
+
+OpenAI 兼容的 Agent 对话接口。
+
+- **URL**: `/agents_openai/<agent_id>/chat/completions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `agent_id` | string | 是 | Agent ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `messages` | list[object] | 是 | 消息列表 |
+| `model` | string | 是 | 模型名称 |
+| `stream` | boolean | 否 | 是否流式返回 (默认: false, 注意此接口默认值与其他不同) |
+| `session_id` | string | 否 | 会话 ID |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/agents_openai/agent_123/chat/completions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "messages": [{"role": "user", "content": "Run analysis"}],
+           "model": "agent-model"
+         }'
+```
+
+---
+
+## 7. Agent 补全 (Agent Completion)
+
+执行 Agent 对话/任务。
+
+- **URL**: `/agents/<agent_id>/completions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `agent_id` | string | 是 | Agent ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `stream` | boolean | 否 | 是否流式返回 (默认: true) |
+| `return_trace` | boolean | 否 | 是否返回执行轨迹 (默认: false) |
+| `...` | any | 否 | 其他传递给 Agent 的参数 (如 inputs, question 等) |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/agents/agent_123/completions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "Analyze this data",
+           "stream": true
+         }'
+```
+
+---
+
+## 8. 获取会话列表 (List Sessions)
+
+获取助手的会话列表。
+
+- **URL**: `/chats/<chat_id>/sessions`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `chat_id` | string | 是 | 助手 ID |
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `page` | integer | 否 | 页码 (默认: 1) |
+| `page_size` | integer | 否 | 每页数量 (默认: 30) |
+| `orderby` | string | 否 | 排序字段 (默认: create_time) |
+| `desc` | boolean | 否 | 是否降序 (默认: true) |
+| `id` | string | 否 | 按会话 ID 过滤 |
+| `name` | string | 否 | 按会话名称过滤 |
+| `user_id` | string | 否 | 按用户 ID 过滤 |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/chats/chat_123/sessions?page=1" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "session_1",
+      "name": "New session",
+      "create_time": "..."
+    }
+  ],
+  "message": "success"
+}
+```
+
+---
+
+## 9. 获取 Agent 会话列表 (List Agent Sessions)
+
+获取 Agent 的会话列表。
+
+- **URL**: `/agents/<agent_id>/sessions`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `agent_id` | string | 是 | Agent ID |
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `page` | integer | 否 | 页码 (默认: 1) |
+| `page_size` | integer | 否 | 每页数量 (默认: 30) |
+| `orderby` | string | 否 | 排序字段 (默认: update_time) |
+| `desc` | boolean | 否 | 是否降序 (默认: true) |
+| `dsl` | boolean | 否 | 是否包含 DSL (默认: true) |
+| `id` | string | 否 | 按 ID 过滤 |
+| `user_id` | string | 否 | 按用户 ID 过滤 |
+
+### 请求示例
+```bash
+curl -X GET "http://localhost:9380/v1/api/agents/agent_123/sessions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>"
+```
+
+---
+
+## 10. 删除会话 (Delete Sessions)
+
+删除一个或多个会话。
+
+- **URL**: `/chats/<chat_id>/sessions`
+- **Method**: `DELETE`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `chat_id` | string | 是 | 助手 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `ids` | list[string] | 否 | 要删除的会话 ID 列表 (若为空则可能删除全部，具体视实现而定) |
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/chats/chat_123/sessions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "ids": ["session_1"]
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "message": "success"
+}
+```
+
+---
+
+## 11. 删除 Agent 会话 (Delete Agent Sessions)
+
+删除一个或多个 Agent 会话。
+
+- **URL**: `/agents/<agent_id>/sessions`
+- **Method**: `DELETE`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `agent_id` | string | 是 | Agent ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `ids` | list[string] | 否 | 要删除的会话 ID 列表 |
+
+### 请求示例
+```bash
+curl -X DELETE "http://localhost:9380/v1/api/agents/agent_123/sessions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "ids": ["session_agent_1"]
+         }'
+```
+
+---
+
+## 12. 知识库问答 (Ask KB)
+
+直接针对知识库提问。
+
+- **URL**: `/sessions/ask`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 是 | 问题内容 |
+| `dataset_ids` | list[string] | 是 | 知识库 ID 列表 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/sessions/ask" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "What is in the doc?",
+           "dataset_ids": ["kb_1"]
+         }'
+```
+
+### 响应示例
+(Stream 格式返回答案)
+
+---
+
+## 13. 相关问题生成 (Related Questions)
+
+根据问题生成相关搜索建议。
+
+- **URL**: `/sessions/related_questions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 是 | 原始问题 |
+| `industry` | string | 否 | 行业背景 |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/sessions/related_questions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "Deep learning"
+         }'
+```
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": [
+    "Neural Networks",
+    "Backpropagation",
+    "CNN vs RNN"
+  ],
+  "message": "success"
+}
+```
+
+---
+
+## 14. 聊天机器人补全 (Chatbot Completion)
+
+用于嵌入式聊天机器人 (Iframe/External) 的对话接口。
+
+- **URL**: `/chatbots/<dialog_id>/completions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dialog_id` | string | 是 | 对话 ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 是 | 用户提问 |
+| `stream` | boolean | 否 | 是否流式返回 (默认: true) |
+| `session_id` | string | 否 | 会话 ID |
+
+### 请求示例
+```bash
+curl -X POST "http://localhost:9380/v1/api/chatbots/dialog_123/completions" \
+     -H "Authorization: Bearer <YOUR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "question": "Hello"
+         }'
+```
+
+---
+
+## 15. 获取聊天机器人信息 (Chatbot Info)
+
+获取嵌入式聊天机器人的基本信息。
+
+- **URL**: `/chatbots/<dialog_id>/info`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `dialog_id` | string | 是 | 对话 ID |
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "title": "Bot Name",
+    "avatar": "...",
+    "prologue": "Welcome!"
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 16. Agent 机器人补全 (Agentbot Completion)
+
+用于嵌入式 Agent 机器人 (Iframe/External) 的执行接口。
+
+- **URL**: `/agentbots/<agent_id>/completions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `agent_id` | string | 是 | Agent ID |
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `stream` | boolean | 否 | 是否流式返回 (默认: true) |
+| `...` | any | 否 | Agent 输入参数 |
+
+---
+
+## 17. 获取 Agent 机器人输入项 (Agentbot Inputs)
+
+获取 Agent 机器人的初始输入表单配置。
+
+- **URL**: `/agentbots/<agent_id>/inputs`
+- **Method**: `GET`
+
+### 请求参数 (Path)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `agent_id` | string | 是 | Agent ID |
+
+### 响应示例
+```json
+{
+  "code": 0,
+  "data": {
+    "title": "Agent Name",
+    "inputs": {...},
+    "prologue": "..."
+  },
+  "message": "success"
+}
+```
+
+---
+
+## 18. 搜索机器人问答 (Searchbot Ask)
+
+用于搜索机器人 (Searchbot) 的问答接口。
+
+- **URL**: `/searchbots/ask`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 是 | 问题 |
+| `kb_ids` | list[string] | 是 | 知识库 ID 列表 |
+| `search_id` | string | 否 | 搜索应用 ID |
+
+---
+
+## 19. 搜索机器人检索测试 (Searchbot Retrieval Test)
+
+搜索机器人的检索测试接口。
+
+- **URL**: `/searchbots/retrieval_test`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 是 | 问题 |
+| `kb_id` | list[string] | 是 | 知识库 ID 列表 |
+| `top_k` | integer | 否 | 返回数量 |
+| `similarity_threshold` | number | 否 | 相似度阈值 |
+
+---
+
+## 20. 搜索机器人相关问题 (Searchbot Related Questions)
+
+生成搜索机器人的相关推荐问题。
+
+- **URL**: `/searchbots/related_questions`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 是 | 问题 |
+| `search_id` | string | 否 | 搜索应用 ID |
+
+---
+
+## 21. 获取搜索机器人详情 (Searchbot Detail)
+
+获取搜索机器人的详细配置。
+
+- **URL**: `/searchbots/detail`
+- **Method**: `GET`
+
+### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `search_id` | string | 是 | 搜索应用 ID |
+
+---
+
+## 22. 搜索机器人思维导图 (Searchbot Mindmap)
+
+生成搜索结果的思维导图。
+
+- **URL**: `/searchbots/mindmap`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+### 请求参数 (Body)
+
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `question` | string | 是 | 问题 |
+| `kb_ids` | list[string] | 是 | 知识库 ID 列表 |
+| `search_id` | string | 否 | 搜索应用 ID |
+
+---
+
 # API Token API 文档
 
 **Base URL**: `http://localhost:9380/v1/api`

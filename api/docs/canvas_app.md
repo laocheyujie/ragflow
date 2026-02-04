@@ -659,7 +659,7 @@ curl -X GET "http://localhost:9380/v1/canvas/trace?canvas_id=c1&message_id=m1" \
 ```json
 {
   "code": 0,
-  "data": { ... }, // 详细日志结构
+  "data": { "..." }, // 详细日志结构
   "message": "success"
 }
 ```
