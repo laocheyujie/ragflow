@@ -9,7 +9,7 @@
 // ================= 配置区 =================
 const CONFIG = {
     // 登录接口路径
-    loginPath: "/user/login",
+    loginPath: "v1/user/login",
     // 环境变量 Key 配置
     envKeys: {
         email: "EMAIL",           // 输入：邮箱
